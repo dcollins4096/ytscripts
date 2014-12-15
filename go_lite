@@ -1,0 +1,27 @@
+
+import sys
+import os
+import copy
+import warnings
+
+
+if False:
+  sys.path.insert(0,'/Users/dccollins/local/src/yt_analysis')
+  sys.path.insert(0,'/nics/b/home/collins/local_2013_03_12/src/yt-dave')
+
+import numpy as na
+import math
+nar = na.array
+import pdb
+import matplotlib.pyplot as plt
+import matplotlib as mpl
+import pylab
+import fPickle
+import time
+import glob
+ef=execfile
+if not_in_yt3:
+  ef('davetools.py')
+sys.path.insert(0,'/nics/b/home/collins/local_nautilus/lib/python2.7/site-packages/')
+x_dict = [1,0,0]
+y_dict = [2,2,1]
