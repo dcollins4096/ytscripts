@@ -5,6 +5,7 @@ import clump_particles
 reload(clump_particles)
 thisdir = '/scratch1/dcollins/Paper19/B02/u02-128-d-alpha0.5'
 template = thisdir+'/DD%04d/data%04d'
+ef('particle_selector.py')
 
 if 0:
     """Make a sphere"""
@@ -40,9 +41,8 @@ if 0:
     pw.annotate_dave_particles(1.0, indices=indices_late)
     pw.save('test3.png')
    
-if 1:
+if 0:
     """From the loaded particles, make a test sphere"""
-    ef('particle_selector.py')
     indices_0360 = fPickle.load('p19_u02d_0360_indices_late.pickle')
     frame = 360
     setname = template%(frame,frame)
@@ -65,5 +65,32 @@ if 0:
     t1 = time.time()
     print "zero is ok", np.abs(tdep-dep).sum(), "dt = ", t1-t0
 
+if 0:
+    """ make a movie with the particles.  Stride 64 over particles to make it go."""
+    indices_0360 = fPickle.load('p19_u02d_0360_indices_late.pickle')
+    for frame in [360]:# [340,350, 360]:
+        setname = template%(frame,frame)
+        ds = yt.load(setname)
+        proj_full = ds.proj('density',0, center = 'c' ) #width = (1.0,'code_length'))
+        pw_full = proj_full.to_pw(center = 'c',width=(1.0,'code_length'))
+        pw_full.annotate_dave_particles(1.0, indices=indices_0360[::64])
+        pw_full.save('u02d_history_%04d'%frame)
 
-
+if 1:
+    """Movie of the deposited field."""
+    indices_0360 = fPickle.load('p19_u02d_0360_indices_late.pickle')
+    indices_0360 = indices_0360
+    t0 = time.time()
+    for frame in [360]:# [340,350, 360]:
+        setname = template%(frame,frame)
+        ds = yt.load(setname)
+        ad = ds.all_data()
+        mask_to_get = np.zeros(indices_0360.shape, dtype='int32') #this is necessary.  Factor of 2 faster to store mask_to_get
+        ad.set_field_parameter('indices_late',indices_0360)
+        ad.set_field_parameter('mask_to_get',mask_to_get)
+        ad.set_field_parameter('timer',[t0])
+        proj_full = ds.proj(("deposit",'deposit_target_particles_1'),0, data_source=ad, center = 'c' ) #width = (1.0,'code_length'))
+        pw_full = proj_full.to_pw(center = 'c',width=(1.0,'code_length'))
+        pw_full.save('u02d_deposited_%04d'%frame)
+    t1 = time.time()
+    print "time = ", t1-t0
