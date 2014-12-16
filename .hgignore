@@ -1,0 +1,18 @@
+# use glob syntax.
+Paper04_Scripts
+syntax: glob
+DATA
+CLEAN/*
+ProfileFiles/*
+fourier_tools
+*.png
+*.eps
+*.pdf
+*.pyc
+.*swp
+*~
+uber
+# switch to regexp syntax.
+syntax: regexp
+^\.pc/
+
