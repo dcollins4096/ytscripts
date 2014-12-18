@@ -1,4 +1,5 @@
 execfile('go')
+from yt.analysis_modules.level_sets.api import * #for clumps
 import pyximport; pyximport.install()
 import particle_ops
 import clump_particles
@@ -17,7 +18,6 @@ if 0:
     width = ds.arr(0.05,'code_length')
     val,loc = ds.find_max('density')
     #loc = ds.arr([0.5]*3,'code_length')
-
     """Image that sphere"""
     sphere = ds.sphere(loc,width)
     proj2 = ds.proj('density',0,data_source=sphere,center=loc)
@@ -47,7 +47,7 @@ if 0:
     frame = 360
     setname = template%(frame,frame)
     ds_0360 = yt.load(setname)
-    loc = ds_0360.arr([ 0.03613281,  0.79589844,  0.03027344], 'code_length')
+    loc = ds_0360.arr([ 0.03613281,  0.79589844,  0.03027344], 'code_length') #the max
     width = ds_0360.arr(0.05,'code_length')
     sphere = ds_0360.sphere(loc,width)
 
@@ -76,7 +76,7 @@ if 0:
         pw_full.annotate_dave_particles(1.0, indices=indices_0360[::64])
         pw_full.save('u02d_history_%04d'%frame)
 
-if 1:
+if 0:
     """Movie of the deposited field."""
     indices_0360 = fPickle.load('p19_u02d_0360_indices_late.pickle')
     indices_0360 = indices_0360
@@ -94,3 +94,37 @@ if 1:
         pw_full.save('u02d_deposited_%04d'%frame)
     t1 = time.time()
     print "time = ", t1-t0
+
+if 0:
+    frame = 360
+    setname = template%(frame,frame)
+    """ now let's try out the clump tools"""
+    frame = 360
+    setname = template%(frame,frame)
+    ds = yt.load(setname)
+    #val,loc = ds.find_max('density') (the max, because I'm super lazy)
+    loc = ds.arr([ 0.03613281,  0.79589844,  0.03027344], 'code_length')
+    width = (0.05,'code_length')
+    sphere = ds.sphere(loc,width)
+    master_clump = Clump(sphere,"density")
+    master_clump.add_validator("min_cells", 20)
+    #master_clump.add_validator("gravitationally_bound", use_particles=False, use_thermal_energy=False)
+    c_min = sphere["gas", "density"].min()
+    c_max = sphere["gas", "density"].max()
+    step = 10
+    find_clumps(master_clump, c_min, c_max, step)
+    leaf_clumps = get_lowest_clumps(master_clump) #if both min_cells and grav_bound are used, this is empty.
+    proj2 = ds.proj('density',2,data_source=sphere,center=loc)
+    pw = proj2.to_pw(center = loc, width = (0.1,'code_length'))
+    pw.annotate_clumps(leaf_clumps)
+    pw.save('clump_testx')
+
+if 0:
+    for n, c in enumerate(leaf_clumps):
+        print c['density'].shape, c['cell_mass'].shape, c.quantities.total_quantity('cell_mass') #, c.quantities.total_mass()
+
+if 0:
+    import clump_stuff
+    reload(clump_stuff)
+    #for c in leaf_clumps
+
