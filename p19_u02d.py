@@ -3,6 +3,7 @@ from yt.analysis_modules.level_sets.api import * #for clumps
 import pyximport; pyximport.install()
 import particle_ops
 import clump_particles
+from yt.utilities.data_point_utilities import FindBindingEnergy
 reload(clump_particles)
 thisdir = '/scratch1/dcollins/Paper19/B02/u02-128-d-alpha0.5'
 template = thisdir+'/DD%04d/data%04d'
@@ -10,8 +11,7 @@ ef('particle_selector.py')
 
 if 0:
     """Make a sphere"""
-    thisdir = '/scratch1/dcollins/Paper19/B02/u02-128-d-alpha0.5'
-    frame = 360
+    frame = 220 #360
     width = (0.05,'code_length')
     setname = template%(frame,frame)
     ds = yt.load(setname)
@@ -128,3 +128,74 @@ if 0:
     reload(clump_stuff)
     #for c in leaf_clumps
 
+if 0:
+    import xtra_energies
+    reload(xtra_energies)
+    ds_00 = yt.load('/scratch1/dcollins/Paper05/OK4/RS0000/restart0000')
+    sphere = ds_00.sphere([0.5]*3, (0.05,'code_length'))
+    M = sphere.quantities.total_quantity('cell_mass').to_units('code_mass')
+    G = 1
+    #ad = ds.all_data()
+    e = xtra_energies.energies_codeunits(sphere,G, use_particles=False, use_thermal=False)
+    BE = 3/5*G*M**2/0.05
+    #ok.  1% error.  Not bad.
+
+if 1:
+    #indices_0360 = fPickle.load('p19_u02d_0360_indices_late.pickle')
+    frame = 220 #360
+    setname = template%(frame,frame)
+    ds = yt.load(setname)
+    val, loc = ds.find_max('density')
+    #loc = ds_0360.arr([ 0.03613281,  0.79589844,  0.03027344], 'code_length') #the max
+    #loc = ds_0360.arr([0.5,0.5,0.5], 'code_length') #the max
+    max_dx = ds.domain_width/ds.domain_dimensions
+    min_dx = ds.index.get_smallest_dx()
+    locnd = loc.to_ndarray()
+    region = ds.region(center=loc,left_edge = loc-1.5*min_dx, right_edge = loc+1.5*min_dx)
+    indices_late,xpos_late,ypos_late,zpos_late = clump_particles.particles_from_clump(region)
+    print indices_late.size
+
+if 0:
+    """ make a movie with the particles.  Stride 64 over particles to make it go."""
+    #indices_0360 = fPickle.load('p19_u02d_0360_indices_late.pickle')
+    for frame in [200]: #range(0,370,10):
+        setname = template%(frame,frame)
+        ds = yt.load(sggetname)
+
+        if 1:
+            mask_to_get = na.zeros(self.indices.shape, dtype='int32')
+            found_any, mask = particle_ops.mask_particles( self.indices.astype('int64'), reg['particle_index'].astype('int64'), mask_to_get)
+
+            region = ds.region
+
+
+
+        if 0:
+            proj_full = ds.proj('density',2, center = 'c' ) #width = (1.0,'code_length'))
+            pw_full = proj_full.to_pw(center = 'c',width=(1.0,'code_length'))
+            pw_full.annotate_dave_particles(1.0, col='r', indices=indices_late)
+            pw_full.set_cmap('density','gray')
+            pw_full.save('u02d_early_peak_%04d'%frame)
+
+        if 0:
+            ad = ds.all_data()
+            mask_to_get = np.zeros(indices_late.shape, dtype='int32') #this is necessary.  Factor of 2 faster to store mask_to_get
+            t0=time.time()
+            ad.set_field_parameter('indices_late',indices_late)
+            ad.set_field_parameter('mask_to_get',mask_to_get)
+            ad.set_field_parameter('timer',[t0])
+            tdep = ad[("deposit",'deposit_target_particles_1')]
+            master_clump = Clump(ad,"density")
+            #master_clump.add_validator("min_cells", 20)
+            #master_clump.add_validator("gravitationally_bound", use_particles=False, use_thermal_energy=False)
+            c_min = 1
+            c_max = tdep.max()
+            step = c_max
+            find_clumps(master_clump, c_min, c_max, step)
+            leaf_clumps = get_lowest_clumps(master_clump) #if both min_cells and grav_bound are used, this is empty.
+            #proj2 = ds.proj('density',2,data_source=sphere,center=loc)
+            #pw = proj2.to_pw(center = loc, width = (0.1,'code_length'))
+            #pw.annotate_clumps(leaf_clumps)
+            #pw.save('clump_testx')
+
+            
