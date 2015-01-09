@@ -15,6 +15,7 @@ def deposit_target_particles_1(field, data):
     #int 32 because it's just a flag.
     #mask_to_get = np.zeros(indices_late.shape, dtype='int32')
     mask_to_get = data.get_field_parameter('mask_to_get')
+    t0 = data.get_field_parameter('timer')
     my_indices = data['particle_index'].astype('int64')
     print "  min thing"
     #mask_to_get[ indices_late < my_indices.min()] = 1
@@ -27,6 +28,9 @@ def deposit_target_particles_1(field, data):
     pos_to_get = data['particle_position'][mask == 1]
     d = data.deposit(pos_to_get, method = "count")
     d = data.ds.arr(d, input_units = "cm**-3")
+    t1 = time.time() 
+    print "  DT", t1-t0[-1]
+    data.set_field_parameter('timer',t0+[t1])
     return data.apply_units(d, field.units)
 
 yt.add_field(      ("deposit","deposit_target_particles_1"),
