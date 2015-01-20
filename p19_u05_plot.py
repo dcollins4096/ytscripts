@@ -2,6 +2,7 @@
 from yt.analysis_modules.level_sets.api import * #for clumps
 frame = 125
 scratchdir = '/scratch1/dcollins/Paper19/u05-r4-l4-128'
+scratchdir = '/work/00369/tg456484/maverick/Paper19/u05-r4-l4-128'
 fname = '%s/DD%04d/data%04d'%(scratchdir,frame,frame)
 
 if 'ds' not in dir():
@@ -9,6 +10,18 @@ if 'ds' not in dir():
 
 if 'loc' not in dir():
     val, loc = ds.find_max('density')
+
+if 0:
+    locn = loc.to_ndarray()
+    Left = nar([locn[0]-0.3, 0, locn[2]+0.2])
+    Right = nar([locn[0]+0.1, 1, locn[2]+0.5])
+    center = 0.5*(Left+Right)
+    rect = ds.region(center,Left,Right)
+    for ax in 'xyz':
+        proj = ds.proj('density', ax, data_source = rect, center = loc)
+        pw = proj.to_pw(center = loc)
+        pw.annotate_grids()
+        print pw.save('u05_0125_region_withgrids')
 
 if 0:
     for ax in 'xyz':
@@ -88,7 +101,17 @@ if 0:
         #ymin = cl['y'].min(); ymax=cl['y'].max()
         #zmin = cl['z'].min(); zmax=cl['z'].max()
 
+if 0:
+  master_clump = Clump(ds.all_data(),"density")
+  master_clump.add_validator("min_cells", 20)
+  c_min = 10
+  c_max = 1e7
+  step = 10
+  find_clumps(master_clump, c_min, c_max, step)
+
 if 1:
+    if 'peak_list' not in dir():
+        peak_list = fPickle.load('u05_0125_peaklist.pickle')
     keepers = [0,1,8,10,11,12,67,64,61, 201, 125, 306]
     for ax in 'xyz':
         print "proj", ax
