@@ -22,7 +22,6 @@ if 'ds' not in dir():
 if 'peak_list' not in dir():
     peak_list = fPickle.load('u05_0125_peaklist.pickle')
 
-print "CLOWN 1"    
 keepers = [0,1,8,10,11,12,67,64,61, 201, 125, 306]
 colors  = ['r','g','b','c','m','y','r','g','b','c','m','y']
 if 'indices_late' not in dir():
@@ -38,7 +37,6 @@ if 'indices_late' not in dir():
         indices_late[pind] = region['particle_index'].astype('int64')
 
 
-print "CLOWN 2"    
 if 0:
     """plot the particles for a sequence of frames."""
     ax = 1
@@ -110,17 +108,8 @@ if 1:
                                                         cut_region["index", "z"].in_units('code_length'),
                                                         truncate, 1.0)
 
-    
-      
-
             #try to get the preimage
-    
-
-
-            #tdep = ad['dp1']
-            #pi = ad['particle_index']
             if 0:
-                print "CLOWN make the master"
                 #This does not work.
                 master_clump = Clump(ad,'dp1')
                 #master_clump = Clump(ad,("deposit",'deposit_target_particles_1'))
@@ -131,15 +120,3 @@ if 1:
                 print "CLOWN make the clumps"
                 find_clumps(master_clump, c_min, c_max, step)
 
-if 0:
-    if 0:
-        #This works, less general.
-        d1 = ad['density'][tdep>0]
-        x1 = ad['x'][tdep>0]
-        td1 = ad[("deposit",'deposit_target_particles')][tdep>0]
-    #This is more general, probably more useful.
-    cut_region  = ad.cut_region(['obj["deposit","deposit_target_particles"] > 0'])
-    d2 = cut_region['density']
-    #td2 = cut_region[("deposit",'deposit_target_particles')]
-
-    
