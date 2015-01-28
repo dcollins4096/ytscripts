@@ -36,7 +36,6 @@ if 'indices_late' not in dir():
         #indices_late[pind],xpos_late[pind],ypos_late[pind],zpos_late[pind] = clump_particles.particles_from_clump(region)
         indices_late[pind] = region['particle_index'].astype('int64')
 
-
 if 0:
     """plot the particles for a sequence of frames."""
     ax = 1
@@ -54,7 +53,7 @@ if 0:
                 pw_full.annotate_point(peak_list[pind],pind,text_args={'color':colors[n]})
         print pw_full.save('u05_%04d_keepers1'%frame)
 
-if 1:
+if 0:
     if 'tdep' not in dir():
         tdep = {}
     if 'qdict' not in dir():
@@ -95,18 +94,19 @@ if 1:
             cell_mass = cut_region['cell_mass']
             cell_volume = cut_region['cell_volume']
             vx = cut_region['x-velocity']; vy = cut_region['y-velocity']; vz = cut_region['z-velocity']
-            qdict['magnetic_energy'][pind] = 0.5*(cell_volume*(cut_region['Bx']**2+cut_region['By']**2 + cut_region['Bz']**2)).sum()
+            qdict['magnetic_energy'][pind] = (cell_volume*(cut_region['Bx']**2+cut_region['By']**2 + cut_region['Bz']**2)).sum()
             qdict['avg_vx'][pind] = (vx*cell_mass).sum()/mtotal
             qdict['avg_vy'][pind] = (vy*cell_mass).sum()/mtotal
             qdict['avg_vz'][pind] = (vz*cell_mass).sum()/mtotal
             qdict['avg_density'][pind] = mtotal/cell_volume.sum()
             qdict['kinetic_energy'][pind] =( 0.5*cell_mass*( (vx-qdict['avg_vx'][pind])**2 + (vy-qdict['avg_vy'][pind])**2 + (vz-qdict['avg_vz'][pind])**2 )).sum()
             truncate = False
-            qdict['binding_energy'][pind] = FindBindingEnergy(cut_region["gas", "cell_mass"].in_units('code_mass'),
+            qdict['binding_energy'][pind] =ds['GravitationalConstant']* FindBindingEnergy(cut_region["gas", "cell_mass"].in_units('code_mass'),
                                                         cut_region["index", "x"].in_units('code_length'),
                                                         cut_region["index", "y"].in_units('code_length'),
                                                         cut_region["index", "z"].in_units('code_length'),
                                                         truncate, 1.0)
+            del tdep[pind]
 
             #try to get the preimage
             if 0:

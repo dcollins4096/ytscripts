@@ -17,6 +17,14 @@ if  not_in_yt3:
   import bilog
   import uberdiff
 
+from yt.analysis_modules.level_sets.api import * #for clumps
+import pyximport; pyximport.install()
+import particle_ops
+import random
+import clump_particles
+from yt.utilities.data_point_utilities import FindBindingEnergy
+from yt.utilities.physical_constants import \
+            gravitational_constant_cgs as G
 
 isothermal_hydro=['Density']+['%s-velocity'%s for s in 'xyz'] 
 isothermal_mhd = isothermal_hydro + ['B%s'%s for s in 'xyz']
@@ -31,3 +39,5 @@ adiabatic_hydro = isothermal_hydro + ['TotalEnergy']
 adiabatic_mhd = isothermal_mhd + ['TotalEnergy']
 all_fields = adiabatic_mhd+staggered
 alphabet='abcdefghijklmnopqrstuvwxyz'
+
+

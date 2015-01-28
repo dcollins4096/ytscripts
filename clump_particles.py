@@ -1,5 +1,5 @@
 import pdb
-from yt.mods import *
+#from yt.mods import *
 from yt.visualization.plot_modifications import *
 from yt.visualization import _MPL
 import pyximport; pyximport.install()
