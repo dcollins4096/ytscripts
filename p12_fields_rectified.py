@@ -387,11 +387,21 @@ add_field("GradProductDensityMagneticPressure", function=GradProductDensityMagne
 def Lambda_magn(field, data):
     Density = get_density(data)
     tmp = -data["LaplaceMagneticPressure"]/Density
+    #tmp = -data["LaplacianMagneticPressure_27pt"]/Density
     tmp += data["GradProductDensityMagneticPressure"]/Density**2
     tmp += data["MagneticFieldCrossContractions"]/Density
     return tmp
-
 add_field("Lambda_magn", function=Lambda_magn, take_log=False, display_name=r"\Lambda_{\rm magn}")
+
+def Lambda_magn_27(field, data):
+    Density = get_density(data)
+    tmp = -data["LaplacianMagneticPressure_27pt"]/Density
+    tmp += data["GradProductDensityMagneticPressure"]/Density**2
+    tmp += data["MagneticFieldCrossContractions"]/Density
+    return tmp
+add_field("Lambda_magn_27_bh", function=Lambda_magn_27, take_log=False, display_name=r"\Lambda_{\rm magn}")
+
+
 
 def Lambda(field, data):
     if mhd:
@@ -446,11 +456,15 @@ def line_func(field_name):
 make_field_per_g("Lambda_therm_full")
 make_field_pos("Lambda_therm_full_per_G")
 make_field_neg("Lambda_therm_full_per_G")
-#make_field_per_g("Lambda_turb")
-#make_field_pos("Lambda_turb_per_G")
-#make_field_neg("Lambda_turb_per_G")
-#make_field_per_g("Lambda_magn")
-#make_field_pos("Lambda_magn_per_G")
-#make_field_neg("Lambda_magn_per_G")
+make_field_per_g("Lambda_turb")
+make_field_pos("Lambda_turb_per_G")
+make_field_neg("Lambda_turb_per_G")
+make_field_per_g("Lambda_magn")
+make_field_pos("Lambda_magn_per_G")
+make_field_neg("Lambda_magn_per_G")
 
 
+make_field_pos("Lambda_magn")
+make_field_neg("Lambda_magn")
+make_field_pos("Lambda_magn_27_simple")
+make_field_neg("Lambda_magn_27_simple")

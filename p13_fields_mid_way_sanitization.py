@@ -6,40 +6,39 @@ print "Watch units."
     #return data["cell_mass"]/mean_density
 #
 #yt.add_field("CellMassNorm", function=CellMassNorm, display_name=r"m/m_{\rm tot}")
-switch = 1
-if switch:  #the switch                                                                                                
+
+if 1:  #the switch                                                                                                
     def CellVolumeNorm(field, data):
         return data["cell_volume"].in_units("code_length**3")
 
     yt.add_field("CellVolumeNorm", function=CellVolumeNorm, display_name=r"V/L^3", units="code_length**3")
 
-if switch:  #the switch                                                                                                
+if 1:  #the switch                                                                                                
 
     def Delta(field, data):
         den = data['density'].in_units('code_density')
         return den/ds.arr(mean_density,"code_density")
 
     yt.add_field("Delta", function=Delta, display_name=r"1+\delta",units="")
-if switch:  #the switch                                                                                                
+if 1:  #the switch                                                                                                
 
     def Gravity(field, data):
         g = data.ds.arr(data.ds['GravitationalConstant'],'1/(code_density*code_time**2)')
         den = data['density'].in_units('code_density')
-        #md = data.ds.quan(mean_density,"code_density")
-        md = data.ds.quan(0,"code_density")
+        md = data.ds.quan(mean_density,"code_density")
         return data['dx']*data['dx']*g*(den - md)*den
 
     yt.add_field("Gravity", function=Gravity, take_log=False, display_name=r"4\pi G\rho(\rho-\rho_{0})\Delta^2", units="erg/cm**3")
 
-if switch:  #the switch                                                                                                
+if 1:  #the switch                                                                                                
 
 # ========== THERMAL SUPPORT ==========
     def KineticEnergyDensity(field, data):
 
         den = data['density'].in_units('code_density')
-        vx = data['x-velocity'].in_units('code_length/code_time')
-        vy = data['y-velocity'].in_units('code_length/code_time')
-        vz = data['z-velocity'].in_units('code_length/code_time')
+        vx = data['x-velocity'].in_units('code_length/code_time').v
+        vy = data['y-velocity'].in_units('code_length/code_time').v
+        vz = data['z-velocity'].in_units('code_length/code_time').v
         return 0.5*den*(data["x-velocity"]*data["x-velocity"] + \
                                     data["y-velocity"]*data["y-velocity"] + \
                                     data["z-velocity"]*data["z-velocity"])
@@ -55,7 +54,7 @@ if switch:  #the switch
 #           raise Exception("NO INTERNAL ENERGY")
 
 #   yt.add_field("InternalEnergy", function=InternalEnergy,units=None)
-if switch:  #the switch                                                                                                
+if 1:  #the switch                                                                                                
 
     def Pressure(field, data):
         cs2 = data.ds.quan(1.0,"code_length**2/code_time**2")
@@ -67,7 +66,7 @@ if switch:  #the switch
 
     yt.add_field("Pressure", function=Pressure, display_name=r"P",units="erg/cm**3")
 
-if switch: #the switch
+if 1: #the switch
 
     def GradProductDensityPressure(field, data):
         # We need to set up stencils
@@ -119,7 +118,7 @@ if switch: #the switch
     yt.add_field("GradProductDensityPressure", function=GradProductDensityPressure,
               validators=[yt.ValidateSpatial(2,["density","Pressure"])],units=None)
 
-if switch:  #the switch                                                                                                
+if 1:  #the switch                                                                                                
     def LaplacePressure(field, data):
         # We need to set up stencils
         # forget about HydroMethod =2!
@@ -155,29 +154,15 @@ if switch:  #the switch
     yt.add_field("LaplacePressure", function=LaplacePressure,
               validators=[yt.ValidateSpatial(2,["Pressure"])],units=None)
 
-if switch:  #the switch                                                                                                
+if 1:  #the switch                                                                                                
     def Lambda_therm(field, data):
-        den = data['density'].in_units('code_density').v
+        den = data['density'].in_units('code_density')
         tmp = -data["LaplacePressure"]
         tmp += data["GradProductDensityPressure"]/den
         return tmp
 
     yt.add_field("Lambda_therm", function=Lambda_therm, take_log=False, display_name=r"\Delta^2\!\rho\Lambda_{\rm therm}",units=None)
-
-    def partial_lambda(field,data):
-        den = data['density'].in_units('code_density').v
-        return np.abs(data["GradProductDensityPressure"]/den)
-    yt.add_field("partial_lambda", function=partial_lambda, take_log=True, units=None)
-    def partial_lambda_grav(field,data):
-        den = data['density'].in_units('code_density').v
-        return np.abs(data["GradProductDensityPressure"]/den)/data['Gravity'].v
-    yt.add_field("partial_lambda_grav", function=partial_lambda_grav, take_log=True, units=None)
-
-    def partial_lambda_den(field,data):
-        den = data['density'].in_units('code_density').v
-        return np.abs(data["GradProductDensityPressure"]/den)/den
-    yt.add_field("partial_lambda_den", function=partial_lambda_den, take_log=True, units=None)
-if switch:  #the switch                                                                                                
+if 1:  #the switch                                                                                                
 
     def Lambda_therm_pos(field, data):
         tmp = data["Lambda_therm"]
@@ -191,7 +176,7 @@ if switch:  #the switch
 
     yt.add_field("Lambda_therm_neg", function=Lambda_therm_neg, display_name=r"\Delta^2\!\rho\Lambda_{\rm therm\,-}",units=None)
 
-if switch: #the switch
+if 1: #the switch
 # ========== TURBULENT SUPPORT ==========                                                                                          
 
     def EnstrophyDensity(field, data):
@@ -232,17 +217,16 @@ if switch: #the switch
         vyz -= 8.0 * data["y-velocity"][2:-2,2:-2,sl_left]/dz
         vyz += 8.0 * data["y-velocity"][2:-2,2:-2,sl_right]/dz
         vyz -= data["y-velocity"][2:-2,2:-2,sl_extr_right]/dz
-        den = data['density'].in_units('code_density').v
+        den = data['density'].in_units('code_density')
         new_field = den
         new_field[2:-2,2:-2,2:-2] *= 0.5*((vzy-vyz)*(vzy-vyz) + (vxz-vzx)*(vxz-vzx) + (vyx-vxy)*(vyx-vxy))
-        #pdb.set_trace()
         return new_field
 
     yt.add_field("EnstrophyDensity", function=EnstrophyDensity,
               validators=[yt.ValidateSpatial(2,["density","x-velocity","y-velocity","z-velocity"])],
               display_name=r"\frac{1}{2}\Delta^2\!\rho\omega^2",units=None)
 
-if switch:  #the switch                                                                                                
+if 1:  #the switch                                                                                                
     def RateOfStrainSqr(field, data):
         # We need to set up stencils
         sl_extr_left  = slice(None,-4,None)
@@ -252,7 +236,7 @@ if switch:  #the switch
         sl_extr_right = slice(4,None,None)
         fct = 12.0
         dx = fct
-        den = data['density'].in_units('code_density').v
+        den = data['density'].in_units('code_density')
         vxx = data["x-velocity"][sl_extr_left,2:-2,2:-2]/dx
         vxx -= 8.0 * data["x-velocity"][sl_left,2:-2,2:-2]/dx
         vxx += 8.0 * data["x-velocity"][sl_right,2:-2,2:-2]/dx
@@ -355,7 +339,7 @@ if switch:  #the switch
               validators=[yt.ValidateSpatial(2,["density","x-velocity","y-velocity","z-velocity"])],
               display_name=r"\Delta^2\Omega_{1/2}",units=None)
                                                                                                         
-if switch:  #the switch                                                                                                
+if 1:  #the switch                                                                                                
     def DiffOmegaSqrStrainSqr(field, data):
         # We need to set up stencils
         # forget about HydroMethod =2!
@@ -415,10 +399,11 @@ if switch:  #the switch
               validators=[yt.ValidateSpatial(2,["x-velocity","y-velocity","z-velocity"])],units=None)
 
     def Lambda_turb(field, data):
-        den = data['density'].in_units('code_density').v
+        den = data['density'].in_units('code_density')
         return 0.5*den*data["DiffOmegaSqrStrainSqr"]
 
     yt.add_field("Lambda_turb", function=Lambda_turb, take_log=False, display_name=r"\Delta^2\!\rho\Lambda_{\rm turb}",units=None)
+if 1:  #the switch                                                                                                
 
     def Lambda_turb_pos(field, data):
         tmp = data["Lambda_turb"]
@@ -432,11 +417,10 @@ if switch:  #the switch
 
     yt.add_field("Lambda_turb_neg", function=Lambda_turb_neg, display_name=r"\Delta^2\!\rho\Lambda_{\rm turb\,-}",units=None)
 
-if switch:  #the switch                                                                                                
 
 # ========== MAGNETIC SUPPORT ==========
 
-    NoFourPi = 1  #this may seem silly, but 4 pi is not small so we need to be careful.
+    NoFourPi = 1
     def MagneticPressure(field, data):
         bx = data['Bx'].in_units('code_magnetic').v
         by = data['By'].in_units('code_magnetic').v
@@ -456,7 +440,7 @@ if switch:  #the switch
         sl_cent       = slice(2,-2,None)
         sl_right      = slice(3,-1,None)
         sl_extr_right = slice(4,None,None)
-        den = data['density'].in_units('code_density').v
+        den = data['density'].in_units('code_density')
         new_field = na.zeros(den.shape, dtype='float64')
         fct = 12.0
         #dx = fct * (data['dx'].flat[0])
@@ -498,116 +482,6 @@ if switch:  #the switch
     yt.add_field("GradProductDensityMagneticPressure", function=GradProductDensityMagneticPressure,
               validators=[yt.ValidateSpatial(2,["density","MagneticPressure"])],units=None)
 
-    def LaplaceMagneticPressure_27pt(field, data):
-        # We need to set up stencils
-        # forget about HydroMethod =2!
-        im2 = slice(None,-4,None)
-        im1       = slice(1,-3,None)
-        i       = slice(2,-2,None)
-        ip1      = slice(3,-1,None)
-        ip2 = slice(4,None,None)
-        #ds = fct    
-        f = na.zeros(data["MagneticPressure"].shape, dtype='float64')
-        a = 1.0 #face
-        e = 0.5 #edge
-        c = 1./3 #corner
-        f[i,i,i] +=      c*data["MagneticPressure"][ip1 ,ip1 ,ip1 ]
-        f[i,i,i] +=      e*data["MagneticPressure"][ip1 ,ip1 ,i   ]
-        f[i,i,i] +=      c*data["MagneticPressure"][ip1 ,ip1 ,im1 ]
-        #
-        f[i,i,i]+=       e*data["MagneticPressure"][ip1 ,i   ,ip1 ]
-        f[i,i,i]+=       a*data["MagneticPressure"][ip1 ,i   ,i   ]
-        f[i,i,i]+=       e*data["MagneticPressure"][ip1 ,i   ,im1 ]
-        #
-        f[i,i,i]+=       c*data["MagneticPressure"][ip1 ,im1 ,ip1 ]
-        f[i,i,i]+=       e*data["MagneticPressure"][ip1 ,im1 ,i   ]
-        f[i,i,i]+=       c*data["MagneticPressure"][ip1 ,im1 ,im1 ]
-        #
-        f[i,i,i]+=       e*data["MagneticPressure"][i   ,ip1 ,ip1 ]
-        f[i,i,i]+=       a*data["MagneticPressure"][i   ,ip1 ,i   ]
-        f[i,i,i]+=       e*data["MagneticPressure"][i   ,ip1 ,im1 ]
-        #
-        f[i,i,i]+=       a*data["MagneticPressure"][i   ,i   ,ip1 ]
-        #f[i,i,i] +=      *  data["MagneticPressure"][i   ,i   ,i   ]  all at once 
-        f[i,i,i]+=       a*data["MagneticPressure"][i   ,i   ,im1 ]
-        #
-        f[i,i,i]+=       e*data["MagneticPressure"][i   ,im1 ,ip1 ]
-        f[i,i,i]+=       a*data["MagneticPressure"][i   ,im1 ,i   ]
-        f[i,i,i]+=       e*data["MagneticPressure"][i   ,im1 ,im1 ]
-        #
-        f[i,i,i]+=       c*data["MagneticPressure"][im1 ,ip1 ,ip1 ]
-        f[i,i,i]+=       e*data["MagneticPressure"][im1 ,ip1 ,i   ]
-        f[i,i,i]+=       c*data["MagneticPressure"][im1 ,ip1 ,im1 ]
-        #
-        f[i,i,i]+=       e*data["MagneticPressure"][im1 ,i   ,ip1 ]
-        f[i,i,i]+=       a*data["MagneticPressure"][im1 ,i   ,i   ]
-        f[i,i,i]+=       e*data["MagneticPressure"][im1 ,i   ,im1 ]
-        #
-        f[i,i,i]+=       c*data["MagneticPressure"][im1 ,im1 ,ip1 ]
-        f[i,i,i]+=       e*data["MagneticPressure"][im1 ,im1 ,i   ]
-        f[i,i,i]+=       c*data["MagneticPressure"][im1 ,im1 ,im1 ]
-        #
-        f[i,i,i]-= (5+12./2+8./3)*data["MagneticPressure"][i   ,i   ,i   ] 
-        #dxdx = (data['dz'].flat[0])**2.0
-        fct = 3./13
-        return fct* f
-    yt.add_field("LaplaceMagneticPressure_27pt", function=LaplaceMagneticPressure_27pt,
-              validators=[yt.ValidateSpatial(2,["MagneticPressure"])],units=None)
-
-    def LaplaceMagneticPressure_no_weight(field, data):
-        # We need to set up stencils
-        # forget about HydroMethod =2!
-        im2 = slice(None,-4,None)
-        im1       = slice(1,-3,None)
-        i       = slice(2,-2,None)
-        ip1      = slice(3,-1,None)
-        ip2 = slice(4,None,None)
-        #ds = fct    
-        f = na.zeros(data["MagneticPressure"].shape, dtype='float64')
-        f[i,i,i] +=         data["MagneticPressure"][ip1 ,ip1 ,ip1 ]
-        f[i,i,i] +=         data["MagneticPressure"][ip1 ,ip1 ,i   ]
-        f[i,i,i] +=         data["MagneticPressure"][ip1 ,ip1 ,im1 ]
-        #
-        f[i,i,i]+=         data["MagneticPressure"][ip1 ,i   ,ip1 ]
-        f[i,i,i]+=         data["MagneticPressure"][ip1 ,i   ,i   ]
-        f[i,i,i]+=         data["MagneticPressure"][ip1 ,i   ,im1 ]
-        #
-        f[i,i,i]+=         data["MagneticPressure"][ip1 ,im1 ,ip1 ]
-        f[i,i,i]+=         data["MagneticPressure"][ip1 ,im1 ,i   ]
-        f[i,i,i]+=         data["MagneticPressure"][ip1 ,im1 ,im1 ]
-        #
-        f[i,i,i]+=         data["MagneticPressure"][i   ,ip1 ,ip1 ]
-        f[i,i,i]+=         data["MagneticPressure"][i   ,ip1 ,i   ]
-        f[i,i,i]+=         data["MagneticPressure"][i   ,ip1 ,im1 ]
-        #
-        f[i,i,i]+=         data["MagneticPressure"][i   ,i   ,ip1 ]
-        #f[i,i,i] +=         data["MagneticPressure"][i   ,i   ,i   ]  all at once 
-        f[i,i,i]+=         data["MagneticPressure"][i   ,i   ,im1 ]
-        #
-        f[i,i,i]+=         data["MagneticPressure"][i   ,im1 ,ip1 ]
-        f[i,i,i]+=         data["MagneticPressure"][i   ,im1 ,i   ]
-        f[i,i,i]+=         data["MagneticPressure"][i   ,im1 ,im1 ]
-        #
-        f[i,i,i]+=         data["MagneticPressure"][im1 ,ip1 ,ip1 ]
-        f[i,i,i]+=         data["MagneticPressure"][im1 ,ip1 ,i   ]
-        f[i,i,i]+=         data["MagneticPressure"][im1 ,ip1 ,im1 ]
-        #
-        f[i,i,i]+=         data["MagneticPressure"][im1 ,i   ,ip1 ]
-        f[i,i,i]+=         data["MagneticPressure"][im1 ,i   ,i   ]
-        f[i,i,i]+=         data["MagneticPressure"][im1 ,i   ,im1 ]
-        #
-        f[i,i,i]+=         data["MagneticPressure"][im1 ,im1 ,ip1 ]
-        f[i,i,i]+=         data["MagneticPressure"][im1 ,im1 ,i   ]
-        f[i,i,i]+=         data["MagneticPressure"][im1 ,im1 ,im1 ]
-        #
-        f[i,i,i]-=      26*data["MagneticPressure"][i   ,i   ,i   ] 
-        #dxdx = (data['dz'].flat[0])**2.0
-        dxdx = 1
-        return f/(9*dxdx)
-    yt.add_field("LaplaceMagneticPressure_no_weight", function=LaplaceMagneticPressure_no_weight,
-              validators=[yt.ValidateSpatial(2,["MagneticPressure"])],units=None)
-
-
     def LaplaceMagneticPressure(field, data):
         # We need to set up stencils
         # forget about HydroMethod =2!
@@ -643,7 +517,7 @@ if switch:  #the switch
     yt.add_field("LaplaceMagneticPressure", function=LaplaceMagneticPressure,
               validators=[yt.ValidateSpatial(2,["MagneticPressure"])],units=None)
 
-if switch:  #the switch                                                                                                
+if 1:  #the switch                                                                                                
     def MagneticFieldCrossContractions(field, data):
         # We need to set up stencils
         sl_extr_left  = slice(None,-4,None)
@@ -651,7 +525,7 @@ if switch:  #the switch
         sl_cent       = slice(2,-2,None)
         sl_right      = slice(3,-1,None)
         sl_extr_right = slice(4,None,None)
-        den = data['density'].in_units('code_density').v
+        den = data['density'].in_units('code_density')
         new_field = na.zeros(den.shape, dtype='float64')
 
         # density gradient
@@ -716,24 +590,22 @@ if switch:  #the switch
                     B[j][2:-2,2:-2,2:-2]*dens_grad[i][2:-2,2:-2,2:-2]/den[2:-2,2:-2,2:-2])* \
                     Bgrad[i][j][2:-2,2:-2,2:-2]
 
-        return new_field/NoFourPi
+        return new_field
 
     yt.add_field("MagneticFieldCrossContractions", function=MagneticFieldCrossContractions,
               validators=[yt.ValidateSpatial(2,["density","Bx","By","Bz"])],units=None)
 
-if switch:  #the switch                                                                                                
+if 1:  #the switch                                                                                                
     def Lambda_magn(field, data):
-        den = data['density'].in_units('code_density').v
-        #tmp = -data["LaplaceMagneticPressure_no_weight"]
+        den = data['density'].in_units('code_density')
         tmp = -data["LaplaceMagneticPressure"]
         tmp += data["GradProductDensityMagneticPressure"]/den
         tmp += data["MagneticFieldCrossContractions"]
         return tmp
 
-    yt.add_field("Lambda_magn_no_weight", function=Lambda_magn, take_log=False, display_name=r"\Delta^2\!\rho\Lambda_{\rm magn}",units=None)
     yt.add_field("Lambda_magn", function=Lambda_magn, take_log=False, display_name=r"\Delta^2\!\rho\Lambda_{\rm magn}",units=None)
 
-if switch: #the switch
+if 1: #the switch
 
     def Lambda_magn_pos(field, data):
         tmp = data["Lambda_magn"]
@@ -756,54 +628,6 @@ if switch: #the switch
         else:
             return (data["Lambda_therm"] + data["Lambda_turb"])
 
-yt.add_field("Lambda", function=Lambda, display_name=r"\Delta^2\!\rho\Lambda", take_log=False,units=None)
+#yt.add_field("Lambda", function=Lambda, display_name=r"\Delta^2\!\rho\Lambda", take_log=False,units=None)
 
-def Lambda_therm_per_delta(field,data):
-    return data['Lambda_therm']/data['Gravity'].v
 
-yt.add_field("Lambda_therm_per_delta",function=Lambda_therm_per_delta)
-
-def Lambda_per_delta(field,data):
-    return data['Lambda']/data['Gravity'].v
-
-yt.add_field("Lambda_per_delta",function=Lambda_per_delta)
-
-def Lambda_turb_per_delta(field,data):
-    return data['Lambda_turb']/data['Gravity'].v
-
-yt.add_field("Lambda_turb_per_delta",function=Lambda_turb_per_delta)
-
-def Lambda_magn_per_delta(field,data):
-    return data['Lambda_magn']/data['Gravity'].v
-
-yt.add_field("Lambda_magn_per_delta",function=Lambda_magn_per_delta)
-
-def Lambda_therm_pos_per_delta(field,data):
-    return data['Lambda_therm_pos']/data['Gravity'].v
-
-yt.add_field("Lambda_therm_pos_per_delta",function=Lambda_therm_pos_per_delta)
-
-def Lambda_turb_pos_per_delta(field,data):
-    return data['Lambda_turb_pos']/data['Gravity'].v
-
-yt.add_field("Lambda_turb_pos_per_delta",function=Lambda_turb_pos_per_delta)
-
-def Lambda_magn_pos_per_delta(field,data):
-    return data['Lambda_magn_pos']/data['Gravity'].v
-
-yt.add_field("Lambda_magn_pos_per_delta",function=Lambda_magn_pos_per_delta)
-
-def Lambda_therm_neg_per_delta(field,data):
-    return data['Lambda_therm_neg']/data['Gravity'].v
-
-yt.add_field("Lambda_therm_neg_per_delta",function=Lambda_therm_neg_per_delta)
-
-def Lambda_turb_neg_per_delta(field,data):
-    return data['Lambda_turb_neg']/data['Gravity'].v
-
-yt.add_field("Lambda_turb_neg_per_delta",function=Lambda_turb_neg_per_delta)
-
-def Lambda_magn_neg_per_delta(field,data):
-    return data['Lambda_magn_neg']/data['Gravity'].v
-
-yt.add_field("Lambda_magn_neg_per_delta",function=Lambda_magn_neg_per_delta)
