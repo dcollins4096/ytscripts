@@ -4,10 +4,11 @@ execfile('go_lite')
 #dummy
 #Stuff I wrote that I like
 #import davecallback
+execfile('xtra_fields.py')
+execfile('davetools.py') #as needed, no more execfile.  
 if  not_in_yt3:
   import better_cbar
   #GET from img_region import * 
-  execfile('davetools.py') #as needed, no more execfile.  
   execfile('xtra_fields.py')
   execfile('scatter_fit.py')
   from uber import *
@@ -19,9 +20,9 @@ if  not_in_yt3:
 
 from yt.analysis_modules.level_sets.api import * #for clumps
 import pyximport; pyximport.install()
-import particle_ops
+#import particle_ops
 import random
-import clump_particles
+#import clump_particles
 from yt.utilities.data_point_utilities import FindBindingEnergy
 from yt.utilities.physical_constants import \
             gravitational_constant_cgs as G

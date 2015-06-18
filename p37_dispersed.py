@@ -1,11 +1,29 @@
+if 'ef' not in dir():
+    execfile('go')
 
+"""
+Ok, for Friday (tomorrow is the proposal.)
+1.) Do a bunch.  Hand cull the reasonable parts.
+2.) Histogram for the widths.  Variance for now.
+3.) Do it for the late time version.
+"""
 import pyfits
 import scatter_fit
 reload(scatter_fit)
 
-
+use_high_res=False
+setname = 'b02'
+frame = 20
+resolution = 256
+skip_list={'b02':{20:[]}}
+skip_list['b02'][20] = [0,5,30]
+fig_list=[]
+def newfig():
+    fig_list.append(plt.figure())
+    return fig_list[-1]
 if 'dirname' not in dir():
-    dirname = '/scratch1/share/fils'
+    #dirname = '/scratch1/share/fils'
+    dirname = '/Users/dcollins/FakeGoogleDrive/write/ActivePapers/Paper37_Philaments/2015-06-12-disperse/DATA'
     fname1 ='%s/%s'%(dirname,'b02_512_0020_smoothed_0256_density.fits_c0.1.up.NDskl.fits')
     fname2 ='%s/%s'%(dirname,'b02_512_0020_smoothed_0256_density.fits_c0.25.up.NDskl.fits')
     fname3 ='%s/%s'%(dirname,'b02_512_0020_smoothed_0256_density.fits_c0.5.up.NDskl.fits')
@@ -19,55 +37,85 @@ if 'dirname' not in dir():
     set1_py = pyfits.open(fname4)
     set1_data = set1_py[0].data
 
-    fname_full = '/scratch1/dcollins/Paper37_Filaments/b02_512_0020_smoothed_0256_density.fits'
+    fname_full = '%s/%s_512_%04d_smoothed_%04d_density.fits'%(dirname,setname,frame,resolution)
     fullset = pyfits.open(fname_full)[0].data
-    plt.imshow( np.log10(fullset))
-    plt.savefig('sa.png')
+    fname_full_high = '%s/%s_512_%04d_%04d_projection_density.fits'%(dirname,setname,frame,8192)
+    fullset_high = pyfits.open(fname_full_high)[0].data
+
+actual_resolution = fullset.shape[0]
 if 1:
     """plot"""
-    plt.clf()
-    plt.imshow(set1_data)
-    outname = 's4.png'
-    plt.savefig(outname)
+    filament_image = newfig()
+    filament_ax = filament_image.add_subplot(111)
+    filament_ax.imshow(set1_data)
+    outname = 'filament_image_%s_n%04d_r%04d.png'%(setname, frame, resolution)
+    filament_image.savefig(outname)
+    print 'filaments', outname
+
+    full_image = newfig()
+    full_ax = full_image.add_subplot(111)
+    full_ax.imshow( np.log10(fullset),cmap='gray')
+    outname = 'full_image_%s_n%04d_r%04d.png'%(setname, frame, resolution)
+    print "full image", outname
+
+    if use_high_res:
+        full_high_image = newfig()
+        full_high_ax = full_high_image.add_subplot(111)
+        full_high_ax.imshow( np.log10(fullset_high),cmap='gray')
+        outname = 'full_high_image_%s_n%04d_r%04d.png'%(setname, frame, resolution)
+        full_high_image.savefig(outname)
+        print "full_high_image", outname
+        full_image.savefig(outname)
+
     print outname
-    plt.clf()
-    fname_full = '/scratch1/dcollins/Paper37_Filaments/b02_512_0020_smoothed_0256_density.fits'
-    fullset = pyfits.open(fname_full)[0].data
-    plt.imshow( np.log10(fullset),cmap='gray')
     dx = 1 #1./256
-    left = 256.
+    left = actual_resolution
+    Npoints = actual_resolution*1j
     #yup.  cell centered, needs to start and end at half steps, use the exact number.
     #x, y = np.ogrid[0.5*dx:1-0.5*dx:256j, 0.5*dx:1-0.5*dx:256j]
     #x, y = np.mgrid[0.5*dx:1-0.5*dx:256j, 0.5*dx:1-0.5*dx:256j]
-    y, x = np.mgrid[0.5*dx:left-0.5*dx:256j, 0.5*dx:left-0.5*dx:256j]
+    y, x = np.mgrid[0.5*dx:left-0.5*dx:Npoints, 0.5*dx:left-0.5*dx:Npoints]
     distance = np.sqrt(x ** 2 + y ** 2)
+
+    if use_high_res:
+        left=8192; Npoints=8192j
+        yL, xL = np.mgrid[0.5*dx:left-0.5*dx:Npoints, 0.5*dx:left-0.5*dx:Npoints]
     for nfil in np.unique(set1_data):
-        if nfil not in [ 15]:
+        if nfil not in [29]: #in skip_list[setname][frame]:
             continue
+
+        """for the profiles"""
+        profile_image = newfig()
+        profile_ax = profile_image.add_subplot(111)
+
+        """for filament overlays"""
+        fil_image = newfig()
+        fil_ax = fil_image.add_subplot(111)
+        #fil_ax.imshow( np.log10(fullset),cmap='gray')
+
+        """Masks and positions"""
         this_fil = set1_data == nfil
         not_fil = set1_data != nfil
         x_fil = x[ this_fil]
         y_fil = y[ this_fil]
-        plt.plot(x_fil,y_fil,c='r')
-        cen_x = x_fil.sum()/x_fil.size
-        cen_y = y_fil.sum()/y_fil.size
-        if 1:
-            """for imaging just this set"""
-            #clone = copy.copy(set1_data)
-            #clone[not_fil] = 0
-            #print nfil, clone.sum()
-            #plt.clf()
-            #plt.imshow(clone) #, origin='lower')
-            outname = 'this_fil_%02d.png'%nfil
-            #plt.plot([93.5, 129.5], [20.701350979975842, 62.481034439683796],c='k')
 
-            fit = scatter_fit.scatter_fit(None,x_fil,y_fil, plot_points=False)#x_fil,y_fil)
+        """ lets see"""
+        if use_high_res:
+            full_high_ax.scatter(x_fil*32, y_fil*32)
+            #full_high_image.savefig('test8192.png')
+            fil_ax.scatter(x_fil,y_fil)
 
-            print "fu"
-            slope = fit['fit'][0]
-            offset = fit['fit'][1]
-            """pick a point, others possible"""
-            ind = x_fil.size/2 
+        """For actual profiles along the filament"""
+        n_points = x_fil.size
+        rmap = rainbow_map(n_points+1)
+
+        """Fit the line"""
+        fit = scatter_fit.scatter_fit(None,x_fil,y_fil, plot_points=False)#x_fil,y_fil)
+        slope = fit['fit'][0]
+        offset = fit['fit'][1]
+        for ind in [15]: #range(n_points):
+
+            #ind = x_fil.size/2 
             thex = x_fil[ind]; they = y_fil[ind]
             """the transverse line"""
             width = 0.6/4.6*256
@@ -81,32 +129,66 @@ if 1:
             """now I need to get a range of dx"""
             x_i_logic = np.logical_and( x[0,:] >= x0, x[0,:] <= x1 )
             x_a = x[0,:][x_i_logic] #these are cell centered
-            y_a = perp_slope*(x_i - thex) + they
             x_i = x_a.astype('int') #these are now indices
+            y_a = perp_slope*(x_a - thex) + they
             left_edge = 0; dx=1
             y_i = ((y_a-left_edge)/dx).astype('int')
-            plt.scatter(x_i,y_i, marker='o',c='y')
-            coordinates = np.sqrt(x_a**2+y_a**2) #needs to be centered somehow.
+            on_the_plot = np.logical_and(x_i < actual_resolution, y_i < actual_resolution)
+            x_i = x_i[on_the_plot]; y_i = y_i[on_the_plot];
+            x_a = x_a[on_the_plot]; y_a = y_a[on_the_plot];
+            fil_ax.scatter(x_i,y_i, marker='o',c='y')
+            #coordinates = np.sqrt(x_a**2+y_a**2) #needs to be centered somehow.
+            coordinates = np.sign(x_a-thex)*np.sqrt((x_a-thex)**2+(y_a-they)**2) #needs to be centered somehow.
             coordinates *= 4.6/256
             density = nar([fullset[ix,iy] for ix,iy in zip(x_i,y_i)])
-        
-            del fit
+            profile_ax.plot(coordinates, density, marker='o',c=rmap(ind))
+            profile_ax.scatter((thex-x_fil[0])*4.6/256,0.3,c=rmap(ind))
+            fil_ax.scatter(thex,they,c=rmap(ind), s=1, linewidth=0)
+            fil_ax.scatter(x_i,y_i, marker='o',c='y',s=1)
+            fil_image.savefig('derp.png')
 
-        if 1:
-            plt.savefig(outname)
-            print "fu", outname
-        if 1:
-            plt.clf()
-            plt.plot(coordinates, density, marker='o',c='r')
-            fname_profile='profile_center_%02d.png'%nfil
-            plt.savefig(fname_profile)
-            print 'fub', fname_profile
+            if use_high_res:
+                """now repeat for high res"""
+                thexL = 32*thex; theyL = 32*they
+                x_i_logicL = np.logical_and( xL[0,:] >= 32*x0, xL[0,:] <= 32*x1 )
+                x_aL = xL[0,:][x_i_logicL] #these are cell centered
+                x_iL = x_aL.astype('int') #these are now indices
+                y_aL = perp_slope*(x_aL - thexL) + theyL
+                left_edge = 0; dx=1
+                y_iL = ((y_aL-left_edge)/dx).astype('int')
+                on_the_plot = np.logical_and(x_iL < 8192, y_iL < 8192)
+                x_iL = x_iL[on_the_plot]; y_iL = y_iL[on_the_plot];
+                x_aL = x_aL[on_the_plot]; y_aL = y_aL[on_the_plot];
+                full_high_ax.scatter(x_iL,y_iL, marker='o',c='y',s=1)
+          
+                #coordinates = np.sqrt(x_a**2+y_a**2) #needs to be centered somehow.
+                coordinates = np.sign(x_aL-thexL)*np.sqrt((x_aL-thexL)**2+(y_aL-theyL)**2) #needs to be centered somehow.
+                coordinates *= 4.6/8192
+                density = nar([fullset_high[ixL,iyL] for ixL,iyL in zip(x_iL,y_iL)])
+                profile_ax.plot(coordinates, density, marker='o',c=rmap(ind))
+                #profile_ax.scatter((thex-x_fil[0])*4.6/256,0.3,c=rmap(ind))
 
-            
 
 
+        fname_profile='profile_center_%s_n%04d_r%04d_f%02d.png'%(setname, frame, resolution, nfil)
+        fil_name = 'fil_image_%s_n%04d_r%04d_f%02d.png'%(setname, frame, resolution, nfil)
+        fil_ax.plot([0,256],[0,256],c='b')
+        fil_ax.set_xlim(0,actual_resolution)
+        fil_ax.set_ylim(actual_resolution,0)
+        fil_image.savefig(fil_name)
+        print "skipping", fil_name
+        #fname_profile='profile_center_unshift_%02d.png'%nfil
+        profile_ax.set_ylabel('density')
+        profile_ax.set_xlabel('r[pc]')
+        profile_image.savefig(fname_profile)
+        print "profile", fname_profile
+        full_outname = 'full_fil_%s_n%04d_r%04d.png'%(setname,frame,resolution)
+        full_image.savefig(full_outname)
+        print full_outname
+        outname = 'full_high_image_%s_n%04d_r%04d_f%02d.png'%(setname, frame, resolution,nfil)
+        full_high_image.savefig(outname)
+        print "full_high_image, fil", outname
 
-        
-    
-
-    
+for fig in fig_list:
+    plt.close(fig)
+    del fig

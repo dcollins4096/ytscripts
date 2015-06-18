@@ -12,7 +12,6 @@ from yt.visualization.plot_modifications import PlotCallback
 y_dict = [2,2,1]
 x_dict = [1,0,0]
 debug = 0
-print "CLOWN reload 3"
 def particles_from_clump(clump):
     out_ind = na.array([],dtype='int64')
     out_x = na.array([])

@@ -1,7 +1,6 @@
 
 from yt.analysis_modules.level_sets.api import * #for clumps
 frame = 125
-scratchdir = '/scratch1/dcollins/Paper19/u05-r4-l4-128'
 scratchdir = '/work/00369/tg456484/maverick/Paper19/u05-r4-l4-128'
 fname = '%s/DD%04d/data%04d'%(scratchdir,frame,frame)
 
