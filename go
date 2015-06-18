@@ -1,9 +1,14 @@
+import matplotlib
+matplotlib.use('Agg')
+import matplotlib.pyplot as plt
+
 import yt
 not_in_yt3 = False #a universal flag to indicate things that need to be ported.
 execfile('go_lite')
 #dummy
 #Stuff I wrote that I like
 #import davecallback
+import fPickle
 execfile('xtra_fields.py')
 execfile('davetools.py') #as needed, no more execfile.  
 if  not_in_yt3:
