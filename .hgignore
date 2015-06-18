@@ -2,8 +2,13 @@
 Paper04_Scripts
 syntax: glob
 DATA
+Paper23
 CLEAN/*
+figs
+p18_figs
 ProfileFiles/*
+packrat
+ProfileFilesTrash
 fourier_tools
 *.png
 *.eps
@@ -12,6 +17,9 @@ fourier_tools
 .*swp
 *~
 uber
+Paper8
+Paper12_Meta
+STAGE
 # switch to regexp syntax.
 syntax: regexp
 ^\.pc/
