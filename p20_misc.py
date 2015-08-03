@@ -261,6 +261,7 @@ def prepositions(dirname, target_frame, source_indices, prefix=None, extra_cuts=
     new_reg = ds.region(Cen,Left,Right)
     for ax in [0,1,2]:
         proj = ds.proj(field,ax,data_source=new_reg,center=[0.5]*3)
+        #proj = ds.proj(field,ax,center=[0.5]*3)
         xi= proj.ds.coordinates.x_axis[ax]
         yi= proj.ds.coordinates.y_axis[ax]
         axis_names = ds.coordinates.axis_name
@@ -271,7 +272,8 @@ def prepositions(dirname, target_frame, source_indices, prefix=None, extra_cuts=
         pw.annotate_sphere([cen_x,cen_y,cen_z], 0.01, circle_args={'color':'r'})
         #pw.annotate_dave_particles(1.0, indices = index, col='y')
         if streamlines:
-            pw.annotate_streamlines(xv,yv)
+            pw.annotate_streamlines(xv,yv,factor=1, density = 4)
+            annotate_box(pw,[Left[xi],Left[yi]],[Right[xi],Right[yi]], plot_args={'color':'r'})
 
         print pw.save(prefix)
         #return proj
@@ -281,38 +283,40 @@ def prepositions(dirname, target_frame, source_indices, prefix=None, extra_cuts=
 def preimage_reg_only(dirname, target_frame, axis, source_region, prefix,center=[0.5]*3):
     pass
 
-disp_name_all = 'u05_n0125_r0128_x_density.fits.up.NDskl.fits'
-disp_name_cut1 = 'u05_n0125_r0128_x_density.fits_c1.up.NDskl.fits'
-disp_name_3d_cut1 = 'u05_n0125_r0128_3d_density.fits_c1.up.NDskl.fits'
+if 0:
+    """ separate functions and usage"""
+    disp_name_all = 'u05_n0125_r0128_x_density.fits.up.NDskl.fits'
+    disp_name_cut1 = 'u05_n0125_r0128_x_density.fits_c1.up.NDskl.fits'
+    disp_name_3d_cut1 = 'u05_n0125_r0128_3d_density.fits_c1.up.NDskl.fits'
 
-dirname = '/scratch1/dcollins/Paper19/u05-r4-l4-128'
-frame = 125
+    dirname = '/scratch1/dcollins/Paper19/u05-r4-l4-128'
+    frame = 125
 #frame = 20
-simname = 'u05'
-axis = 0
-field = 'density'
-resolution = 128
-dir_2d = '/scratch1/dcollins/Paper37_Filaments/2d/'
-dir_3d = '/scratch1/dcollins/Paper37_Filaments/3d/'
-cut = 1
+    simname = 'u05'
+    axis = 0
+    field = 'density'
+    resolution = 128
+    dir_2d = '/scratch1/dcollins/Paper37_Filaments/2d/'
+    dir_3d = '/scratch1/dcollins/Paper37_Filaments/3d/'
+    cut = 1
 
-set_2d = '%s_n%04d_r%04d_%s_%s.fits'%( simname, frame, resolution,'xyz'[axis], field)
-fils_2d = '%s_n%04d_r%04d_%s_%s.fits_c%d.up.NDskl.fits'%( simname, frame, resolution,'xyz'[axis], field,cut)
-outname_image = '%s_n%04d_r%04d_%s_%s_PROJ.png'%( simname, frame, resolution,'xyz'[axis], field)
-if 'density_2d' not in dir():
-    density_2d, disp_2d = plot_disperse(set_2d,fils_2d,outname_image , dir_2d,filament_list=[90,91])
+    set_2d = '%s_n%04d_r%04d_%s_%s.fits'%( simname, frame, resolution,'xyz'[axis], field)
+    fils_2d = '%s_n%04d_r%04d_%s_%s.fits_c%d.up.NDskl.fits'%( simname, frame, resolution,'xyz'[axis], field,cut)
+    outname_image = '%s_n%04d_r%04d_%s_%s_PROJ.png'%( simname, frame, resolution,'xyz'[axis], field)
+    if 'density_2d' not in dir():
+        density_2d, disp_2d = plot_disperse(set_2d,fils_2d,outname_image , dir_2d,filament_list=[90,91])
 #reg=transverse(dirname, frame, simname, axis, 90, disp_2d, prefix='u05_n200_reg_xcut_2', x_range=[0.075,0.125])
-ds_late = yt.load('%s/DD%04d/data%04d'%(dirname,frame,frame))
-reg_cen, reg_left, reg_right = get_box(90, disp_2d, x_range=[0.075,0.125])
-reg_late = ds_late.region(reg_cen, reg_left, reg_right)
+    ds_late = yt.load('%s/DD%04d/data%04d'%(dirname,frame,frame))
+    reg_cen, reg_left, reg_right = get_box(90, disp_2d, x_range=[0.075,0.125])
+    reg_late = ds_late.region(reg_cen, reg_left, reg_right)
 #reg_cen, reg_left, reg_right, reg = get_region(dirname, frame, simname, axis, 90, disp_2d, x_range=[0.075,0.125])
-source_indices = reg_late['particle_index']
-for target_frame in [125]: #[10,20,30,40,50,60,70,80,90,100,110,120,125]:
-    #preimage(dirname, target_frame, 0, reg_late, 'preimage_tst_ns0125_fil_0090')
-    #prepositions(dirname, target_frame, source_indices, prefix='lower_preimage_nopart_n%04d'%target_frame,extra_cuts=80)
-    proj = prepositions(dirname, target_frame, source_indices, prefix='lower_preimage_nopart_n%04d'%target_frame,extra_cuts=80,
-                streamlines=True)
-    #centroid_line(dirname, target_frame, source_indices, prefix='profile_y_n%04d'%target_frame,extra_cuts=80)
+    source_indices = reg_late['particle_index']
+    for target_frame in [125]: #[10,20,30,40,50,60,70,80,90,100,110,120,125]:
+        #preimage(dirname, target_frame, 0, reg_late, 'preimage_tst_ns0125_fil_0090')
+        #prepositions(dirname, target_frame, source_indices, prefix='lower_preimage_nopart_n%04d'%target_frame,extra_cuts=80)
+        prepositions(dirname, target_frame, source_indices, prefix='streamlines_n%04d'%target_frame,extra_cuts=80,
+                    streamlines=True)
+        #centroid_line(dirname, target_frame, source_indices, prefix='profile_y_n%04d'%target_frame,extra_cuts=80)
 
 #density_3d, disp_3d = plot_disperse('u05_n0125_r0128_3d_density.fits',disp_name_3d_cut1, 'test_3d.png', dir_3d)
 #write_fits_2d(dirname, frame, simname, axis, field, resolution, dir_2d)

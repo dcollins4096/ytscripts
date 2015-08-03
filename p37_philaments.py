@@ -10,7 +10,7 @@ lowfil1=[(148,311), (196,308)]
 plt.clf()
 
 if 1:
-    frame=20
+    #frame=80
     #frame=70
     ds = yt.load('/scratch1/dcollins/Paper08/B02/512/RS%04d/restart%04d'%(frame,frame)); simname = 'high_field'
     subset = 'full'
@@ -48,7 +48,24 @@ if 1:
         L[0] = C[0]-S[0]/2; L[1]=C[1]-S[1]/2; L[2]=0
         R[0] = C[0]+S[0]/2; R[1]=C[1]+S[1]/2; R[2]=1
         L[0] += 25./256
+    if 1:
+        subset='phil_trace_1'
+        L, R = np.zeros(3), np.zeros(3)
+        off = [-0.025, 0.14]
+        anchor={80:[0.5,1.5],70:[0.5,1.5],60:[0.5,1.0],50:[0.5,1.0],40:[0.5,1.0],30:[0.5,1.0]}
+        trace={80:[-571.,-492.],70:[-632.,-584.],60:[-616.,0],50:[-616.,-149.],40:[-616-60,-140],
+               30:[-670,-145]}
+        L[0] = anchor[frame][0]/4.6+trace[frame][0]/8192. + off[0]
+        L[1] = anchor[frame][1]/4.6 +trace[frame][1]/8192. + off[1]
+        R[0] = L[0]+700./8192
+        R[1] = L[1]+700./8192
+        L[2]=0.0; R[2]=1.0
+        C = 0.5*(L+R)
+        print "L",L
+        print "R",R
    
+    L=bu(L,1./512)
+    R=bu(R,1./512)
     C = 0.5*(L+R)
     reg = ds.region(C,L,R)
     if 0:
@@ -85,7 +102,7 @@ if 1:
 if 1:
     mask = proj['density']>0
     nmask = proj['density']<=0
-    total_zones = 256
+    total_zones = 8192
     Nzones = max(R[0]-L[0], R[1]-L[1])*total_zones
     resolution_name = "%d"%Nzones
     Delta = np.zeros(3)
@@ -113,9 +130,10 @@ if 1:
         ok_x = np.where( den_damned_square[:,half_y] >0 )[0]
         den = den_damned_square[ok_x[0]:ok_x[-1]+1, ok_y[0]:ok_y[-1]+1]
     plt.clf()
-    plt.imshow( np.log10( den), origin='lower', interpolation='nearest')
+    plt.imshow( np.log10( den), origin='lower', interpolation='nearest',cmap='gray')
     #plt.imshow( MPhi, origin='lower', interpolation='nearest')
-    outname = 'subplot_%s_%s_t%04d_%s'%(simname, subset, frame, resolution_name)
+    #outname = 'subplot_%s_%s_t%04d_%s'%(simname, subset, frame, resolution_name)
+    outname = 'filament_image_%s_%s_t%04d_%s_%s.png'%(simname, subset, frame,resolution_name, field)
     plt.savefig(outname)
     print outname
 
@@ -143,7 +161,7 @@ if 0:
 # hdulist.writeto('MOVEME.fits')
 # hdulist.close()
 
-if 1:
+if 0:
     distance = 140. #pc
     resolution = 40.#arcsec
     resolution_name = '40arcsec'
@@ -179,7 +197,7 @@ if 1:
     print fname
 
 
-if 0:
+if 1:
     """ write text"""
     field = 'density'
     fname = 'filament_data_%s_%s_t%04d_%s_%s.txt'%(simname, subset, frame,resolution_name, field)
@@ -187,6 +205,26 @@ if 0:
     den = copy.copy(frb['density'].v)
     thisone = copy.copy(frb[field].v)
     for n, full_row in enumerate(thisone):
+        row = full_row[ full_row > 0]
+        N = len(row)
+        if N == 0:
+            continue
+        outfile.write("%0.16e "*N%tuple(row))
+        outfile.write("\n")
+    outfile.close()
+    print fname
+if 1:
+    """ write text transposed"""
+    field = 'density'
+    fname = 'filament_data_transposed_%s_%s_t%04d_%s_%s.txt'%(simname, subset, frame,resolution_name, field)
+    outfile = open(fname,'w')
+    thisone2 = copy.copy(frb[field].v).transpose()
+    plt.clf()
+    plt.imshow( np.log10( thisone2), origin='lower', interpolation='nearest',cmap='gray')
+    oname2 = 'filament_image_transposed_%s_%s_t%04d_%s_%s.png'%(simname, subset, frame,resolution_name, field)
+    plt.savefig(oname2)
+    print oname2
+    for n, full_row in enumerate(thisone2):
         row = full_row[ full_row > 0]
         N = len(row)
         if N == 0:
