@@ -2,7 +2,7 @@
 
 import numpy as na
 nar = na.array
-
+import pdb
 from yt.mods import *
 import copy
 import FindOverlap
@@ -132,6 +132,8 @@ class udiff():
             if not self.p['grid_direct']:
                 ds1 = yt.load(ds_name_1)
                 ds2 = yt.load(ds_name_2)
+                print "only grid_direct presently supported"
+                raise NotImplementedError
             for g in grids:
                 try:
                     grid1 = g[0]
@@ -148,17 +150,19 @@ class udiff():
                         field1=field
                         field2=field
                     try:
-                        #Slice1, Slice2 = FindOverlap.FindOverlap(self.uber1,self.uber2,n1,n2,grid1,grid2,field1,shift,nGhost,self.p['grid_direct'])
-                        Slice1 = slice(None)
-                        Slice2 = slice(None)
+                        Slice1, Slice2 = FindOverlap.FindOverlap(
+                            self.dir1,self.dir2,n1,n2,grid1,grid2,field1,shift,nGhost,self.p['grid_direct'])
+                        print Slice1, Slice2
+                        #Slice1 = slice(None)
+                        #Slice2 = slice(None)
                     except FindOverlap.OverlapException as e:
                         print e
                         continue
                     except Exception as e:
                         raise
                     if self.p['grid_direct']:
-                        g1_full=  read_grid(self.dir1,n1,grid1,field1)
-                        g2_full = read_grid(self.dir2,n2,grid2,field2)
+                        g1_full=  read_grid(self.dir1,n1,grid1,field1).swapaxes(0,2)
+                        g2_full = read_grid(self.dir2,n2,grid2,field2).swapaxes(0,2)
                     else:
                         #verbose_save = self.uber1.verbose, self.uber2.verbose
                         #self.uber1.verbose, self.uber2.verbose=False,False

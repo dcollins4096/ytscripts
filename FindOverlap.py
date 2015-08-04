@@ -8,25 +8,27 @@ class OverlapException(Exception):
 def  nint(x):
     return (x+0.5).astype('int')
     
-
-def FindOverlap(dir1,dir2,n1,n2,grid1,grid2,field,shift,nGhost=0,grid_direct=False):
+def FindOverlap(dir1,dir2,n1,n2,grid1,grid2,field,shift=nar([0.0]*3),nGhost=0,grid_direct=False):
     """Given two grids, return two slices that will index the overlap regions.
     *field* determines if overlap is considered for faces only.
     *shift* is applied to grid2, for periodic shifts
     OverlapException is raised if there's no overlap."""
     ds_name_1 = get_ds_name(dir1,n1)
     ds_name_2 = get_ds_name(dir2,n2)
+    fake_grid_1 = fake_grid(dir1,n1,grid1)
+    fake_grid_2 = fake_grid(dir2,n2,grid2)
+    debug=-7
 
     
     #read left, right from the grid itself.
     if grid_direct:
         try:
-            left1  = uber1.grid(n1,grid1,'AALeftEdge')+ shift
-            right1 = uber1.grid(n1,grid1,'AARightEdge')+ shift
-            width1 = uber1.grid(n1,grid1,'AACellWidth')
-            left2  = uber2.grid(n2,grid2,'AALeftEdge') 
-            right2 = uber2.grid(n2,grid2,'AARightEdge')
-            width2 = uber2.grid(n2,grid2,'AACellWidth')
+            left1  = fake_grid_1.GridLeftEdge+ shift
+            right1 = fake_grid_1.GridRightEdge+ shift
+            width1 = fake_grid_1.CellWidth
+            left2  = fake_grid_2.GridLeftEdge
+            right2 = fake_grid_2.GridRightEdge
+            width2 = fake_grid_2.CellWidth
         except:
             return [slice(None)]*3,[slice(None)]*3
     else:
@@ -76,9 +78,6 @@ def FindOverlap(dir1,dir2,n1,n2,grid1,grid2,field,shift,nGhost=0,grid_direct=Fal
         print "After the Shift"
         print "left1 (%6f,%6f,%6f) right1 (%6f,%6f,%6f)"%tuple(left1.tolist()+right1.tolist())
         print "left2 (%6f,%6f,%6f) right2 (%6f,%6f,%6f)"%tuple(left2.tolist()+right2.tolist())
-
-    #revert the verbosity to its original state
-    uber1.verbose, uber2.verbose = verbose_save 
 
     strict_overlap_bool = [ left1 < right2 , left2 < right1 ]
     proper_overlap = strict_overlap_bool[0].all() and strict_overlap_bool[1].all()
