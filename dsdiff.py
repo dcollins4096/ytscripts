@@ -55,7 +55,7 @@ class udiff():
         self.p['shift']=nar([0.0, 0.0, 0.0])
         self.p['output']=None
         self.p['raster']=None
-        self.p['interogate_range']=[0]
+        self.p['interogate_range']=[]
         self.p['interogate_at_max']=True
         self.p['interogate_at_half']=True
         self.p['normalize']=True
@@ -203,6 +203,7 @@ class udiff():
                     stat(g2,"g2: n2 = %d g2 = %d f = %s %s"%(n2,grid2,field2,'set2'))
                     stat(diff,"n = %s g = %s f = %s, %s"%(str(n),str(g), field1, field2))
 
+
                     if raster:
                         max_this=0
                         for x in interogate_range:
@@ -227,12 +228,15 @@ class udiff():
                         if self.p['interogate_at_max']:
                             all_max = na.array(na.where(na.abs(self.diff)==na.abs(self.diff).max()))
                             first_max = [stripe[0] for stripe in all_max]
-                            interogate_range=[first_max[index]]
+                            local_interogate_range=[first_max[index]]
                             print "Peak difference at ", interogate_range
                         if self.p['interogate_at_half']:
-                            interogate_range=[self.diff.shape[index]/2]
+                            local_interogate_range=[self.diff.shape[index]/2]
                             print interogate_range
-                        for x in interogate_range: #range(g1.shape[0]):
+                        if len(self.p['interogate_range'] ) > 0:
+                            local_interogate_range = copy.copy(self.p['interogate_range'])
+
+                        for x in local_interogate_range: #range(g1.shape[0]):
                             subset[index]=min([x,g1[subset].shape[index]-1,g2[subset].shape[index]-1])
                             plave(g1[subset],self.output_format%(output_prefix,\
                                                            n1,grid1,field1,output,x,'set1'))
