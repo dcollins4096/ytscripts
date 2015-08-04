@@ -3,7 +3,7 @@
 import numpy as na
 nar = na.array
 import pdb
-from yt.mods import *
+import yt
 import copy
 import FindOverlap
 import types
@@ -51,13 +51,13 @@ class udiff():
         self.p['grids']=[1]
         self.p['fields']=kwargs['fields']
         self.p['GhostInImage']=True
-        self.p['nGhost']=0
+        self.p['nGhostSkip']=0
         self.p['shift']=nar([0.0, 0.0, 0.0])
         self.p['output']=None
         self.p['raster']=None
-        self.p['interogate_range']=[]
-        self.p['interogate_at_max']=True
-        self.p['interogate_at_half']=True
+        self.p['output_range']=[]
+        self.p['output_at_max']=True
+        self.p['output_at_half']=True
         self.p['normalize']=True
         self.p['output_prefix']='dbmf'
         self.p['grid_direct']=True
@@ -90,14 +90,13 @@ class udiff():
                       will compare uber1/grid 1 to uber2,grid 2
                       then will compare uber1/grid3 to uber2/grid3
         fields      : list of fields to compare.  See the toggle methods for easy swapping
-        nGhost=0    : Number of ghost zones in the grids
-        GhostInImage: If False, *nGhost* zones are stripped from the image
+        nGhostSkip=0    : Number of ghost zones to ignore.
         shift       : amount to shif along each axis. default = [0,0,0]
-        output      : =None,'x','y','z'.  Slices along that axis using *interogate_range*
+        output      : =None,'x','y','z'.  Slices along that axis using *output_range*
                       and plots an image of both grids an the difference.
-        raster      : =None,x,y,z.  Slices along that axis using *interogate_range*
+        raster      : =None,x,y,z.  Slices along that axis using *output_range*
                       and querries differences along each slice
-        interogate_range : the range for output and raster slices.
+        output_range : the range for output and raster slices.
         normalize   : use relative differences (a-b)/(0.5 (a+b))
         output_prefix : prefix for differences
         output_format : format for the output filenames.  Must accept
@@ -129,9 +128,13 @@ class udiff():
                 n2=n
             ds_name_1 = get_ds_name(self.dir1, n1)
             ds_name_2 = get_ds_name(self.dir2, n2)
-            if not self.p['grid_direct']:
+            try:
                 ds1 = yt.load(ds_name_1)
                 ds2 = yt.load(ds_name_2)
+            except:
+                ds1=None
+                ds2=None
+            if not self.p['grid_direct']:
                 print "only grid_direct presently supported"
                 raise NotImplementedError
             for g in grids:
@@ -151,7 +154,8 @@ class udiff():
                         field2=field
                     try:
                         Slice1, Slice2 = FindOverlap.FindOverlap(
-                            self.dir1,self.dir2,n1,n2,grid1,grid2,field1,shift,nGhost,self.p['grid_direct'])
+                            self.dir1,self.dir2,n1,n2,grid1,grid2,field1,shift,self.p['grid_direct'],
+                            ds1=ds1,ds2=ds2, nGhostSkip=self.p['nGhostSkip'])
                         print Slice1, Slice2
                         #Slice1 = slice(None)
                         #Slice2 = slice(None)
@@ -206,7 +210,7 @@ class udiff():
 
                     if raster:
                         max_this=0
-                        for x in interogate_range:
+                        for x in output_range:
                             subset = [slice(None)]*3
                             index = {'x':0,'y':1,'z':2}[raster]
                             subset[index]=x
@@ -225,18 +229,18 @@ class udiff():
                             slT = slice(None)
                         subset = [slT]*3
                         index = {'x':0,'y':1,'z':2}[output]
-                        if self.p['interogate_at_max']:
+                        if self.p['output_at_max']:
                             all_max = na.array(na.where(na.abs(self.diff)==na.abs(self.diff).max()))
                             first_max = [stripe[0] for stripe in all_max]
-                            local_interogate_range=[first_max[index]]
-                            print "Peak difference at ", interogate_range
-                        if self.p['interogate_at_half']:
-                            local_interogate_range=[self.diff.shape[index]/2]
-                            print interogate_range
-                        if len(self.p['interogate_range'] ) > 0:
-                            local_interogate_range = copy.copy(self.p['interogate_range'])
+                            local_output_range=[first_max[index]]
+                            print "Peak difference at ", output_range
+                        if self.p['output_at_half']:
+                            local_output_range=[self.diff.shape[index]/2]
+                            print output_range
+                        if len(self.p['output_range'] ) > 0:
+                            local_output_range = copy.copy(self.p['output_range'])
 
-                        for x in local_interogate_range: #range(g1.shape[0]):
+                        for x in local_output_range: #range(g1.shape[0]):
                             subset[index]=min([x,g1[subset].shape[index]-1,g2[subset].shape[index]-1])
                             plave(g1[subset],self.output_format%(output_prefix,\
                                                            n1,grid1,field1,output,x,'set1'))

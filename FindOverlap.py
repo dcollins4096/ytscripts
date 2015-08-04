@@ -1,4 +1,5 @@
 import numpy as na
+import pdb
 from dsdiff_helpers import *
 class OverlapException(Exception):
     def __init__(self,n1,n2,grid1,grid2,field,left1,left2,right1,right2):
@@ -8,7 +9,8 @@ class OverlapException(Exception):
 def  nint(x):
     return (x+0.5).astype('int')
     
-def FindOverlap(dir1,dir2,n1,n2,grid1,grid2,field,shift=nar([0.0]*3),nGhost=0,grid_direct=False):
+def FindOverlap(dir1,dir2,n1,n2,grid1,grid2,field,shift=nar([0.0]*3),grid_direct=False,
+               ds1=None,ds2=None, nGhostSkip=0):
     """Given two grids, return two slices that will index the overlap regions.
     *field* determines if overlap is considered for faces only.
     *shift* is applied to grid2, for periodic shifts
@@ -20,74 +22,19 @@ def FindOverlap(dir1,dir2,n1,n2,grid1,grid2,field,shift=nar([0.0]*3),nGhost=0,gr
     debug=-7
 
     
-    #read left, right from the grid itself.
-    if grid_direct:
-        try:
-            left1  = fake_grid_1.GridLeftEdge+ shift
-            right1 = fake_grid_1.GridRightEdge+ shift
-            width1 = fake_grid_1.CellWidth
-            left2  = fake_grid_2.GridLeftEdge
-            right2 = fake_grid_2.GridRightEdge
-            width2 = fake_grid_2.CellWidth
-        except:
-            return [slice(None)]*3,[slice(None)]*3
-    else:
-        uber1.fill(n1)
-        h1 = uber1.h
-        uber2.fill(n2)
-        h2 = uber2.h
-        gz1 = 3
-        gz2 = 3
-        for key in ['NumberOfGhostZones', 'DEFAULT_GHOST_ZONES']:
-            if uber1.pf.has_key(key):
-                gz1 = uber1.pf[key]
-            if uber2.pf.has_key(key):
-                gz2 = uber2.pf[key]
-        try:
-            write_boundary1 = uber1.pf['WriteBoundary']
-        except:
-            write_boundary1 = 0
-        try:
-            write_boundary2 = uber2.pf['WriteBoundary']
-        except:
-            write_boundary2 = 0
-        gz_written1=gz1* write_boundary1
-        gz_written2=gz2* write_boundary2
-        width1=h1.grids[grid1-1].dds
-        left1=h1.grids[grid1-1].LeftEdge   -gz_written1*width1
-        right1=h1.grids[grid1-1].RightEdge +gz_written1*width1
-        width2=h2.grids[grid2-1].dds
-        left2=h2.grids[grid2-1].LeftEdge   -gz_written2*width2
-        right2=h2.grids[grid2-1].RightEdge +gz_written2*width2
+    left1  = fake_grid_1.GridLeftEdge+ shift
+    right1 = fake_grid_1.GridRightEdge+ shift
+    width1 = fake_grid_1.CellWidth
+    left2  = fake_grid_2.GridLeftEdge
+    right2 = fake_grid_2.GridRightEdge
+    width2 = fake_grid_2.CellWidth
 
-    if debug > 1:
-        print "Out of the box:"
-        print "left1 (%6f,%6f,%6f) right1 (%6f,%6f,%6f)"%tuple(left1.tolist()+right1.tolist())
-        print "left2 (%6f,%6f,%6f) right2 (%6f,%6f,%6f)"%tuple(left2.tolist()+right2.tolist())
-    
-
-    if 0:
-        #old, doens't work.
-        #shift for ghost zones
-        for v in [left1,left2]:
-            v -= nGhost*width1
-        for v in [right1,right2]:
-            v += nGhost*width1
-
-    if debug > 1:
-        print "After the Shift"
-        print "left1 (%6f,%6f,%6f) right1 (%6f,%6f,%6f)"%tuple(left1.tolist()+right1.tolist())
-        print "left2 (%6f,%6f,%6f) right2 (%6f,%6f,%6f)"%tuple(left2.tolist()+right2.tolist())
 
     strict_overlap_bool = [ left1 < right2 , left2 < right1 ]
     proper_overlap = strict_overlap_bool[0].all() and strict_overlap_bool[1].all()
 
     edge_overlap = [na.abs(left1- right2)< 0.1*width1, na.abs(left2 - right1) < 0.1*width2]
 
-    if False:
-        #I think that this is wrong.
-        if not edge_overlap[0].all() and not edge_overlap[1].all():
-            raise OverlapException(n1,n2,grid1,grid2,field,left1,left2,right2,right2)        
 
     if not proper_overlap:
         #then there's a face overlap, whence check face/field pair
@@ -121,11 +68,29 @@ def FindOverlap(dir1,dir2,n1,n2,grid1,grid2,field,shift=nar([0.0]*3),nGhost=0,gr
            (edge_overlap[0][1] or edge_overlap[1][1]) and field != 'ElectricField_1':
             raise OverlapException(n1,n2,grid1,grid2,field,left1,left2,right2,right2)                          
 
-        
 
-
-    OverlapLeft =  na.amax([left1+nGhost*width1 ,left2+nGhost*width2],axis=0)
-    OverlapRight = na.amin([right1-nGhost*width1,right2-nGhost*width2],axis=0)
+    if ds1 is not None:
+        nGhost1 = ds1['NumberOfGhostZones']
+        nGhost1 *= ds1['WriteBoundary']
+        nGhost1 *= ds1['WriteGhostZones']
+    if ds2 is not None:
+        nGhost2 = ds2['NumberOfGhostZones']
+        nGhost2 *= ds2['WriteBoundary']
+        nGhost2 *= ds2['WriteGhostZones']
+    if debug > 0:
+        print "CLOWN left1", left1
+        print "CLOWN left2", left2
+        print "CLOWN right1", right1
+        print "CLOWN right2", right2
+    left1 -= nGhost1*width1; left2-=nGhost2*width2
+    right1 += nGhost1*width1; right2+=nGhost2*width2
+    if debug>0:
+        print "CLOWN left1", left1
+        print "CLOWN left2", left2
+        print "CLOWN right1", right1
+        print "CLOWN right2", right2
+    OverlapLeft =  na.amax([left1 +nGhostSkip*width1 ,left2+nGhostSkip*width2],axis=0)
+    OverlapRight = na.amin([right1-nGhostSkip*width1,right2-nGhostSkip*width2],axis=0)
 
 
     if debug > 1:
@@ -154,6 +119,8 @@ def FindOverlap(dir1,dir2,n1,n2,grid1,grid2,field,shift=nar([0.0]*3),nGhost=0,gr
 
     slice1 = [slice(start1[i],end1[i]) for i in range(start1.shape[0])]
     slice2 = [slice(start2[i],end2[i]) for i in range(start2.shape[0])]
+    print "CLOWN", slice1
+    print "CLOWN", slice2
 
     return (slice1,slice2)
 
