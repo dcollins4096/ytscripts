@@ -241,7 +241,7 @@ class udiff():
                             local_output_range = copy.copy(self.p['output_range'])
 
                         for x in local_output_range: #range(g1.shape[0]):
-                            subset[index]=min([x,g1[subset].shape[index]-1,g2[subset].shape[index]-1])
+                            subset[index]= x #min([x,g1[subset].shape[index]-1,g2[subset].shape[index]-1])
                             plave(g1[subset],self.output_format%(output_prefix,\
                                                            n1,grid1,field1,output,x,'set1'))
                             plave(g2[subset],self.output_format%(output_prefix,
