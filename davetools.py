@@ -281,8 +281,9 @@ def grep(lookfor,obj):
     for i in my_list:
         if lookfor.upper() in i.upper(): print i
 
-def stat(array,strin=''):
-    print '[%0.16e,%0.16e] %s %s'%(array.min(),array.max(),array.shape,strin)
+def stat(array,strin='', format='%0.16e'):
+    template = '['+format+','+format+'] %s %s'
+    print template%(array.min(),array.max(),array.shape,strin)
 
 def nonzerostat(array,strin=''):
 

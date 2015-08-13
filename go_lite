@@ -1,15 +1,10 @@
 
 from matplotlib.backends.backend_agg import FigureCanvasAgg
 import sys
+import h5py
 import os
 import copy
 import warnings
-
-
-if False:
-  sys.path.insert(0,'/Users/dccollins/local/src/yt_analysis')
-  sys.path.insert(0,'/nics/b/home/collins/local_2013_03_12/src/yt-dave')
-
 import numpy as np
 import math
 nar = np.array
@@ -20,6 +15,5 @@ import pylab
 import time
 import glob
 ef=execfile
-sys.path.insert(0,'/nics/b/home/collins/local_nautilus/lib/python2.7/site-packages/')
 x_dict = [1,0,0]
 y_dict = [2,2,1]

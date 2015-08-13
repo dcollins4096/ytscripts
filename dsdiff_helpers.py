@@ -7,6 +7,9 @@ def get_ds_name(directory, frame):
     fptr = open(fname)
     lines = fptr.readlines()
     fptr.close()
+    if frame >= len(lines):
+        print "Dataset %d not found"%frame
+        raise NotImplementedError
     setname = lines[frame].split(' ')[2]
     return "%s/%s"%(directory,setname)
 def find_grid_filename(directory, frame, grid):

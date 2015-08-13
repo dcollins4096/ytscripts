@@ -28,12 +28,35 @@ def FindOverlap(dir1,dir2,n1,n2,grid1,grid2,field,shift=nar([0.0]*3),grid_direct
     left2  = fake_grid_2.GridLeftEdge
     right2 = fake_grid_2.GridRightEdge
     width2 = fake_grid_2.CellWidth
+    #print "width1", width1
+    #print "width2", width2
 
+    if ds1 is not None:
+        nGhost1 = ds1['NumberOfGhostZones']
+        nGhost1 *= ds1['WriteBoundary']
+        nGhost1 *= ds1['WriteGhostZones']
+    if ds2 is not None:
+        nGhost2 = ds2['NumberOfGhostZones']
+        nGhost2 *= ds2['WriteBoundary']
+        nGhost2 *= ds2['WriteGhostZones']
+    if debug > 0:
+        print "CLOWN left1", left1
+        print "CLOWN left2", left2
+        print "CLOWN right1", right1
+        print "CLOWN right2", right2
+    left1 -= nGhost1*width1; left2-=nGhost2*width2
+    right1 += nGhost1*width1; right2+=nGhost2*width2
+    if debug>0:
+        print "CLOWN left1", left1
+        print "CLOWN left2", left2
+        print "CLOWN right1", right1
+        print "CLOWN right2", right2
 
     strict_overlap_bool = [ left1 < right2 , left2 < right1 ]
     proper_overlap = strict_overlap_bool[0].all() and strict_overlap_bool[1].all()
 
     edge_overlap = [na.abs(left1- right2)< 0.1*width1, na.abs(left2 - right1) < 0.1*width2]
+    #print "edge overlap", edge_overlap
 
 
     if not proper_overlap:
@@ -69,26 +92,6 @@ def FindOverlap(dir1,dir2,n1,n2,grid1,grid2,field,shift=nar([0.0]*3),grid_direct
             raise OverlapException(n1,n2,grid1,grid2,field,left1,left2,right2,right2)                          
 
 
-    if ds1 is not None:
-        nGhost1 = ds1['NumberOfGhostZones']
-        nGhost1 *= ds1['WriteBoundary']
-        nGhost1 *= ds1['WriteGhostZones']
-    if ds2 is not None:
-        nGhost2 = ds2['NumberOfGhostZones']
-        nGhost2 *= ds2['WriteBoundary']
-        nGhost2 *= ds2['WriteGhostZones']
-    if debug > 0:
-        print "CLOWN left1", left1
-        print "CLOWN left2", left2
-        print "CLOWN right1", right1
-        print "CLOWN right2", right2
-    left1 -= nGhost1*width1; left2-=nGhost2*width2
-    right1 += nGhost1*width1; right2+=nGhost2*width2
-    if debug>0:
-        print "CLOWN left1", left1
-        print "CLOWN left2", left2
-        print "CLOWN right1", right1
-        print "CLOWN right2", right2
     OverlapLeft =  na.amax([left1 +nGhostSkip*width1 ,left2+nGhostSkip*width2],axis=0)
     OverlapRight = na.amin([right1-nGhostSkip*width1,right2-nGhostSkip*width2],axis=0)
 
@@ -119,8 +122,8 @@ def FindOverlap(dir1,dir2,n1,n2,grid1,grid2,field,shift=nar([0.0]*3),grid_direct
 
     slice1 = [slice(start1[i],end1[i]) for i in range(start1.shape[0])]
     slice2 = [slice(start2[i],end2[i]) for i in range(start2.shape[0])]
-    print "CLOWN", slice1
-    print "CLOWN", slice2
+    #print "CLOWN", slice1
+    #print "CLOWN", slice2
 
     return (slice1,slice2)
 

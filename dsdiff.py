@@ -156,7 +156,7 @@ class udiff():
                         Slice1, Slice2 = FindOverlap.FindOverlap(
                             self.dir1,self.dir2,n1,n2,grid1,grid2,field1,shift,self.p['grid_direct'],
                             ds1=ds1,ds2=ds2, nGhostSkip=self.p['nGhostSkip'])
-                        print Slice1, Slice2
+                        #print Slice1, Slice2
                         #Slice1 = slice(None)
                         #Slice2 = slice(None)
                     except FindOverlap.OverlapException as e:
