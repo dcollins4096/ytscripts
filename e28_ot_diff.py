@@ -12,8 +12,10 @@ otb = 'otb_failure'
 otc = 'otc_otb2'
 w01 = 'w01_enzo_dev'
 w02 = 'w02_CBE'
-set1 = w01
-set2 = w02
+w03 = 'w03_dev_amr'
+w04 = 'w04_cbe_amr'
+set1 = w03
+set2 = w04
 dir1 = "%s/%s"%(basedir,set1)
 dir2 = "%s/%s"%(basedir,set2)
 import dsdiff
