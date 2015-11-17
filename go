@@ -8,6 +8,7 @@ execfile('go_lite')
 #dummy
 #Stuff I wrote that I like
 #import davecallback
+import dsdiff_helpers
 import fPickle
 execfile('xtra_fields.py')
 execfile('davetools.py') #as needed, no more execfile.  
