@@ -14,6 +14,7 @@ class fake_grid_for_pointers():
         self.NumberOfParticles = None
         self.ParticleFileName = None
         self.BaryonFileName = None
+        self.GravityBoundaryType = ''
         self.Pointers = []
 
 def parse_hierarchy_for_particles(ds_name):
@@ -67,6 +68,8 @@ def parse_hierarchy_for_particles(ds_name):
                 fake_grid_list[g_index].NumberOfPartiels = int(line.split("=")[1])
             elif line.startswith("ParticleFileName"):
                 fake_grid_list[g_index].ParticleFileName = line.split("=")[1].strip()
+            elif line.startswith("GravityBoundaryType"):
+                fake_grid_list[g_index].GravityBoundaryType = line
             elif line.startswith("Pointer"):
                 fake_grid_list[g_index].Pointers.append(line)
             elif len( line.strip() ): #it's not whitespace
@@ -95,7 +98,7 @@ def add_particles(ds, setname , outdir, method=0):
                        'particle_position_x', 'particle_position_y', 'particle_position_z', \
                        'particle_velocity_x', 'particle_velocity_y', 'particle_velocity_z']
     for grid_index, g in enumerate(ds.index.grids): 
-        print "adding to grid",g
+        print "adding to grid",g,  'of', len(ds.index.grids)
         """identify the particles, make the lists"""
         list_of_lists = [[] for p in particle_fields]
         particle_dict = dict(zip(particle_fields,list_of_lists))
@@ -107,7 +110,7 @@ def add_particles(ds, setname , outdir, method=0):
         vgy = g['y-velocity'].in_units('code_length/code_time').flatten()
         vgz = g['z-velocity'].in_units('code_length/code_time').flatten()
         mask = g.child_index_mask.flatten()
-        for n in range(density.size):
+        for n in range(density.size)[0:3]:
             if mask[n] < 0:
                 particle_dict['particle_type'].append(3)
                 particle_dict['particle_mass'].append(tracer_mass)
@@ -157,6 +160,7 @@ def add_particles(ds, setname , outdir, method=0):
             out_hierarchy_fptr.write(line)
         out_hierarchy_fptr.write("NumberOfParticles = %d\n"%(particle_count_list[grid_index]))
         out_hierarchy_fptr.write("ParticleFileName = %s"%fake_grid_list[grid_index].BaryonFileName) 
+        out_hierarchy_fptr.write(fake_grid_list[grid_index].GravityBoundaryType)
         for line in fake_grid_list[grid_index].Pointers:
             out_hierarchy_fptr.write(line)
         out_hierarchy_fptr.write("\n")
@@ -195,10 +199,10 @@ def add_particles(ds, setname , outdir, method=0):
         shutil.copy(source_file,dest_file)
 
 
-frame = 1
-dirname = '/Users/dcollins/scratch/Paper36_TracerTests/AddPost/b02_slab_noparticles'
-outdir  = '/Users/dcollins/scratch/Paper36_TracerTests/AddPost/b03_slab_add_particles'
-setname = '%s/DD%04d/data%04d'%(dirname,frame,frame)
+frame = 60
+dirname = '/scratch/00369/tg456484/Paper37_Restart/a00_ics'
+outdir  = '/scratch/00369/tg456484/Paper37_Restart/a01_with_uniform_particles'
+setname = '%s/RS%04d/restart%04d'%(dirname,frame,frame)
 
 if 'ds' not in dir():
     ds = yt.load(setname)
