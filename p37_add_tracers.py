@@ -110,8 +110,10 @@ def add_particles(ds, setname , outdir, method=0):
         vgy = g['y-velocity'].in_units('code_length/code_time').flatten()
         vgz = g['z-velocity'].in_units('code_length/code_time').flatten()
         mask = g.child_index_mask.flatten()
-        for n in range(density.size)[0:3]:
-            if mask[n] < 0:
+        got_some = 0
+        for n in range(density.size):
+            if mask[n] < 0: # and got_some < 3:
+                got_some += 1
                 particle_dict['particle_type'].append(3)
                 particle_dict['particle_mass'].append(tracer_mass)
                 particle_dict['particle_index'].append(last_index )
@@ -122,7 +124,7 @@ def add_particles(ds, setname , outdir, method=0):
                 particle_dict['particle_velocity_x'].append(vgx[n])
                 particle_dict['particle_velocity_y'].append(vgy[n])
                 particle_dict['particle_velocity_z'].append(vgz[n])
-        del density, x, y, z, vgx, vgy, vgz
+        del density #, x, y, z, vgx, vgy, vgz
         particle_count_list[grid_index] = len(particle_dict['particle_type'])
         if fake_grid_list[grid_index].NumberOfParticles is not None:
             particle_count_list[grid_index]+= fake_grid_list[grid_index].NumberOfParticles
@@ -158,8 +160,10 @@ def add_particles(ds, setname , outdir, method=0):
         """write the hierarchy files"""
         for line in fake_grid_list[grid_index].first_stuff:
             out_hierarchy_fptr.write(line)
-        out_hierarchy_fptr.write("NumberOfParticles = %d\n"%(particle_count_list[grid_index]))
-        out_hierarchy_fptr.write("ParticleFileName = %s"%fake_grid_list[grid_index].BaryonFileName) 
+        NumberOfParticles = particle_count_list[grid_index]
+        out_hierarchy_fptr.write("NumberOfParticles = %d\n"%(NumberOfParticles))
+        if NumberOfParticles > 0 :
+            out_hierarchy_fptr.write("ParticleFileName = %s"%fake_grid_list[grid_index].BaryonFileName) 
         out_hierarchy_fptr.write(fake_grid_list[grid_index].GravityBoundaryType)
         for line in fake_grid_list[grid_index].Pointers:
             out_hierarchy_fptr.write(line)
@@ -179,13 +183,13 @@ def add_particles(ds, setname , outdir, method=0):
             out_ds.write('NumberOfParticles      = %d (do not modify)\n'%particle_count_list.sum()) #haha, do not modify.
         elif line.startswith('DataDumpNumber'):
             DataDumpNumber = int(line.split('=')[1])
-            out_ds.write('DataDumpNumber = %d'%(DataDumpNumber+1))
+            out_ds.write('DataDumpNumber = %d\n'%(DataDumpNumber+1))
         elif line.startswith('StopCycle'):
             StopCycle = int(line.split('=')[1])
-            out_ds.write('StopCycle = %d'%(StopCycle+3))
+            out_ds.write('StopCycle = %d\n'%(StopCycle+3))
         elif line.startswith('CycleSkipDataDump'):
             CycleSkipDataDump = int(line.split('=')[1])
-            out_ds.write('CycleSkipDataDump = %d'%(1))
+            out_ds.write('CycleSkipDataDump = %d\n'%(1))
 
         else:
             out_ds.write(line)
