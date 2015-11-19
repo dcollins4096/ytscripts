@@ -102,30 +102,42 @@ def add_particles(ds, setname , outdir, method=0):
         """identify the particles, make the lists"""
         list_of_lists = [[] for p in particle_fields]
         particle_dict = dict(zip(particle_fields,list_of_lists))
-        density = g['density'].in_units('code_mass/code_length**3').flatten()
-        x = g['x'].in_units('code_length').flatten()
-        y = g['y'].in_units('code_length').flatten()
-        z = g['z'].in_units('code_length').flatten()
-        vgx = g['x-velocity'].in_units('code_length/code_time').flatten()
-        vgy = g['y-velocity'].in_units('code_length/code_time').flatten()
-        vgz = g['z-velocity'].in_units('code_length/code_time').flatten()
-        mask = g.child_index_mask.flatten()
-        got_some = 0
-        for n in range(density.size):
-            if mask[n] < 0: # and got_some < 3:
-                got_some += 1
-                particle_dict['particle_type'].append(3)
-                particle_dict['particle_mass'].append(tracer_mass)
-                particle_dict['particle_index'].append(last_index )
-                last_index += 1
-                particle_dict['particle_position_x'].append(x[n])
-                particle_dict['particle_position_y'].append(y[n])
-                particle_dict['particle_position_z'].append(z[n])
-                particle_dict['particle_velocity_x'].append(vgx[n])
-                particle_dict['particle_velocity_y'].append(vgy[n])
-                particle_dict['particle_velocity_z'].append(vgz[n])
-        del density #, x, y, z, vgx, vgy, vgz
-        particle_count_list[grid_index] = len(particle_dict['particle_type'])
+        density = g['density'].in_units('code_mass/code_length**3')#.flatten()
+        x = g['x'].in_units('code_length')#flatten()
+        y = g['y'].in_units('code_length')#flatten()
+        z = g['z'].in_units('code_length')#flatten()
+        vgx = g['x-velocity'].in_units('code_length/code_time')#flatten()
+        vgy = g['y-velocity'].in_units('code_length/code_time')#flatten()
+        vgz = g['z-velocity'].in_units('code_length/code_time')#flatten()
+        
+        this_number = particle_count_list[grid_index] = g.child_mask.sum()
+        particle_dict['particle_type'] = np.zeros(this_number)+3
+        particle_dict['particle_mass'] = np.zeros(this_number)+tracer_mass
+        particle_dict['particle_index'] = np.arange(last_index, last_index+this_number)
+        last_index += this_number
+        particle_dict['particle_position_x'] = x[g.child_mask].flatten()
+        particle_dict['particle_position_y'] = y[g.child_mask].flatten()
+        particle_dict['particle_position_z'] = z[g.child_mask].flatten()
+        particle_dict['particle_velocity_x'] = vgx[g.child_mask].flatten()
+        particle_dict['particle_velocity_y'] = vgy[g.child_mask].flatten()
+        particle_dict['particle_velocity_z'] = vgz[g.child_mask].flatten()
+        #mask = g.child_index_mask.flatten()
+#       got_some = 0
+#       for n in range(density.size):
+#           if mask[n] < 0: # and got_some < 3:
+#               got_some += 1
+#               particle_dict['particle_type'].append(3)
+#               particle_dict['particle_mass'].append(tracer_mass)
+#               particle_dict['particle_index'].append(last_index )
+#               last_index += 1
+#               particle_dict['particle_position_x'].append(x[n])
+#               particle_dict['particle_position_y'].append(y[n])
+#               particle_dict['particle_position_z'].append(z[n])
+#               particle_dict['particle_velocity_x'].append(vgx[n])
+#               particle_dict['particle_velocity_y'].append(vgy[n])
+#               particle_dict['particle_velocity_z'].append(vgz[n])
+        del density , x, y, z, vgx, vgy, vgz
+#        particle_count_list[grid_index] = len(particle_dict['particle_type'])
         if fake_grid_list[grid_index].NumberOfParticles is not None:
             particle_count_list[grid_index]+= fake_grid_list[grid_index].NumberOfParticles
         
@@ -203,10 +215,13 @@ def add_particles(ds, setname , outdir, method=0):
         shutil.copy(source_file,dest_file)
 
 
-frame = 60
 dirname = '/scratch/00369/tg456484/Paper37_Restart/a00_ics'
 outdir  = '/scratch/00369/tg456484/Paper37_Restart/a01_with_uniform_particles'
-setname = '%s/RS%04d/restart%04d'%(dirname,frame,frame)
+dirname = '/Users/dcollins/scratch/Paper36_TracerTests/AddPost/b01_slab'
+outdir = '/Users/dcollins/scratch/Paper36_TracerTests/AddPost/b03_slab_add_particles'
+outdir = '/Users/dcollins/scratch/Paper36_TracerTests/AddPost/b04_slab_fast'
+frame = 60;setname = '%s/RS%04d/restart%04d'%(dirname,frame,frame) 
+frame = 1;setname = '%s/DD%04d/data%04d'%(dirname,frame,frame)
 
 if 'ds' not in dir():
     ds = yt.load(setname)
