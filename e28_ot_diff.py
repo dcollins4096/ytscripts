@@ -18,6 +18,8 @@ set1 = w03
 set2 = w04
 dir1 = "%s/%s"%(basedir,set1)
 dir2 = "%s/%s"%(basedir,set2)
+dir1 = '/scratch1/dcollins/TestRunner/dev/0f26d0afc890+_E28_cbe_single_test_finally/Hydro/Hydro-2D/RadiatingShockWave'
+dir2 = '/scratch1/dcollins/TestRunner/dev/cb9712a1f763+_enzo-dev_gold_push_with_no_specific/Hydro/Hydro-2D/RadiatingShockWave'
 import dsdiff
 reload(dsdiff)
 frames=[0]

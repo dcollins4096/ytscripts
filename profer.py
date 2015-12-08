@@ -78,7 +78,8 @@ if 0:
     gpc = the_stuff('gpc','/scratch1/dcollins/EnzoProjects/E27_MHDPerformance/b09_Etiming_C/gprofC2','b')
 if 1:
 #    gpc = the_stuff('gpd','/scratch1/dcollins/EnzoProjects/E27_MHDPerformance/b12_old_C/gprof_old_c','r')
-    gpc = the_stuff('gpd','/scratch1/dcollins/EnzoProjects/E27_MHDPerformance/b12_old_C/gprof_old_c_2','r')
+    gpc = the_stuff('gpd','/scratch1/dcollins/EnzoProjects/E27_MHDPerformance/b12_old_C/gprof_old_c_long','r')
+#    gpc = the_stuff('gpd','/scratch1/dcollins/EnzoProjects/E27_MHDPerformance/b12_old_C/gprof_old_c_2','r')
 #    gpf = the_stuff('gpf','/scratch1/dcollins/EnzoProjects/E27_MHDPerformance/b13_old_F/gprof_old_f','g')
 #    gpf = the_stuff('gpf','/scratch1/dcollins/EnzoProjects/E27_MHDPerformance/b15_old_F_opt/gprof_old_f_prim1','g')
 #    gpf = the_stuff('gpf','/scratch1/dcollins/EnzoProjects/E27_MHDPerformance/b15_old_F_opt/gprof_old_f_press','g')
@@ -88,16 +89,21 @@ if 1:
 #    gpf = the_stuff('gpf','/scratch1/dcollins/EnzoProjects/E27_MHDPerformance/b15_old_F_opt/gprof_old_f_new_timestep','g')
 #    gpf = the_stuff('gpf','/scratch1/dcollins/EnzoProjects/E27_MHDPerformance/b15_old_F_opt/gprof_old_f_nt_2','g')
 #    gpf = the_stuff('gpf','/scratch1/dcollins/EnzoProjects/E27_MHDPerformance/b15_old_F_opt/gprof_old_f_center','g')
-    gpf = the_stuff('gpf','/scratch1/dcollins/EnzoProjects/E27_MHDPerformance/b15_old_F_opt/gprof_old_f_cons1','g')
+#    gpf = the_stuff('gpf','/scratch1/dcollins/EnzoProjects/E27_MHDPerformance/b15_old_F_opt/gprof_old_f_cons1','g')
+#    gpf = the_stuff('gpf','/scratch1/dcollins/EnzoProjects/E27_MHDPerformance/b15_old_F_opt/gprof_old_f_center_fortran','g')
+#    gpf = the_stuff('gpf','/scratch1/dcollins/EnzoProjects/E27_MHDPerformance/b15_old_F_opt/gprof_limiter_method0','g')
+    gpf = the_stuff('gpf','/scratch1/dcollins/EnzoProjects/E27_MHDPerformance/b15_old_F_opt/gprof_old_f_long','g')
 #    gpf = the_stuff('gpf','/scratch1/dcollins/EnzoProjects/E27_MHDPerformance/b15_old_F_opt/gprof_old_f_limiter4','g') #hack it out.
 #    gpd = the_stuff('gpc','/scratch1/dcollins/EnzoProjects/E27_MHDPerformance/b14_old_D/gprof_old_d','b')
-    gpd = the_stuff('gpc','/scratch1/dcollins/EnzoProjects/E27_MHDPerformance/b14_old_D/gprof_old_d_2','b')
+#    gpd = the_stuff('gpc','/scratch1/dcollins/EnzoProjects/E27_MHDPerformance/b14_old_D/gprof_old_d_2','b')
+    gpd = the_stuff('gpc','/scratch1/dcollins/EnzoProjects/E27_MHDPerformance/b14_old_D/gprof_old_d_long','b')
 gpd.scrub()
 gpc.scrub()
 gpf.scrub()
 plt.clf()
 names=True
-nplot=12
+nplot=15
+
 if nplot>0:
     if 0:
         cuml=True
@@ -114,3 +120,6 @@ if nplot>0:
     plt.savefig(outname)
     print outname
 ef('proferb.py')
+print "gpd", sum(gpd.self)
+print "gpc", sum(gpc.self)
+print "gpf", sum(gpf.self)

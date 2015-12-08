@@ -1,4 +1,5 @@
 dir1 = '/Users/dcollins/scratch/Paper05/OK4'
+dir1 = '/scratch1/dcollins/Paper05/OK4/'
 frame=700
 size = 128*2**4
 ds1 = yt.load(dir1+"/RS%04d/restart%04d"%(frame,frame))
