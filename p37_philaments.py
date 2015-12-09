@@ -1,6 +1,8 @@
 #line of sight is z
 if 'ef' not in dir():
     execfile('go')
+ef('p20_misc.py')
+
 highfil1=[(40,104),(55,162)]
 highfil2=[(146,179),(21,108)]
 
@@ -10,7 +12,7 @@ lowfil1=[(148,311), (196,308)]
 plt.clf()
 
 if 1:
-    #frame=80
+    frame=50
     #frame=70
     ds = yt.load('/scratch1/dcollins/Paper08/B02/512/RS%04d/restart%04d'%(frame,frame)); simname = 'high_field'
     subset = 'full'
@@ -89,7 +91,7 @@ if 1:
     if 1:
         proj = ds.proj("density","z",data_source=reg,center=C)
         pw=proj.to_pw(center=C)
-        print pw.save('philaments_high_1.5_t%04d'%frame)
+        print pw.save('p37_trace1_t%04d'%frame)
     if 0:
         proj = ds.proj("density","y",data_source=reg,center=C)
         pw=proj.to_pw(center=C)
@@ -116,7 +118,8 @@ if 1:
     width = max(Delta)
     res = 1./Nzones
     frb = proj.to_frb( width, int(Nzones))
-    den_damned_square = copy.copy(frb['density'].v)
+    field = 'density' #'level'
+    den_damned_square = copy.copy(frb[field].v)
     #mag = copy.copy(frb['magnetic_pressure'].v)
     if 0:
         mask2  = den >0
@@ -129,13 +132,39 @@ if 1:
         ok_y = np.where( den_damned_square[half_x,:] >0 )[0]
         ok_x = np.where( den_damned_square[:,half_y] >0 )[0]
         den = den_damned_square[ok_x[0]:ok_x[-1]+1, ok_y[0]:ok_y[-1]+1]
-    plt.clf()
-    plt.imshow( np.log10( den), origin='lower', interpolation='nearest',cmap='gray')
-    #plt.imshow( MPhi, origin='lower', interpolation='nearest')
-    #outname = 'subplot_%s_%s_t%04d_%s'%(simname, subset, frame, resolution_name)
-    outname = 'filament_image_%s_%s_t%04d_%s_%s.png'%(simname, subset, frame,resolution_name, field)
-    plt.savefig(outname)
-    print outname
+    if 0:
+        """simple plot."""
+        plt.clf()
+        plt.imshow( np.log10( den), origin='lower', interpolation='nearest',cmap='gray')
+        outname = 'filament_image_%s_%s_t%04d_%s_%s.png'%(simname, subset, frame,resolution_name, field)
+        plt.savefig(outname)
+        print outname
+    if 1:
+        if field == 'density':
+            density_factor = 1000*4.6*3.08e18 #1000 cm^-3 * 4.6 pc * cm/pc
+            to_plot = density_factor* np.log10( den)
+            cb_label= r'$N[\rm{cm}^{-2}]=N[\rm{code}]*%0.2e$'%density_factor
+        elif field == 'level':
+            to_plot = den
+            cb_label = r'$level$'
+
+        else:
+            raise
+        """code-heinous, readout-good plot"""
+        plt.clf()
+        plt.imshow(to_plot, origin='lower', interpolation='nearest',cmap='gray')
+        cb=plt.colorbar()
+        cb.set_label(cb_label)
+        dx = 4.6/8193.
+        old_xticks = plt.xticks()[0][1:-1]
+        plt.xticks( old_xticks, ["$%0.2f$"%n for n in  old_xticks*dx+L[0] ] )
+        plt.xlabel(r'$x[\rm{pc}]\  (\Delta x=$%s$\rm{pc})$'%expform(dx))
+        old_yticks = plt.yticks()[0][1:-1]
+        plt.yticks( old_yticks, ["$%0.2f$"%n for n in  old_yticks*dx+L[1] ] )
+        plt.ylabel(r'$y[\rm{pc}]\  (\Delta x=$%s$\rm{pc})$'%expform(dx))
+        outname = 'filament_image_%s_%s_t%04d_%s_%s.png'%(simname, subset, frame,resolution_name, field)
+        plt.savefig(outname)
+        print outname
 
 if 0:
     plt.clf()
@@ -197,7 +226,7 @@ if 0:
     print fname
 
 
-if 1:
+if 0:
     """ write text"""
     field = 'density'
     fname = 'filament_data_%s_%s_t%04d_%s_%s.txt'%(simname, subset, frame,resolution_name, field)
@@ -213,7 +242,8 @@ if 1:
         outfile.write("\n")
     outfile.close()
     print fname
-if 1:
+
+if 0:
     """ write text transposed"""
     field = 'density'
     fname = 'filament_data_transposed_%s_%s_t%04d_%s_%s.txt'%(simname, subset, frame,resolution_name, field)
