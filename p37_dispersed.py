@@ -23,7 +23,7 @@ def newfig():
     return fig_list[-1]
 if 'dirname' not in dir():
     #dirname = '/scratch1/share/fils'
-    dirname = '/Users/dcollins/FakeGoogleDrive/write/ActivePapers/Paper37_Philaments/2015-06-12-disperse/DATA'
+    dirname = '/Users/dcollins/RESEARCH2/Paper37_Philaments/2015-06-12-disperse/DATA'
     fname1 ='%s/%s'%(dirname,'b02_512_0020_smoothed_0256_density.fits_c0.1.up.NDskl.fits')
     fname2 ='%s/%s'%(dirname,'b02_512_0020_smoothed_0256_density.fits_c0.25.up.NDskl.fits')
     fname3 ='%s/%s'%(dirname,'b02_512_0020_smoothed_0256_density.fits_c0.5.up.NDskl.fits')
@@ -44,24 +44,27 @@ if 'dirname' not in dir():
 
 actual_resolution = fullset.shape[0]
 if 1:
-    """plot"""
-    filament_image = newfig()
-    filament_ax = filament_image.add_subplot(111)
-    filament_ax.imshow(set1_data)
-    outname = 'filament_image_%s_n%04d_r%04d.png'%(setname, frame, resolution)
-    filament_image.savefig(outname)
-    print 'filaments', outname
+    #"""plot""" major image.  
+    #filament_image = newfig()
+    #filament_ax = filament_image.add_subplot(111)
+    #d1=filament_ax.imshow(set1_data)
+    #filament_image.colorbar(d1)
+    #outname = 'filament_image_%s_n%04d_r%04d.png'%(setname, frame, resolution)
+    #filament_image.savefig(outname)
+    #print 'filaments', outname
 
     full_image = newfig()
     full_ax = full_image.add_subplot(111)
-    full_ax.imshow( np.log10(fullset),cmap='gray')
+    image=full_ax.imshow( np.log10(fullset),cmap='gray',interpolation='nearest')
+    full_image.colorbar(image)
     outname = 'full_image_%s_n%04d_r%04d.png'%(setname, frame, resolution)
+    full_image.savefig(outname)
     print "full image", outname
 
     if use_high_res:
         full_high_image = newfig()
         full_high_ax = full_high_image.add_subplot(111)
-        full_high_ax.imshow( np.log10(fullset_high),cmap='gray')
+        full_high_ax.imshow( np.log10(fullset_high),cmap='gray',interpolation='nearest')
         outname = 'full_high_image_%s_n%04d_r%04d.png'%(setname, frame, resolution)
         full_high_image.savefig(outname)
         print "full_high_image", outname
@@ -81,7 +84,7 @@ if 1:
         left=8192; Npoints=8192j
         yL, xL = np.mgrid[0.5*dx:left-0.5*dx:Npoints, 0.5*dx:left-0.5*dx:Npoints]
     for nfil in np.unique(set1_data):
-        if nfil not in [29]: #in skip_list[setname][frame]:
+        if nfil not in [18]: #in skip_list[setname][frame]:
             continue
 
         """for the profiles"""
@@ -91,13 +94,15 @@ if 1:
         """for filament overlays"""
         fil_image = newfig()
         fil_ax = fil_image.add_subplot(111)
-        #fil_ax.imshow( np.log10(fullset),cmap='gray')
+        fil_im = fil_ax.imshow( np.log10(fullset),cmap='gray',interpolation='nearest')
+        fil_image.colorbar(fil_im)
 
         """Masks and positions"""
         this_fil = set1_data == nfil
         not_fil = set1_data != nfil
         x_fil = x[ this_fil]
         y_fil = y[ this_fil]
+        fil_ax.scatter(x_fil.astype('int'),y_fil.astype('int'), marker='o',c='g', linewidths=0, s=1)
 
         """ lets see"""
         if use_high_res:
@@ -113,39 +118,42 @@ if 1:
         fit = scatter_fit.scatter_fit(None,x_fil,y_fil, plot_points=False)#x_fil,y_fil)
         slope = fit['fit'][0]
         offset = fit['fit'][1]
-        for ind in [15]: #range(n_points):
+        
+        for ind in range(n_points): #point along the filament, at which the transverse measurement is done.
 
             #ind = x_fil.size/2 
-            thex = x_fil[ind]; they = y_fil[ind]
+            spine_point_x = x_fil[ind]; spine_point_y = y_fil[ind]
             """the transverse line"""
             width = 0.6/4.6*256
             perp_slope = -1./slope
             Theta = np.arctan(perp_slope)
+            #Spatial extent in line, targeting 0.6 pc for the filament
             Deltax = width * np.cos(Theta) #there is a better way for this.
             Deltay = width * np.sin(Theta) #there is a better way for this.
-            x0 = thex - 0.5*Deltax; x1 = thex + 0.5*Deltax
-            y0 = they - 0.5*Deltay; y1 = they + 0.5*Deltay
+            x0 = spine_point_x - 0.5*Deltax; x1 = spine_point_x + 0.5*Deltax
+            y0 = spine_point_y - 0.5*Deltay; y1 = spine_point_y + 0.5*Deltay
             #plt.plot([x0,x1],[y0,y1],c='g') #fit ranges
+
             """now I need to get a range of dx"""
+            #select all the x indices within the extents of "width",  then 
+            #pick y indices for the x points on the line.
             x_i_logic = np.logical_and( x[0,:] >= x0, x[0,:] <= x1 )
             x_a = x[0,:][x_i_logic] #these are cell centered
             x_i = x_a.astype('int') #these are now indices
-            y_a = perp_slope*(x_a - thex) + they
-            left_edge = 0; dx=1
+            y_a = perp_slope*(x_a - spine_point_x) + spine_point_y
+            left_edge = 0; dx=1 #using code units.
             y_i = ((y_a-left_edge)/dx).astype('int')
             on_the_plot = np.logical_and(x_i < actual_resolution, y_i < actual_resolution)
             x_i = x_i[on_the_plot]; y_i = y_i[on_the_plot];
             x_a = x_a[on_the_plot]; y_a = y_a[on_the_plot];
-            fil_ax.scatter(x_i,y_i, marker='o',c='y')
             #coordinates = np.sqrt(x_a**2+y_a**2) #needs to be centered somehow.
-            coordinates = np.sign(x_a-thex)*np.sqrt((x_a-thex)**2+(y_a-they)**2) #needs to be centered somehow.
+            coordinates = np.sign(x_a-spine_point_x)*np.sqrt((x_a-spine_point_x)**2+(y_a-spine_point_y)**2) #This centers the profile on the Filament.
             coordinates *= 4.6/256
             density = nar([fullset[ix,iy] for ix,iy in zip(x_i,y_i)])
             profile_ax.plot(coordinates, density, marker='o',c=rmap(ind))
-            profile_ax.scatter((thex-x_fil[0])*4.6/256,0.3,c=rmap(ind))
-            fil_ax.scatter(thex,they,c=rmap(ind), s=1, linewidth=0)
-            fil_ax.scatter(x_i,y_i, marker='o',c='y',s=1)
-            fil_image.savefig('derp.png')
+            profile_ax.scatter((spine_point_x-x_fil[0])*4.6/256,0.3,c=rmap(ind))
+            fil_ax.scatter(x_i,y_i, marker='o',c=rmap(ind), linewidths=0, s=0.1)
+            #fil_ax.scatter(spine_point_x,they,c=rmap(ind), s=1, linewidth=0)
 
             if use_high_res:
                 """now repeat for high res"""
@@ -170,9 +178,9 @@ if 1:
 
 
 
-        fname_profile='profile_center_%s_n%04d_r%04d_f%02d.png'%(setname, frame, resolution, nfil)
-        fil_name = 'fil_image_%s_n%04d_r%04d_f%02d.png'%(setname, frame, resolution, nfil)
-        fil_ax.plot([0,256],[0,256],c='b')
+        fname_profile='profile_center_%s_n%04d_r%04d_f%02d.pdf'%(setname, frame, resolution, nfil)
+        fil_name = 'fil_image_%s_n%04d_r%04d_f%02d.pdf'%(setname, frame, resolution, nfil)
+        #fil_ax.plot([0,256],[0,256],c='b')
         fil_ax.set_xlim(0,actual_resolution)
         fil_ax.set_ylim(actual_resolution,0)
         fil_image.savefig(fil_name)
@@ -186,7 +194,8 @@ if 1:
         full_image.savefig(full_outname)
         print full_outname
         outname = 'full_high_image_%s_n%04d_r%04d_f%02d.png'%(setname, frame, resolution,nfil)
-        full_high_image.savefig(outname)
+        if use_high_res:
+            full_high_image.savefig(outname)
         print "full_high_image, fil", outname
 
 for fig in fig_list:
