@@ -21,6 +21,26 @@ fig_list=[]
 def newfig():
     fig_list.append(plt.figure())
     return fig_list[-1]
+def point_selector(x,y,x0,x1,y0,y1,dx,dy):
+    #F(x,y) = (y1-y0)*x + (x0-x1)*y +(x1*y0-x0*y1)
+    #F==0, (x,y) is on the line.  <0 above, >0 below
+    #All above or below, then there's no intersection. 
+    #Sign change means that two points are on opposite sides of the line.
+
+    c1 = y1-y0
+    c2 = x0-x1
+    c3 = x1*y0-x0*y1
+    a   = c1*(x      )+c2*(y      )+c3
+    amm = c1*(x-dx/2.)+c2*(y-dy/2.)+c3
+    amp = c1*(x-dx/2.)+c2*(y+dy/2.)+c3
+    app = c1*(x+dx/2.)+c2*(y+dy/2.)+c3
+    apm = c1*(x+dx/2.)+c2*(y-dy/2.)+c3
+    keep = amm*amp <= 0
+    keep = np.logical_or( keep, amp*app <= 0 )
+    keep = np.logical_or( keep, app*apm <= 0 )
+    keep = np.logical_or( keep, apm*amm <= 0 ) 
+    #pdb.set_trace()
+    return keep
 if 'dirname' not in dir():
     #dirname = '/scratch1/share/fils'
     dirname = '/Users/dcollins/RESEARCH2/Paper37_Philaments/2015-06-12-disperse/DATA'
@@ -134,25 +154,21 @@ if 1:
             y0 = spine_point_y - 0.5*Deltay; y1 = spine_point_y + 0.5*Deltay
             #plt.plot([x0,x1],[y0,y1],c='g') #fit ranges
 
-            """now I need to get a range of dx"""
-            #select all the x indices within the extents of "width",  then 
-            #pick y indices for the x points on the line.
-            x_i_logic = np.logical_and( x[0,:] >= x0, x[0,:] <= x1 )
-            x_a = x[0,:][x_i_logic] #these are cell centered
-            x_i = x_a.astype('int') #these are now indices
-            y_a = perp_slope*(x_a - spine_point_x) + spine_point_y
-            left_edge = 0; dx=1 #using code units.
-            y_i = ((y_a-left_edge)/dx).astype('int')
-            on_the_plot = np.logical_and(x_i < actual_resolution, y_i < actual_resolution)
-            x_i = x_i[on_the_plot]; y_i = y_i[on_the_plot];
-            x_a = x_a[on_the_plot]; y_a = y_a[on_the_plot];
-            #coordinates = np.sqrt(x_a**2+y_a**2) #needs to be centered somehow.
+            slice_x = slice(np.where(x[0,:]<x0)[0][-1], np.where(x[0,:]>x1)[0][0])
+            slice_y = slice(np.where(y[:,0]<y0)[0][-1], np.where(y[:,0]>y1)[0][0])
+            x_sub=x[slice_y,slice_x]
+            y_sub=y[slice_y,slice_x]
+            dx=1.
+            dy=1.
+            keep = point_selector(x_sub,y_sub,x0,x1,y0,y1,dx,dy)
+            x_a = x_sub[keep]
+            y_a = y_sub[keep]
             coordinates = np.sign(x_a-spine_point_x)*np.sqrt((x_a-spine_point_x)**2+(y_a-spine_point_y)**2) #This centers the profile on the Filament.
             coordinates *= 4.6/256
-            density = nar([fullset[ix,iy] for ix,iy in zip(x_i,y_i)])
+            density = fullset[slice_y,slice_x][keep] # fullsetnar([fullset[ix,iy] for ix,iy in zip(x_i,y_i)])
             profile_ax.plot(coordinates, density, marker='o',c=rmap(ind))
             profile_ax.scatter((spine_point_x-x_fil[0])*4.6/256,0.3,c=rmap(ind))
-            fil_ax.scatter(x_i,y_i, marker='o',c=rmap(ind), linewidths=0, s=0.1)
+            fil_ax.scatter(x_a,y_a, marker='o',c=rmap(ind), linewidths=0, s=0.1)
             #fil_ax.scatter(spine_point_x,they,c=rmap(ind), s=1, linewidth=0)
 
             if use_high_res:
