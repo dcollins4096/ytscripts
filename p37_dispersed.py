@@ -11,6 +11,8 @@ import pyfits
 import scatter_fit
 reload(scatter_fit)
 
+def log_fun(field):
+    return np.log10(field)
 
 if 'use_high_res' not in dir():
     use_high_res=True
@@ -134,7 +136,7 @@ if 1:
 
     filament_cmap=rainbow_map(set1_data.max()+1)
     for nfil in np.unique(set1_data)[1:]:
-        if nfil not in [42]: #range(40,50): #range(105,170):
+        if nfil not in [48]: # range(48,60): #range(105,170):
             continue
 #       if nfil not in [115]: #  [48]: # range(45,60): #[18]: #in skip_list[setname][frame]:
 #           continue
@@ -159,11 +161,11 @@ if 1:
 
 
         """ Overplot the filaments """
-        if True:
+        if 0:
             if use_high_res:
                 high_res_ax.scatter(x_fil.astype('int')*32, y_fil.astype('int')*32, marker='o', linewidths=0,s=0.5, c=filament_cmap(nfil))
                 high_res_ax.text(x_centroid*32,y_centroid*32, "%d"%nfil, fontsize=5, color=filament_cmap(nfil))
-            low_res_ax.scatter(x_fil.astype('int'),y_fil.astype('int'), marker='o',c=filament_cmap(nfil), linewidths=0, s=0.05)
+            low_res_ax.scatter(x_fil.astype('int'),y_fil.astype('int'), marker='o',c=filament_cmap(nfil), linewidths=0, s=0.5)
             low_res_ax.text(x_centroid,y_centroid, "%d"%nfil, fontsize=5, color=filament_cmap(nfil))
 
 
@@ -183,7 +185,7 @@ if 1:
         """For actual profiles along the filament"""
         n_points = x_fil.size
         rmap = rainbow_map(n_points+1)
-        for ind in [25]: # range(n_points): #range(n_points): #point along the filament, at which the transverse measurement is done.
+        for ind in  range(n_points): #range(n_points): #point along the filament, at which the transverse measurement is done.
             dx=1.
             dy=1.
 
@@ -241,7 +243,7 @@ if 1:
             coordinates *= 4.6/256
             sort_coord = np.argsort(coordinates)
             density = fullset[slice_y,slice_x][keep] # fullsetnar([fullset[ix,iy] for ix,iy in zip(x_i,y_i)])
-            profile_ax.plot(coordinates[sort_coord], np.log10(density)[sort_coord], marker='o',c=rmap(ind))
+            profile_ax.plot(coordinates[sort_coord], log_fun(density)[sort_coord], marker='o',c=rmap(ind))
             #profile_ax.scatter((spine_point_x-x_fil[0])*4.6/256,0.3,c=rmap(ind))
             profile_ax.text((spine_point_x-x_fil[0])*4.6/256,1.2,"%d"%ind,color=rmap(ind))
             low_res_ax.scatter(x_a,y_a, marker='o',c=rmap(ind), linewidths=0, s=0.1)
@@ -281,8 +283,9 @@ if 1:
 
                 coordinates = sign_of_line*np.sqrt((x_aL-new_center_x)**2+(y_aL-new_center_y)**2) #needs to be centered somehow.
                 coordinates *= 4.6/8192
+                sort_coord = np.argsort(coordinates)
 
-                profile_high_ax.plot(coordinates, np.log10(density), marker='o',c=rmap(ind))
+                profile_high_ax.plot(coordinates[sort_coord], log_fun(density)[sort_coord], marker='o',c=rmap(ind))
                 #high_res_ax.scatter(new_center_x,new_center_y, marker='pngs',c=rmap(ind), linewidths=0,  s=0.01)
                 high_res_ax.scatter(x_aL,y_aL, marker='o',c=rmap(ind), linewidths=0, s=0.01)
                 high_res_ax.scatter(new_center_x,new_center_y, c='y', marker="*", linewidths=0,s=0.1)
@@ -297,13 +300,13 @@ if 1:
         low_res_image.savefig(low_res_name)
         print "save", low_res_name
         #fname_profile='profile_center_unshift_%02d.png'%nfil
-        profile_ax.set_ylabel('density')
+        profile_ax.set_ylabel('log density')
         profile_ax.set_xlabel('r[pc]')
         profile_image.savefig(fname_profile)
         print "save", fname_profile
         if use_high_res:
             fname_profile='profile_high_%s_n%04d_r%04d_f%02d.pdf'%(setname, frame, resolution, nfil)
-            profile_high_ax.set_ylabel('density')
+            profile_high_ax.set_ylabel('log density')
             profile_high_ax.set_xlabel('r[pc]')
             profile_high_image.savefig(fname_profile)
             print "save", fname_profile
@@ -313,13 +316,14 @@ if 1:
             high_res_image.savefig(outname)
             print "save", outname
 
+this_format = 'pdf'
 high_res_ax.set_xlim(0,8192)
 high_res_ax.set_ylim(8192,0)
-high_res_outname = 'high_res_all_filaments_%s_n%04d_r%04d.pdf'%(setname,frame,resolution)
+high_res_outname = 'high_res_all_filaments_%s_n%04d_r%04d.%s'%(setname,frame,resolution,this_format)
 high_res_image.savefig(high_res_outname)
 print "save", high_res_outname
 
-low_res_name = 'low_res_all_filaments_%s_n%04d_r%04d_f%02d.pdf'%(setname, frame, resolution, nfil)
+low_res_name = 'low_res_all_filaments_%s_n%04d_r%04d.%s'%(setname, frame, resolution,this_format)
 low_res_ax.set_xlim(0,actual_resolution)
 low_res_ax.set_ylim(actual_resolution,0)
 low_res_image.savefig(low_res_name)
