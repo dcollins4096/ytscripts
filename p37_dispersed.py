@@ -29,6 +29,14 @@ if 1:
     filename_prefix = 'b02_512_0070_smoothed_0256_density'
 skip_list={'b02':{20:[]}}
 skip_list['b02'][20] = [0,5,30]
+
+filament_set_res = 256.
+alternate_set_res = 8192.
+box_size_pc = 4.6
+extraction_width_pc = 0.6
+conversion_to_alternate = int(alternate_set_res/filament_set_res)
+n_points_to_fit = 4
+
 fig_list=[]
 def newfig():
     fig_list.append(plt.figure())
@@ -131,12 +139,12 @@ if 1:
     y, x = np.mgrid[0.5*dx:left-0.5*dx:Npoints, 0.5*dx:left-0.5*dx:Npoints]
 
     if use_high_res:
-        left=8192; Npoints=8192j
+        left=alternate_set_res; Npoints=alternate_set_res*1j
         yL, xL = np.mgrid[0.5*dx:left-0.5*dx:Npoints, 0.5*dx:left-0.5*dx:Npoints]
 
     filament_cmap=rainbow_map(set1_data.max()+1)
     for nfil in np.unique(set1_data)[1:]:
-        if nfil not in [48]: # range(48,60): #range(105,170):
+        if nfil not in [48]: #, 55]: # range(48,60): #range(105,170):
             continue
 #       if nfil not in [115]: #  [48]: # range(45,60): #[18]: #in skip_list[setname][frame]:
 #           continue
@@ -151,6 +159,10 @@ if 1:
         this_fil = set1_data == nfil
         x_fil = x[ this_fil]
         y_fil = y[ this_fil]
+        if nfil in [48]:
+            keep = x_fil < 15
+            x_fil = x_fil[keep]
+            y_fil = y_fil[keep]
         x_centroid = x_fil.sum()/x_fil.size
         y_centroid = y_fil.sum()/y_fil.size
 
@@ -163,8 +175,10 @@ if 1:
         """ Overplot the filaments """
         if 0:
             if use_high_res:
-                high_res_ax.scatter(x_fil.astype('int')*32, y_fil.astype('int')*32, marker='o', linewidths=0,s=0.5, c=filament_cmap(nfil))
-                high_res_ax.text(x_centroid*32,y_centroid*32, "%d"%nfil, fontsize=5, color=filament_cmap(nfil))
+                high_res_ax.scatter(x_fil.astype('int')*conversion_to_alternate, y_fil.astype('int')*conversion_to_alternate, 
+                                    marker='o', linewidths=0,s=0.5, c=filament_cmap(nfil))
+                high_res_ax.text(x_centroid*conversin_to_alternate,y_centroid*conversin_to_alternate, 
+                                 "%d"%nfil, fontsize=5, color=filament_cmap(nfil))
             low_res_ax.scatter(x_fil.astype('int'),y_fil.astype('int'), marker='o',c=filament_cmap(nfil), linewidths=0, s=0.5)
             low_res_ax.text(x_centroid,y_centroid, "%d"%nfil, fontsize=5, color=filament_cmap(nfil))
 
@@ -185,17 +199,20 @@ if 1:
         """For actual profiles along the filament"""
         n_points = x_fil.size
         rmap = rainbow_map(n_points+1)
-        for ind in  range(n_points): #range(n_points): #point along the filament, at which the transverse measurement is done.
+        for ind in  range(n_points): 
+            if nfil in [48] and x_fil[ind] > 14.8:
+                print "HERP"
+                continue
+        
             dx=1.
             dy=1.
 
             #ind = x_fil.size/2 
             spine_point_x = x_fil[ind]; spine_point_y = y_fil[ind]
-            width = 0.3/4.6*256
+            width = extraction_width_pc/box_size_pc*filament_set_res
             """the transverse line"""
             r = (spine_point_x-x_fil)**2 + (spine_point_y - y_fil)**2
             r_args = np.argsort(r)
-            n_points_to_fit = 4
             x_closest = x_fil[r_args][0:n_points_to_fit]
             y_closest = y_fil[r_args][0:n_points_to_fit]
             #poly fit has a problem with vertical lines.
@@ -240,27 +257,30 @@ if 1:
             sign_of_line[sign_of_line==0] = sign_of_line_y[sign_of_line==0]
 
             coordinates = sign_of_line*np.sqrt((x_a-spine_point_x)**2+(y_a-spine_point_y)**2) #This centers the profile on the Filament.
-            coordinates *= 4.6/256
+            coordinates *= box_size_pc/filament_set_res
             sort_coord = np.argsort(coordinates)
             density = fullset[slice_y,slice_x][keep] # fullsetnar([fullset[ix,iy] for ix,iy in zip(x_i,y_i)])
             profile_ax.plot(coordinates[sort_coord], log_fun(density)[sort_coord], marker='o',c=rmap(ind))
             #profile_ax.scatter((spine_point_x-x_fil[0])*4.6/256,0.3,c=rmap(ind))
-            profile_ax.text((spine_point_x-x_fil[0])*4.6/256,1.2,"%d"%ind,color=rmap(ind))
+            profile_ax.text((spine_point_x-x_fil[0])*box_size_pc/filament_set_res,1.2,"%d"%ind,color=rmap(ind))
             low_res_ax.scatter(x_a,y_a, marker='o',c=rmap(ind), linewidths=0, s=0.1)
             low_res_ax.scatter(spine_point_x,spine_point_y, marker='*',c='k', linewidths=0, s=1)
             low_res_ax.scatter(x_closest,y_closest, marker='*',c='g', linewidths=0, s=0.5)
 
             if use_high_res:
                 """now repeat for high res"""
-                thexL = 32*spine_point_x; theyL = 32*spine_point_y
-                width = 0.6/4.2*8192
-                slice_x = slice(np.where(xL[0,:]<32*xLeft)[0][-1], np.where(xL[0,:]>32*xRight)[0][0]+1)
-                slice_y = slice(np.where(yL[:,0]<32*yLeft)[0][-1], np.where(yL[:,0]>32*yRight)[0][0]+1)
+                thexL = conversion_to_alternate*spine_point_x; theyL = conversion_to_alternate*spine_point_y
+                width = extraction_width_pc/box_size_pc*alternate_set_res
+                slice_x = slice(np.where(xL[0,:]<conversion_to_alternate*xLeft)[0][-1], 
+                                np.where(xL[0,:]>conversion_to_alternate*xRight)[0][0]+1)
+                slice_y = slice(np.where(yL[:,0]<conversion_to_alternate*yLeft)[0][-1]
+                                , np.where(yL[:,0]>conversion_to_alternate*yRight)[0][0]+1)
                 x_sub=xL[slice_y,slice_x]
                 y_sub=yL[slice_y,slice_x]
                 dx=1.
                 dy=1.
-                keep = point_selector(x_sub,y_sub,32*x0,32*x1,32*y0,32*y1,dx,dy)
+                keep = point_selector(x_sub,y_sub,conversion_to_alternate*x0,conversion_to_alternate*x1,
+                                      conversion_to_alternate*y0,conversion_to_alternate*y1,dx,dy)
                 x_aL = x_sub[keep]
                 y_aL = y_sub[keep]
 
@@ -282,7 +302,7 @@ if 1:
                 sign_of_line[sign_of_line==0] = sign_of_line_y[sign_of_line==0]
 
                 coordinates = sign_of_line*np.sqrt((x_aL-new_center_x)**2+(y_aL-new_center_y)**2) #needs to be centered somehow.
-                coordinates *= 4.6/8192
+                coordinates *= box_size_pc/alternate_set_res
                 sort_coord = np.argsort(coordinates)
 
                 profile_high_ax.plot(coordinates[sort_coord], log_fun(density)[sort_coord], marker='o',c=rmap(ind))
@@ -310,8 +330,8 @@ if 1:
             profile_high_ax.set_xlabel('r[pc]')
             profile_high_image.savefig(fname_profile)
             print "save", fname_profile
-            high_res_ax.set_xlim(0,8192)
-            high_res_ax.set_ylim(8192,0)
+            high_res_ax.set_xlim(0,alternate_set_res)
+            high_res_ax.set_ylim(alternate_set_res,0)
             outname = 'high_res_high_image_%s_n%04d_r%04d_f%02d.pdf'%(setname, frame, resolution,nfil)
             high_res_image.savefig(outname)
             print "save", outname
