@@ -201,7 +201,6 @@ if 1:
         rmap = rainbow_map(n_points+1)
         for ind in  range(n_points): 
             if nfil in [48] and x_fil[ind] > 14.8:
-                print "HERP"
                 continue
         
             dx=1.
