@@ -41,80 +41,92 @@ def point_selector(x,y,x0,x1,y0,y1,dx,dy):
 
 class filament():
     def __init__(self,nfilament, x_fil=None,y_fil=None, x_coords=None,y_coords=None,parent=None):
+        """filament objects take a set of points in x and y, finds the centroid.  Really just a container."""
         self.x_fil=x_fil
         self.y_fil=y_fil
-        #Sanitize for oddballs.
         if nfilament in [48]:
-            print "butts"
+            #some filaments we want to curate.  I don't have a particularly good way to do this right now.
             keep = x_fil < 15./256
             self.x_fil = self.x_fil[keep]
             self.y_fil = self.y_fil[keep]
+            
         """Check for periodic jumps."""
-
         if (x_fil < parent.dx[0]).any() or (y_fil < parent.dx[1]).any():
-            print "Filament", nfil, "probably has periodic wrap."
+            print "Filament", nfil, "probably has periodic wrap, its against the edge of the domain."
         self.x_centroid = self.x_fil.sum()/self.x_fil.size
         self.y_centroid = self.y_fil.sum()/self.y_fil.size
         self.n_points = self.x_fil.size
         self.parent=parent
 
 
-
+class perpandicular():
+    def __init__(self,fil, ind, width=0.3, n_points_to_fit = 4):
+        #fit = scatter_fit.scatter_fit(None,x_fil,y_fil, plot_points=False)#x_fil,y_fil)
+        #slope = fit['fit'][0]
+        #offset = fit['fit'][1]
+        #ind = x_fil.size/2 
+        spine_point_x = fil.x_fil[ind]; spine_point_y = fil.y_fil[ind]
+        """the transverse line"""
+        r = (spine_point_x-fil.x_fil)**2 + (spine_point_y - fil.y_fil)**2
+        r_args = np.argsort(r)
+        x_closest = fil.x_fil[r_args][0:n_points_to_fit]
+        y_closest = fil.y_fil[r_args][0:n_points_to_fit]
+        #poly fit has a problem with vertical lines.
+        self.vertical_problem = np.abs((x_closest-x_closest.mean())).max() < 0.5*fil.parent.dx[0]
+        self.horizontal_problem = np.abs((y_closest-y_closest.mean())).max() < 0.5*fil.parent.dx[1]
+        if self.vertical_problem:
+            Deltax = width
+            Deltay = 0
+            #y0 = max([spine_point_y - 0.5*Deltay,0.5]); y1 = min([spine_point_y + 0.5*Deltay, y.max()])
+            self.y0=self.y1=spine_point_y
+            self.x0 = max([spine_point_x - 0.5*Deltax,fil.parent.dx[0]]); self.x1 = min([spine_point_x + 0.5*Deltax, fil.parent.x.max()])
+        else:
+            #fit = scatter_fit.scatter_fit(None,x_closest,y_closest, plot_points=False)#x_fil,y_fil)
+            to_plot = None; #low_res_ax
+            fit = scatter_fit.scatter_fit(to_plot,x_closest,y_closest, plot_points=False)#x_fil,y_fil)
+            slope = fit['fit'][0]
+            offset = fit['fit'][1]
+            perp_slope = -1./slope
+            Theta = np.arctan(perp_slope)
+            if slope < 1e-5:
+                self.horizontal_problem = True
+            #Spatial extent in line in X and Y
+            Deltax = width * np.cos(Theta) 
+            Deltay = width * np.sin(Theta) 
+            self.x0 = max([spine_point_x - 0.5*Deltax,fil.parent.dx[0]]); self.x1 = min([spine_point_x + 0.5*Deltax, fil.parent.x.max()])
+            self.y0 = max([spine_point_y - 0.5*Deltay,fil.parent.dx[1]]); self.y1 = min([spine_point_y + 0.5*Deltay, fil.parent.y.max()])
+        #for the bounding box, we want the ordered set.  The bounding box will be used to extract subsets of data
+        self.yLeft  = min([self.y0,self.y1]);  
+        self.yRight = max([self.y0,self.y1]);  
+        self.xLeft  = min([self.x0,self.x1]);  
+        self.xRight = max([self.x0,self.x1]);  
+        self.spine_point_x = spine_point_x
+        self.spine_point_y = spine_point_y
 
 class filament_tool():
-    def __init__(self,which_one):
+    """Main image container object."""
+    def __init__(self, source_file,frame=70, resolution=[256,256],box_size_pc = 4.6,
+                extraction_width_pc=0.3):
         self.filament_dict={}
-        self.dirname = '/Users/dcollins/RESEARCH2/Paper37_Philaments/2015-06-12-disperse/DATA'
-        self.setname = 'b02'
-        self.filename_prefix = 'b02_512_0070_smoothed_0256_density'
-        self.frame=70
-        if which_one == -1:
-            self.frame = 20
-            self.resolution = 256
-        if which_one == 0:
-            print "make filament"
-            self.fname4 ='%s/%s.%s'%(self.dirname,self.filename_prefix,'fits_c1.up.NDskl.fits')
-            self.data_nobuf = pyfits.open(self.fname4)[0].data
-            self.data = np.zeros([256,256])
-            self.resolution = [256,256]
-            self.data[2:-2,2:-2] = self.data_nobuf
-            self.dx = [1./256]*2
-            self.Right = np.ones(2)
-            self.y,self.x = np.mgrid[0.5*self.dx[0]:self.Right[0]-0.5*self.dx[0]:self.resolution[0]*1j,
-                                     0.5*self.dx[1]:self.Right[0]-0.5*self.dx[1]:self.resolution[1]*1j]
-        if which_one == 1:
-            print "make low res"
-            self.setname = 'b02'
-            self.frame = 70
-            self.filename_prefix = 'b02_512_0070_smoothed_0256_density'
-            self.filament_set_res = 256.
-            self.fname = '%s/%s_512_%04d_smoothed_%04d_density.fits'%(self.dirname,self.setname,self.frame,256)
-            self.data_nobuf = pyfits.open(self.fname)[0].data
-            self.data = np.zeros([256,256])
-            self.data[2:-2,2:-2] = self.data_nobuf
-            self.image_res = self.data.shape[0]
-            self.resolution = [256,256]
-            self.dx = [1./256]*2
-            self.Right = np.ones(2)
-            self.y,self.x = np.mgrid[0.5*self.dx[0]:self.Right[0]-0.5*self.dx[0]:self.resolution[0]*1j,
-                                     0.5*self.dx[1]:self.Right[0]-0.5*self.dx[1]:self.resolution[1]*1j]
-        if which_one == 2:
-            print "make high res"
-            self.frame = 70
-            self.resolution = 8192.
-            self.image_dx = 1./self.resolution
-            self.fname = '%s/%s_512_%04d_%04d_projection_density.fits'%(self.dirname,self.setname,self.frame,8192)
-            self.data = pyfits.open(self.fname)[0].data
-            self.image_res = self.data.shape[0]
-            self.resolution = [8192]*2
-            self.dx = [1./8192]*2
-            self.Right = np.ones(2)
-            self.y,self.x = np.mgrid[0.5*self.dx[0]:self.Right[0]-0.5*self.dx[0]:self.resolution[0]*1j,
-                                     0.5*self.dx[1]:self.Right[0]-0.5*self.dx[1]:self.resolution[1]*1j]
-        self.box_size_pc = 4.6
-        self.extraction_width_pc = 0.3
-        self.n_points_to_fit = 4
-        #actual_resolution = fullset.shape[0]
+        self.setname = setname
+        self.filename_prefix = filename_prefix
+        self.resolution = np.array(resolution)
+        self.data_nobuf = pyfits.open(source_file)[0].data
+        self.data = np.zeros(resolution)
+        self.frame=frame
+        resolution_offset = [ (R-N)/2 for R,N in zip(resolution, self.data_nobuf.shape)]
+        print "RES OFF", resolution_offset
+        if resolution_offset[0]*resolution_offset[1] > 0:
+            self.data[resolution_offset[0]:-resolution_offset[0],resolution_offset[1]:-resolution_offset[1]] = self.data_nobuf
+        else:
+            self.data = self.data_nobuf
+        self.dx = 1./self.resolution
+        self.Right = np.ones(2)
+        self.y,self.x = np.mgrid[0.5*self.dx[0]:self.Right[0]-0.5*self.dx[0]:self.resolution[0]*1j,
+                                 0.5*self.dx[1]:self.Right[0]-0.5*self.dx[1]:self.resolution[1]*1j]
+        self.box_size_pc = box_size_pc
+        self.extraction_width_pc = extraction_width_pc
+        self.profile_aggregator = None
         self.make_fig()
     def make_fig(self):
         self.image_fig = newfig()
@@ -204,65 +216,27 @@ class filament_tool():
 
 
 
-class perpandicular():
-    def __init__(self,fil, ind, width=0.3, n_points_to_fit = 4):
-        #fit = scatter_fit.scatter_fit(None,x_fil,y_fil, plot_points=False)#x_fil,y_fil)
-        #slope = fit['fit'][0]
-        #offset = fit['fit'][1]
-        #ind = x_fil.size/2 
-        spine_point_x = fil.x_fil[ind]; spine_point_y = fil.y_fil[ind]
-        """the transverse line"""
-        r = (spine_point_x-fil.x_fil)**2 + (spine_point_y - fil.y_fil)**2
-        r_args = np.argsort(r)
-        x_closest = fil.x_fil[r_args][0:n_points_to_fit]
-        y_closest = fil.y_fil[r_args][0:n_points_to_fit]
-        #poly fit has a problem with vertical lines.
-        self.vertical_problem = np.abs((x_closest-x_closest.mean())).max() < 0.5*fil.parent.dx[0]
-        self.horizontal_problem = np.abs((y_closest-y_closest.mean())).max() < 0.5*fil.parent.dx[1]
-        if self.vertical_problem:
-            Deltax = width
-            Deltay = 0
-            #y0 = max([spine_point_y - 0.5*Deltay,0.5]); y1 = min([spine_point_y + 0.5*Deltay, y.max()])
-            self.y0=self.y1=spine_point_y
-            self.x0 = max([spine_point_x - 0.5*Deltax,fil.parent.dx[0]]); self.x1 = min([spine_point_x + 0.5*Deltax, fil.parent.x.max()])
-        else:
-            #fit = scatter_fit.scatter_fit(None,x_closest,y_closest, plot_points=False)#x_fil,y_fil)
-            to_plot = None; #low_res_ax
-            fit = scatter_fit.scatter_fit(to_plot,x_closest,y_closest, plot_points=False)#x_fil,y_fil)
-            slope = fit['fit'][0]
-            offset = fit['fit'][1]
-            perp_slope = -1./slope
-            Theta = np.arctan(perp_slope)
-            if slope < 1e-5:
-                self.horizontal_problem = True
-            #Spatial extent in line, targeting 0.6 pc for the filament
-            Deltax = width * np.cos(Theta) 
-            Deltay = width * np.sin(Theta) 
-            self.x0 = max([spine_point_x - 0.5*Deltax,fil.parent.dx[0]]); self.x1 = min([spine_point_x + 0.5*Deltax, fil.parent.x.max()])
-            self.y0 = max([spine_point_y - 0.5*Deltay,fil.parent.dx[1]]); self.y1 = min([spine_point_y + 0.5*Deltay, fil.parent.y.max()])
-        #for the bounding bo
-        self.yLeft  = min([self.y0,self.y1]);  
-        self.yRight = max([self.y0,self.y1]);  
-        self.xLeft  = min([self.x0,self.x1]);  
-        self.xRight = max([self.x0,self.x1]);  
-        self.spine_point_x = spine_point_x
-        self.spine_point_y = spine_point_y
-
-
 """these sets lost two zones to smoothing.  Restore."""
-filament_map = filament_tool(0)
-low_map = filament_tool(1)
-high_map = filament_tool(2)
+directory = '/Users/dcollins/RESEARCH2/Paper37_Philaments/2015-06-12-disperse/DATA'
+filename_prefix = 'b02_512_0070_smoothed_0256_density'
+frame = 70
+setname = 'b02'
 
-filament_map.make_image(cmap='jet')
-filament_map.image_save('x1_filament_image_%s_n%04d_r%04d.png'%(filament_map.setname, filament_map.frame, filament_map.resolution[0]))
+filament_map = filament_tool(source_file = '%s/%s.%s'%(directory,filename_prefix,'fits_c1.up.NDskl.fits'),
+                             resolution = [256,256], frame=frame)
 
-#high_map.make_image(log=True)
-#high_map.image_save('high_res_no_filaments_%s_n%04d_r%04d.png'%(high_map.setname, high_map.frame, high_map.resolution))
+low_map = filament_tool('%s/%s_512_%04d_smoothed_%04d_density.fits'%(directory,setname,frame,256),
+                        resolution = [256,256], frame=frame)
+high_map = filament_tool(source_file= '%s/%s_512_%04d_%04d_projection_density.fits'%(directory,setname,frame,8192),
+                         resolution = [8192]*2, frame=frame)
 
+
+#filament_map.make_image(cmap='jet')
+#filament_map.image_save('x2_filament_image_%s_n%04d_r%04d.png'%(filament_map.setname, filament_map.frame, filament_map.resolution[0]))
+high_map.make_image(log=True)
+#high_map.image_save('x2_high_res_no_filaments_%s_n%04d_r%04d.png'%(high_map.setname, high_map.frame, high_map.resolution[0]))
 low_map.make_image(log=True)
-#high_map.make_image(log=True)
-low_map.image_save('test.png')
+#low_map.image_save('test.png')
 
 
 
@@ -272,10 +246,10 @@ for nfil in np.unique(filament_map.data)[1:]:
         continue
     this_color = filament_cmap(nfil)
     this_one = filament_map.get_filament_points(nfil)
-    #low_map.plot_filament(this_one, c=this_color,plot_number=None ) #nfil)
-    #low_map.image_save('low_f%04d.png'%nfil)
-    #high_map.plot_filament(this_one, c=this_color,plot_number=nfil)
-    #high_map.image_save('high_f%04d.png'%nfil)
+    low_map.plot_filament(this_one, c=this_color,plot_number=None ) #nfil)
+    low_map.image_save('x2_low_f%04d.png'%nfil)
+    high_map.plot_filament(this_one, c=this_color,plot_number=nfil)
+    high_map.image_save('x2_high_f%04d.png'%nfil)
 
     """For actual profiles along the filament"""
     rmap = rainbow_map(this_one.n_points+1)
@@ -289,7 +263,4 @@ for nfil in np.unique(filament_map.data)[1:]:
     #high_map.profile_save('high_f%04d_profile.pdf'%nfil)
 
             
-plt.clf()
-plt.hist( low_map.profile_aggregator['all_coord'] , bins=100)
-plt.savefig('tmp.png')
 
