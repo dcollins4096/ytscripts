@@ -1,6 +1,8 @@
 #line of sight is z
 if 'ef' not in dir():
     execfile('go')
+ef('p20_misc.py')
+
 highfil1=[(40,104),(55,162)]
 highfil2=[(146,179),(21,108)]
 
@@ -10,7 +12,7 @@ lowfil1=[(148,311), (196,308)]
 plt.clf()
 
 if 1:
-    #frame=80
+    #frame=40
     #frame=70
     ds = yt.load('/scratch1/dcollins/Paper08/B02/512/RS%04d/restart%04d'%(frame,frame)); simname = 'high_field'
     subset = 'full'
@@ -52,6 +54,7 @@ if 1:
         subset='phil_trace_1'
         L, R = np.zeros(3), np.zeros(3)
         off = [-0.025, 0.14]
+        #This is a complex way to do things, due to way things happened with Phil.
         anchor={80:[0.5,1.5],70:[0.5,1.5],60:[0.5,1.0],50:[0.5,1.0],40:[0.5,1.0],30:[0.5,1.0]}
         trace={80:[-571.,-492.],70:[-632.,-584.],60:[-616.,0],50:[-616.,-149.],40:[-616-60,-140],
                30:[-670,-145]}
@@ -63,7 +66,11 @@ if 1:
         C = 0.5*(L+R)
         print "L",L
         print "R",R
+        z_extents={80:[0.175,0.255]}
    
+    if 0:
+        L[2]=z_extents[frame][0]
+        R[2]=z_extents[frame][1]
     L=bu(L,1./512)
     R=bu(R,1./512)
     C = 0.5*(L+R)
@@ -86,24 +93,53 @@ if 1:
             #pw.annotate_line(L,R, coord_system = 'data', plot_args={'color':'r'})
             #pw.annotate_line(L,R, coord_system = 'data', plot_args={'color':'r'})
             print pw.save('philaments_high_1.5_t%04d'%frame)
-    if 1:
-        proj = ds.proj("density","z",data_source=reg,center=C)
-        pw=proj.to_pw(center=C)
-        print pw.save('philaments_high_1.5_t%04d'%frame)
     if 0:
+        axis = "z"
+        proj = ds.proj("density","z",data_source=reg,center=C)
+        #proj = ds.proj("grid_level","z",data_source=reg,center=C,method='mip')
+        if 0:
+            pw=proj.to_pw(center=C)
+            pw.set_origin('domain')
+            D = R-L
+            pw.set_width(max([D[0],D[1]]))
+            ProjL = nar([L[0], L[1]])
+            ProjR = nar([R[0], R[1]])
+            pw.set_cmap('density','gray')
+            try:
+                pw.set_log('grid_level',False)
+                pw.set_zlim('grid_level',0,4)
+            except:
+                pass
+            print pw.save('p37_trace1_full_t%04d'%frame)
+            pw.set_width(max(ProjR-ProjL))
+            pw.annotate_streamlines('Bx','By',factor=32,plot_args={'color':'b'})
+            pw.annotate_streamlines('x-velocity','y-velocity',factor=32,plot_args={'color':'r'})
+            print pw.save('p37_trace1_vel_t%04d'%frame)
+    if 1:
+        axis = "y"
         proj = ds.proj("density","y",data_source=reg,center=C)
-        pw=proj.to_pw(center=C)
-        #pw.annotate_magnetic_field()
-        #pw.annotate_streamlines('By','Bz')
-        #pw.annotate_streamlines('y-velocity','z-velocity',plot_args={'color':'k'})
-        print pw.save('philaments_high_1.5_t%04d'%frame)
+        if 0:
+            pw=proj.to_pw(center=C)
+            pw.set_origin('domain')
+            pw.set_cmap('density','gray')
+            pw.set_width(max(R-L))
+            ProjL = nar([L[2], L[0]])
+            ProjR = nar([R[2], R[1]])
+            #pw.annotate_magnetic_field()
+            pw.annotate_streamlines('Bz','Bx',factor=32,plot_args={'color':'b'})
+            pw.annotate_streamlines('z-velocity','x-velocity',factor=32,plot_args={'color':'r'})
+            #pw.annotate_velocity() #plot_args={'color':'r'})
+            print pw.save('p37_trace1_vel_t%04d'%frame)
     #proj = projo.to_frb(1,[512,512])
 
-if 1:
+#failsafe as I moved to transverse projections
+#del R
+#del L
+if 0:
     mask = proj['density']>0
     nmask = proj['density']<=0
     total_zones = 8192
-    Nzones = max(R[0]-L[0], R[1]-L[1])*total_zones
+    Nzones = max(ProjR[0]-ProjL[0], ProjR[1]-ProjL[1])*total_zones
     resolution_name = "%d"%Nzones
     Delta = np.zeros(3)
     Delta[0] = np.floor((proj['x'][mask].max()-proj['x'][mask].min())*total_zones)/total_zones
@@ -116,7 +152,8 @@ if 1:
     width = max(Delta)
     res = 1./Nzones
     frb = proj.to_frb( width, int(Nzones))
-    den_damned_square = copy.copy(frb['density'].v)
+    field = 'density' #'level'
+    den_damned_square = copy.copy(frb[field].v)
     #mag = copy.copy(frb['magnetic_pressure'].v)
     if 0:
         mask2  = den >0
@@ -129,13 +166,39 @@ if 1:
         ok_y = np.where( den_damned_square[half_x,:] >0 )[0]
         ok_x = np.where( den_damned_square[:,half_y] >0 )[0]
         den = den_damned_square[ok_x[0]:ok_x[-1]+1, ok_y[0]:ok_y[-1]+1]
-    plt.clf()
-    plt.imshow( np.log10( den), origin='lower', interpolation='nearest',cmap='gray')
-    #plt.imshow( MPhi, origin='lower', interpolation='nearest')
-    #outname = 'subplot_%s_%s_t%04d_%s'%(simname, subset, frame, resolution_name)
-    outname = 'filament_image_%s_%s_t%04d_%s_%s.png'%(simname, subset, frame,resolution_name, field)
-    plt.savefig(outname)
-    print outname
+    if 0:
+        """simple plot."""
+        plt.clf()
+        plt.imshow( np.log10( den), origin='lower', interpolation='nearest',cmap='gray')
+        outname = 'filament_image_%s_%s_t%04d_%s_%s.png'%(simname, subset, frame,resolution_name, field)
+        plt.savefig(outname)
+        print outname
+    if 1:
+        if field == 'density':
+            density_factor = 1000*4.6*3.08e18 #1000 cm^-3 * 4.6 pc * cm/pc
+            to_plot = density_factor* np.log10( den)
+            cb_label= r'$N[\rm{cm}^{-2}]=N[\rm{code}]*%0.2e$'%density_factor
+        elif field == 'level':
+            to_plot = den
+            cb_label = r'$level$'
+
+        else:
+            raise
+        """code-heinous, readout-good plot"""
+        plt.clf()
+        plt.imshow(to_plot, origin='lower', interpolation='nearest',cmap='gray')
+        cb=plt.colorbar()
+        cb.set_label(cb_label)
+        dx = 4.6/8193.
+        old_xticks = plt.xticks()[0][1:-1]
+        plt.xticks( old_xticks, ["$%0.2f$"%n for n in  old_xticks*dx+ProjL[0] ] )
+        plt.xlabel(r'$x[\rm{pc}]\  (\Delta x=$%s$\rm{pc})$'%expform(dx))
+        old_yticks = plt.yticks()[0][1:-1]
+        plt.yticks( old_yticks, ["$%0.2f$"%n for n in  old_yticks*dx+ProjL[1] ] )
+        plt.ylabel(r'$y[\rm{pc}]\  (\Delta x=$%s$\rm{pc})$'%expform(dx))
+        outname = 'p37_%s_%s_t%04d_%s_%s_%s.png'%(simname, subset, frame,resolution_name, field,axis)
+        plt.savefig(outname)
+        print outname
 
 if 0:
     plt.clf()
@@ -197,7 +260,7 @@ if 0:
     print fname
 
 
-if 1:
+if 0:
     """ write text"""
     field = 'density'
     fname = 'filament_data_%s_%s_t%04d_%s_%s.txt'%(simname, subset, frame,resolution_name, field)
@@ -213,7 +276,8 @@ if 1:
         outfile.write("\n")
     outfile.close()
     print fname
-if 1:
+
+if 0:
     """ write text transposed"""
     field = 'density'
     fname = 'filament_data_transposed_%s_%s_t%04d_%s_%s.txt'%(simname, subset, frame,resolution_name, field)

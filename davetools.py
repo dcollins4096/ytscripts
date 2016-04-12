@@ -253,7 +253,7 @@ def dpy_save(filename,object,fields):
         fptr.create_dataset(field,set.shape,data=set)
     fptr.close()
 
-def expform(float_in, format = "%0.2e"):
+def expform(float_in, format = "%0.1e"):
     """exponent format: 1.5e+03 goes to $1.5 \times 10^{3}$"""
     str1 = format%float_in
     tex_string = "$"
