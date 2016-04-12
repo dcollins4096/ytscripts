@@ -23,7 +23,7 @@ def tube(ds_list,fields=None,times=None, points=[(0.0,0.0,0.0),(1.0,0.0,0.0)],wi
          offsets=None,
          axis=0,coord=(0.505,0.505),
          debug=0,delta=False,
-         labels=None): 
+         labels=None, xlim = None): 
     """Plots 1d profiles for each oober in *ooberlist*, for each field in *fields* and time in *times*.
     One plot per field, with oober and time overplotted in each field window.
     Uses the AMRRay from yt, with start and end points given by *points*.
@@ -118,6 +118,7 @@ def tube(ds_list,fields=None,times=None, points=[(0.0,0.0,0.0),(1.0,0.0,0.0)],wi
             plot_args['linewidth']=0.1
             L = ax.plot(this_x,this_y,**plot_args)
             if this_y.min() > 0:
+                #ax.set_yscale('linear')
                 ax.set_yscale('log')
 #               if first_ax is None:
 #                   Labels.append( '%s %d'%(o.name,t))
@@ -125,6 +126,8 @@ def tube(ds_list,fields=None,times=None, points=[(0.0,0.0,0.0),(1.0,0.0,0.0)],wi
         if first_ax is None:
             first_ax = ax
             Handels, LabelsToUse = first_ax.get_legend_handles_labels()
+        if xlim is not None:
+            ax.set_xlim(xlim)
         ax.set_ylabel(field)
 
     if legend == 1:

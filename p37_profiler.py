@@ -1,4 +1,10 @@
+import yt
+import numpy as np
+nar = np.array
 import pyfits
+import pdb
+import matplotlib.pyplot as plt
+import matplotlib as mpl
 import scatter_fit
 reload(scatter_fit)
 
