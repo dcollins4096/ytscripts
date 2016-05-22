@@ -66,10 +66,10 @@ def refile(pf,Filler):
 if 'SmallFive' not in dir():
     #Filler Function takes pf_large and prepares the small grids.
     #refile takes the FillerFunction and refills pf_target
-    pf_large = load('/scratch1/dcollins/Paper8/B2/512/RS0000/restart')
+    pf_large = yt.load('/scratch1/dcollins/Paper08/B2/512/RS0000/restart0000')
     SmallFive = FillerFunction(pf_large,refine_by=4)
-    pf_target = load('/scratch1/dcollins/Paper8/B2/128/DD0000/data0000')
-refile(pf_target,SmallFive)
+    pf_target = yt.load('/scratch1/dcollins/Paper08/B2/128/DD0000/data0000')
+#refile(pf_target,SmallFive)
 #pf_ok = load('/scratch1/dcollins/Paper19/B02/128c/DD0001/data0001')
 #ProjectionPlot(pf_ok,0,'MagneticEnergy').save('d1b')
 
