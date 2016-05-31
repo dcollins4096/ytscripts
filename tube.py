@@ -99,7 +99,7 @@ def tube(ds_list,fields=None,times=None, points=[(0.0,0.0,0.0),(1.0,0.0,0.0)],wi
                     this_y -= fiducial_field
                     nonzero = fiducial_field != 0
                     this_y[nonzero] /= fiducial_field[nonzero]
-            #stat(this_y,"before %s %s %0.2f"%(ds,field,ds['InitialTime']))
+            stat(this_y,"before %s %s %0.2f"%(ds,field,ds['InitialTime']), format="%0.2e")
 #           if renorm is True:
 #               this_y = this_y - (this_y*this_x).sum()/this_x.sum()
 
@@ -109,7 +109,7 @@ def tube(ds_list,fields=None,times=None, points=[(0.0,0.0,0.0),(1.0,0.0,0.0)],wi
                     this_y -= renorm[field]
             if offsets is not None:
                 this_y *= offsets[n_ds]
-            stat(this_y,"after %s %s t=%0.2f"%(field,labels[n_ds],ds['InitialTime']),format='%0.2e')
+            #stat(this_y,"after %s %s t=%0.2f"%(field,labels[n_ds],ds['InitialTime']),format='%0.2e')
 
 
             #plot_args['color'] = dumb_map(counter, range=[0,len(time_set[o.name])])
@@ -139,7 +139,7 @@ def tube(ds_list,fields=None,times=None, points=[(0.0,0.0,0.0),(1.0,0.0,0.0)],wi
     plt.close(fig)
     print filename
     if return_ray:
-        print "There's something persistent that's getting fucked up with returning the ray. Be careful."
-        return pf_set,ray_set
+        print "There's something persistent that's getting messed up with returning the ray. Be careful."
+        return ray_set
     else:
         return None
