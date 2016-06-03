@@ -3,8 +3,8 @@ def grad(data,fieldname,direction):
     iP1 = slice(2,None)
     all = slice(1,-1)
     all_all=[all]*3
-    out = np.zeros(data[fieldname].shape)
     dxi=1./(2*data.dds )
+    out = np.zeros_like(data[fieldname]*dxi[0])
     Left = [all]*3
     Right = [all]*3
     Right[direction] = iP1
@@ -20,9 +20,9 @@ def AdotDel(data,fields1,field2):
     iP1 = slice(2,None)
     all = slice(1,-1)
     all_all=[all]*3
-    out = np.zeros(data[field2].shape)
-    temp = np.zeros_like(out)
     dxi=1./(2*data.dds )
+    out = np.zeros_like(data[field2]*data[fields1[0]]*dxi[0])
+    temp = np.zeros_like(data[field2])
     for i, fi in enumerate(fields1):
         Left = [all]*3
         Right = [all]*3
