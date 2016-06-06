@@ -145,6 +145,17 @@ if 1:
         generate_normed_unit('momentum_'+direction, 'momentum_magnitude', units='cm**2*s/g')
         generate_normed_unit('magnetic_field_'+direction, 'magnetic_field_strength', units='1/code_magnetic')
 
+    def generate_full(field_name, force_name): 
+        def _temp(field,data):
+            forces = ["%s_%s"%(force_name,s) for s in 'xyz']
+            fields = ["norm_unit_%s_%s"%(field_name,s) for s in 'xyz']
+            out = data[forces[0]]*data[fields[0]] \
+                + data[forces[1]]*data[fields[1]] \
+                + data[forces[2]]*data[fields[2]]
+            return out
+        new_field_name = '%s_f'%force_name
+        print "created", new_field_name
+        yt.add_field(new_field_name, function = _temp, units = '1/s')
     def generate_increasing(field_name, force_name): 
         def _temp(field,data):
             forces = ["%s_%s"%(force_name,s) for s in 'xyz']
@@ -180,6 +191,11 @@ if 1:
         print "created", new_field_name
         yt.add_field(new_field_name, function = _temp, units = '1/s')
 
+    generate_full('magnetic_field','Bstretching')
+    generate_full('magnetic_field','Bcompression')
+    generate_full('magnetic_field','Badvection')
+    generate_full('momentum','Ltension')
+    generate_full('momentum','Lpressure')
     generate_increasing('magnetic_field','Bstretching')
     generate_increasing('magnetic_field','Bcompression')
     generate_increasing('magnetic_field','Badvection')
