@@ -1,10 +1,4 @@
-plt.clf()
-plt.clf()
-plt.hist( low_map.profile_aggregator['all_coord'] , bins=100)
-plt.savefig('tmp.png')
-#c=np.array([]).flatten()
-#plt.hist(c,bins=100)
-#plt.savefig('tmp.png')
-#y=nar([LLL.tolist() for LLL in low_map.profile_aggregator['coord']])
-#y=[LLL.tolist() for LLL in low_map.profile_aggregator['coord']]
 
+proj.annotate_magnetic_field(color='r', scale = 0.1)
+outname='p33_%s_n%04d'%(sim,frame)
+print proj.save(outname)
