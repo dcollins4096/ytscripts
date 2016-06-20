@@ -304,6 +304,12 @@ def load(filename):
     return set
 
 class clump_stuff_code:
+    """
+
+
+        You're looking for clump_properties.py
+
+        """
     """the clump_stuff object, sanitized to ensure code units for all quantities"""
     def __init__(self,clump,ds,Gsize_threshold=50000):
         """Attaches all quantities to the stuff object."""
@@ -312,13 +318,11 @@ class clump_stuff_code:
         truncate = False
 
         self.Time = clump.data.pf['InitialTime']
-        self.TimePerFreeFall = self.Time/np.sqrt( 3*np.pi/(32*G))
         if hasattr(clump,'data'):
             G = clump.data.pf['GravitationalConstant']/(4*np.pi)
             #Scalar quantites for ease
             #the mean density is almost always 1 in code units.  The extra 4 pi is for the definition of G in Enzo
             self.TimePerFreeFall = self.Time/np.sqrt( 3*np.pi*(4*np.pi)/(32*clump.data.pf['GravitationalConstant']*1))
-            convert_to_cm = clump.data.convert('cm')
             data = clump.data
         elif hasattr(clump,'pf'):
             G = clump.pf['GravitationalConstant']/(4*np.pi)
@@ -374,8 +378,8 @@ class clump_stuff_code:
         #velocity properties 
         self.AvgVelocity = np.array([(clump['CellMass']*clump[v]).sum()/clump['CellMass'].sum()
                                       for v in ['x-velocity','y-velocity','z-velocity']])
+        self.VelocityUnitVector = self.AvgVelocity/np.sqrt((self.AvgVelocity**2).sum())
         data.set_field_parameter("bulk_velocity",self.AvgVelocity)
-        self.VelocityNorm = self.AvgVelocity/np.sqrt((self.AvgVelocity**2).sum())
         self.VelocityDispersion =data.quantities['rmsVelocityDispersionMass']()
 
         #rotational properties. Require 'center' = center of mass, 'bulk velocity', both set above.
