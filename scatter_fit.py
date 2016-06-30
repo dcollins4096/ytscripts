@@ -20,7 +20,7 @@ def scatter_fit(plt,xin,yin,use_scatter = 'scatter',add_fit_label=False,label=No
         cused = c
         fit_color = cused
     plot = None
-    if False:
+    if True:
         if fit_range is not None:
             OK = np.logical_and( x > fit_range[0], x < fit_range[1] )
             OK = np.logical_and( OK, y != 0 )
