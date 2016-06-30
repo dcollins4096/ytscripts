@@ -351,7 +351,7 @@ def morestat(array,strin='',log=False):
         mean = meanRMS(array)
     print '[%0.4e,%0.4e \pm %0.4e, %0.4e] %s %s'%(array.min(),mean[0],mean[1],array.max(),array.shape,strin)
 
-def powerline(plt,x1,x2,y1,power,log=True,**kwargs):
+def powerline(this_plt,x1,x2,y1,power,log=True,**kwargs):
     """Plot a powerlaw on the current plot in matplot lib instance *plt*.
     Starts at *x1*, *y1* and runs to *x2*, whatever the power law dictates.
     *log* determines log or linear plot."""
@@ -374,7 +374,7 @@ def powerline(plt,x1,x2,y1,power,log=True,**kwargs):
         x = [x1,x2]
         yf = power*(x2-x1) + y1
         y = [y1,yf]
-    plt.plot(x,y,**kwargs)
+    this_plt.plot(x,y,**kwargs)
 
 def read_csv(filename):
     file=open(filename,'r')
