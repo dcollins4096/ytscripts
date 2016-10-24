@@ -5,7 +5,11 @@ def vis_file(filename):
   print "started", filename
   #levelstep = re.compile(r'Level[0]: dt = 1.39534e-05\(This So Far: 1.39534e-05 Above: 1.39534e-05 Frac 1\)')
   string = r'^Level\[(\d)\]: dt = (\d\.\d+....)\(This So Far: (\d\.\d+....) Above: (\d\.\d+....).*'
-  string = r'^Level\[(\d)\]: dt = (\d\.\d+.......) (.*)'
+  #string = r'^Level\[(\d)\]: dt = (\d\.\d+.......)\s*(\d.\d\d\d\d\d\d\d)\s*\((\d.\d\d\d\d\d\d\d)/(\d.\d\d\d\d\d\d\d)\)'
+  #string = r'^Level\[(\d)\]: dt = (\d\.\d+)\s*(\d.\d+)\s*\((\d\.\d+)/(\d.\d\d\d\d\d\d\d)\)'
+  #string = r'^Level\[(\d)\]: dt = (\d\.\d+)\s*(\d.\d+)\s*\(([^/]*)/([^/]*)\)'
+  string = r'^Level\[(\d)\]: dt = ([^\s]+)\s*([^\s]+)\s*\(([^\s]+)/([^\s]+)\)'
+#                     1              2                   3                  !   4                    5
   #string = r'^Level\[(\d)\]: dt = (\d\.\d+.......)   \d.\d\d\d\d\d\d\d \(\d.\d\d\d\d\d\d\d/\d.\d\d\d\d\d\d\d\)'
   """
   Level[0]: dt = 0.0183712
@@ -22,33 +26,41 @@ def vis_file(filename):
   counter = 0
   for line in fptr:
     #print line[:-1]
-    if counter > 300:
+    if counter < -1:
       break
     match = levelstep.match(line)
-    if match is not None:
-      print ".",
-      if counter < -1:
+    if match is None:
+        if line.startswith('Level'):
+            print line
+    else:
+      #print ".",
+      if counter > 10000:
         break
     
       level = int(match.group(1))
       dt = float(match.group(2))
-      return -1, -1, -1
-      print match.group(3)
-      break
       SoFar = -1 #float(match.group(3))
-      Above =-1 # float(match.group(4))
+      Above = float(match.group(5))
       #print level,dt, SoFar, Above, dt/Above
       if level_time.has_key(level):
           level_time[level] +=  dt
+      elif level_time.has_key(level-1):
+          parent_start_time = level_time[level-1] #- Above
+          level_time[level] = parent_start_time
+          #print "NL1:", parent_start_time, Above, level_time[level-1]
       else:
-          level_time[level] = dt
+          level_time[level] = 0
+          print "NL0: 0"
       list_to_plot = [counter, level, level_time[level], dt,dt/Above]
-      k=[1.0,1.0,1.0,1.0]
+      k=[0.0,0.0,0.0,1.0]
       r=[1.0,0.0,0.0,1.0]
       g=[0.0,1.0,0.0,1.0]
       b=[0.0,0.0,1.0,1.0]
       c=[0.5,0.5,0.0,1.0]
-      #color_list.append([k,r,g,b,c][level])
+      m=[1.0,0.0,1.0,1.0]
+      y=[1.0,1.0,0.0,1.0]
+      gray=[0.5,0.5,0.5,1]
+      color_list.append([k,r,g,b,c,m,y,gray,gray][level])
       #print list_to_plot
       all_the_things.append(list_to_plot)
       #level_ind[level].getappend(counter)
@@ -68,14 +80,27 @@ def vis_file(filename):
   return all_the_things,color_list, level_ind
 
 if 1:
-    """P35"""
-    fname_ak04 = '/mnt/c/scratch/sciteam/dcollins/Paper35_cosmology/ak04_h002737_mhd_zerofield/5311520.bw.OU'
+    
+    #fname_ak04 = '/Users/dcollins/RESEARCH2/Paper35_CosmologyMHD/2016-08-18-dt/5311520.bw.OU'; oname = 'ak04'
+    #fname_ak04 = '/Users/dcollins/RESEARCH2/Paper35_CosmologyMHD/2016-08-18-dt/ak01.o5287803'; oname = 'ak01' #woah, so long.
+    fname_ak04 = '/Users/dcollins/RESEARCH2/Paper35_CosmologyMHD/2016-08-18-dt/ak01.o.Level'; oname = 'ak01'
     all_ak04, color_ak04, ind_ak04 = vis_file(fname_ak04)
+    color_ak04=nar(color_ak04)
     print all_ak04
-if 0:
+if 1:
     plt.clf()
-    plt.plot(all_ak04[:,2], all_ak04[:,1])
-    plt.savefig('test1.png')
+    mslice = slice(None)
+    
+    if 1:
+        TheX = all_ak04[mslice,0]; TheXLabel = 'Nevent'
+        TheY = all_ak04[mslice,3]; TheYLabel = 'dt'
+        output = '%s_%s_%s.pdf'%(oname,'Nevent','dt')
+    plt.plot(TheX,TheY ,c=[0.5]*3)
+    plt.scatter(TheX, TheY,marker='*',c=color_ak04,linewidths=0, s=100)
+    plt.xlabel(TheXLabel); plt.ylabel(TheYLabel);
+    plt.yscale('log')
+    plt.savefig(output)
+    print output
 if 0:
     """old stuff with P27"""
 #filename = '/Users/dccollins/ThisScratch/Paper12/B20/256_j4/Meta/B20_j4.o878433'

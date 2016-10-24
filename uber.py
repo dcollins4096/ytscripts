@@ -1,5 +1,4 @@
-"""The taxi object, for keeping track of yt things."""
-""" used to be called uber, but that got taken. """
+"""The Uber object, for keeping track of yt things."""
 #checkrel
 import warnings
 #with warnings.catch_warnings():
@@ -9,6 +8,8 @@ import warnings
 import numpy as na
 import pdb
 import h5py
+from yt.mods import *
+from yt.funcs import *
 import types, time,weakref,davetools
 import davecallback
 from davetools import dsave, no_trailing_comments
@@ -21,14 +22,12 @@ from time_marker import time_marker
 import re
 #GET import frame_grabber
 import copy
-#reload(clump_stuff)
+reload(clump_stuff)
 
+def guess_multi_configuration(number):
+    """Congiguration guesser.  Hard coded!  Fix me please!"""
+    return (2,1)
 
-class PortException(Exception):
-    def __init__(self, value = ""):
-        self.value = "Taxi function not yet ported" + value
-    def __str__(self):
-        return repr(self.value)
 class OperationException(Exception):
     def __init__(self, value):
         self.value = value
@@ -68,8 +67,8 @@ def writefunction(thing):
         output += str(thing)
     return output
 
-class taxi:
-    """Taxi is a container for yt options, because the author is both forgetful and lazy.
+class uber:
+    """Uber is a container for yt options, because the author is both forgetful and lazy.
     Primarily use for repeatability and reduced startup for plotting simple things that I do
     all the time, with default values suitably chosen.  See the source code for the options
     and defaults.  The won't be repeated here because there are several, and that's asking
@@ -77,7 +76,7 @@ class taxi:
     
     def __init__(self, filename=None,dir=None, name=None,**kwargs):
         """
-        Either reads in taxifile *fileame* or just sets some defaults."""
+        Either reads in uberfile *filename* or just sets some defaults."""
 
         #List of members that will NOT be written.  This is mostly for the lagos objects.
         #The goal is to be able to re-create the lagos objects from the info in uber,
@@ -116,12 +115,10 @@ class taxi:
         self.plot_args = {}
         #The actual yt objects.  Not saved on output.
         self.pf = None               #The lagos parameter file.  Gets re-made at each plot.
-        self.ExcludeFromWrite.append('ds')
+        self.ExcludeFromWrite.append('pf')
 
         self.pc = None               #The plot collection.
         self.ExcludeFromWrite.append('pc')
-        self.index = None                #A weak proxy to pf.h
-        self.ExcludeFromWrite.append('index')
         self.h = None                #A weak proxy to pf.h
         self.ExcludeFromWrite.append('h')
         self.reg = None              #Weak proxy to the most recent region
@@ -213,7 +210,7 @@ class taxi:
         file.close()
 
     def save(self,filename='DefaultFile'):
-        """Writes out the taxi file.  Writes the entire contents of taxi.__dict__,
+        """Writes out the uber file.  Writes the entire contents of uber.__dict__,
         making a hopefully appropriate assumption about the type."""
         file = open(filename,"w")
         for i in self.WriteMeFirst:
@@ -231,13 +228,13 @@ class taxi:
             file.write( self.WriteSpecial[i]() )
         file.close()
 
-#   def write_callbacks(self):
-#       """checkrel"""
-#       output = []
-#       for i in self.callbacks:
-#           if isinstance(i,types.StringType):
-#               output.append(i)
-#       return "self.callbacks = " + writefunction(output)
+    def write_callbacks(self):
+        """checkrel"""
+        output = []
+        for i in self.callbacks:
+            if isinstance(i,types.StringType):
+                output.append(i)
+        return "self.callbacks = " + writefunction(output)
 
     def __str__(self):
         out = ""
