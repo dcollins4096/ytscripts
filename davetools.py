@@ -6,6 +6,19 @@ import glob
 import os.path
 import tarfile
 
+
+def ensure_list(obj):
+    """
+    This function ensures that *obj* is a list.  Typically used to convert a
+    string to a list, for instance ensuring the *fields* as an argument is a
+    list.
+    """
+    if obj is None:
+        return [obj]
+    if not isinstance(obj, types.ListType):
+        return [obj]
+    return obj
+
 def quarts(array, lower=0.25, upper=0.75, take_log=True):
     print "quarts doesn't work"
     ok = array >0
