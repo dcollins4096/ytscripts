@@ -2,26 +2,30 @@
 """ used to be called uber, but that got taken. """
 #checkrel
 import warnings
+not_ported = False
 #with warnings.catch_warnings():
     #warnings.simplefilter("ignore")
     #import yt.raven as raven
     #import yt.lagos as lagos
-import numpy as na
+import matplotlib
+matplotlib.use('Agg')
+import matplotlib.pyplot as plt
+import yt
+import numpy as np
 import pdb
+import os
 import h5py
 import types, time,weakref,davetools
-import davecallback
-from davetools import dsave, no_trailing_comments
-#import MyOutputs
+import dave_callbacks
+from davetools import dsave, no_trailing_comments, ensure_list
 import time, fPickle, glob
-import clump_stuff, clump_subset
-from clump_list_sort import *
+if not_ported:
+    import clump_stuff, clump_subset
+    from clump_list_sort import *
+    #reload(clump_stuff)
 import matplotlib.colorbar as cb
-from time_marker import time_marker
 import re
-#GET import frame_grabber
 import copy
-#reload(clump_stuff)
 
 
 class PortException(Exception):
@@ -58,8 +62,8 @@ def writefunction(thing):
         output += "]"
     elif isinstance(thing, types.StringType):
         output += "'"+thing+"'"
-    elif isinstance(thing, na.ndarray):
-        tmp = "na.array(["
+    elif isinstance(thing, np.ndarray):
+        tmp = "np.array(["
         for L in thing:
             tmp += str(L)
             tmp += ", "
@@ -85,7 +89,7 @@ class taxi:
         self.ExcludeFromWrite = ['ExcludeFromWrite']
 
         #To make the file easier to use, some of the uber members are written first
-        self.WriteMeFirst = ['name','directory','outname','operation','frames','fields','axis','OutputName',
+        self.WriteMeFirst = ['name','directory','outname','operation','frames','fields','axis',
                             'name_syntax', 'setname','DirectoryPrefix','GlobalParameters',
                              'ProfileDir','ProfileName']
         self.ExcludeFromWrite.append('WriteMeFirst')
@@ -94,8 +98,6 @@ class taxi:
         self.WriteSpecial = {}
         self.ExcludeFromWrite.append('WriteSpecial')
         #externals
-        #self.OutputName ="MyOutputs.FileStaticOutputFourPi" #"load"       #Name of lagos.StaticOutput subclass
-        self.OutputName = "load"
         self.OutputLog = "OutputLog"
         self.plot_origin = 'domain'  #see yt docs.
         self.axis = 0                #Axis for the plot
@@ -115,14 +117,14 @@ class taxi:
         self.format = 'png'
         self.plot_args = {}
         #The actual yt objects.  Not saved on output.
-        self.pf = None               #The lagos parameter file.  Gets re-made at each plot.
+        self.ds = None               #The lagos parameter file.  Gets re-made at each plot.
         self.ExcludeFromWrite.append('ds')
 
         self.pc = None               #The plot collection.
         self.ExcludeFromWrite.append('pc')
-        self.index = None                #A weak proxy to pf.h
+        self.index = None                #A weak proxy to ds.h
         self.ExcludeFromWrite.append('index')
-        self.h = None                #A weak proxy to pf.h
+        self.h = None                #A weak proxy to ds.h
         self.ExcludeFromWrite.append('h')
         self.reg = None              #Weak proxy to the most recent region
         self.ExcludeFromWrite.append('reg')
@@ -134,8 +136,8 @@ class taxi:
 
         self.ExcludeFromWrite.append('region')
         self.field_parameters = {}
-        self.left=na.array([0.0,0.0,0.0])      #The left of the region extraction.
-        self.right=na.array([1.0,1.0,1.0])     #The right of the extracted region.
+        self.left=np.array([0.0,0.0,0.0])      #The left of the region extraction.
+        self.right=np.array([1.0,1.0,1.0])     #The right of the extracted region.
         self.restrict = False                   #Restric plot to img_left, img_right
         self.img_left = None                   #left edge of image
         self.img_right = None                  #right edge of image.
@@ -231,13 +233,14 @@ class taxi:
             file.write( self.WriteSpecial[i]() )
         file.close()
 
-#   def write_callbacks(self):
-#       """checkrel"""
-#       output = []
-#       for i in self.callbacks:
-#           if isinstance(i,types.StringType):
-#               output.append(i)
-#       return "self.callbacks = " + writefunction(output)
+    def write_callbacks(self):
+        """checkrel"""
+        output = []
+        for i in self.callbacks:
+            if isinstance(i,types.StringType):
+                output.append(i)
+        return "self.callbacks = " + writefunction(output)
+
 
     def __str__(self):
         out = ""
@@ -250,20 +253,12 @@ class taxi:
 
     # checkrel def frame_grabber(self,tinitial=None,tfinal=None,dt=None,preset=None):
 
-    def hold_parameters(self,**kwargs):
-        """Stores current values of all passed arguments, and sets to 
-        the argument value.  Released by self.reset_parameters.
-        This can probably be done wiht decorators..."""
-
-        for key in kwargs.keys():
-            if self.hold_values.has_key(key):
-                print "already holding",key, "will reset to", self.hold_values[key]
-            else:
-                self.hold_values[key] = self.__dict__[key]
-            self.__dict__[key] = kwargs[key]
-    def reset_parameters(self):
-        for key in self.hold_values.keys():
-            self.__dict__[key] = self.hold_values.pop(key)
+    #
+    #
+    # filenames are a mild hassle.
+    # Either they can be preset, e.g DD????/data???? where DD and data are variables.
+    # OR can be taken sequentially from the OutputLog.
+    # 
 
     def set_filename(self,frame=None):
         if self.name_syntax == 'preset':
@@ -280,6 +275,7 @@ class taxi:
         self.set_filename(frame)
         self.berbose=verb_save
         return self.basename
+
     def set_filename_preset_syntax(self,frame=None):
         if frame == None:
             frame = self.frames[-1]
@@ -300,9 +296,8 @@ class taxi:
         elif self.name_syntax == 'outputlog':
             self.get_frames()
             nframe = self.frame_dict.keys()
-            nframe.pop( nframe.index('strlen') )
             nframe.sort()
-            output_format = "%s%d%s"%("%(pfname)",self.frame_dict['strlen'],"s %(cycle)d %(time)0.6e")
+            output_format = "%s%d%s"%("%(dsname)",self.frame_dict_string_length ,"s %(cycle)d %(time)0.6e")
 
             for n in nframe:
                 print "%4d"%n, output_format%(self.frame_dict[n])
@@ -320,7 +315,7 @@ class taxi:
             return self.frame_dict[frame]['SetNumber']
 
     def get_frames(self):
-        #I think there might be an error here with basenames/dirnames that contain numbers.
+        """parses OutputLog to populate self.frame_dict"""
         DirSetNumber = re.compile(r'([^\d]*)(\d\d\d\d)/([^\d]*)(\d\d\d\d)')
         SetNumber = re.compile(r'([^\d]*)(\d\d\d\d)')
         SetNumber = re.compile(r'(.*)(\d\d\d\d)')
@@ -331,14 +326,14 @@ class taxi:
             if debug > 0:
                 print output_log
             lines = output_log.readlines()
-            self.frame_dict['strlen'] = 0
+            self.frame_dict_string_length = 0
             for nframe,line in enumerate(lines):
                 if debug>0:
                     print nframe, line[:-1]
                 linesplit = davetools.no_whites(line.split(" "))
                 self.frame_dict[ nframe ] = {}
-                self.frame_dict[ nframe ]['pfname'] = linesplit[2]
-                self.frame_dict['strlen'] = max( self.frame_dict['strlen'], len(linesplit[2]) )
+                self.frame_dict[ nframe ]['dsname'] = linesplit[2]
+                self.frame_dict_string_length = max( self.frame_dict_string_length , len(linesplit[2]) )
 
                 try:
                     self.frame_dict[ nframe ]['cycle']  = int(linesplit[3])
@@ -371,12 +366,188 @@ class taxi:
         self.get_frames()
         if frame == None:
             frame = self.frames[-1]
-        self.basename = "%s/%s"%(self.directory,self.frame_dict[frame]['pfname'])
+        self.basename = "%s/%s"%(self.directory,self.frame_dict[frame]['dsname'])
         if self.verbose == True:
             print "==== %s ===="%(self.basename)
 
+    def fill(self, frame = None):
+        """populate parameter file, plot collection, hierarchy, region if desired.
+        Possibly could be renamed 'load' """
+        self.set_filename(frame)
+        self.ds = yt.load(self.basename)
+        na_errors= np.seterr(all='ignore')
+        np.seterr(**na_errors)
 
-    def pdir(self,frame):
+
+    def plot(self,local_frames=None):
+        print self.zlim
+        """Makes the uber plot.  Options for plot can be found in the uber description,
+        plot operations can be found by typing uber.operations()"""
+        start_time = time.time()    
+        
+        frame_template = self.outname + "_%04i"
+        FirstOne = True #For monotonic plots.
+
+        if local_frames==None:
+            local_frames=self.frames
+
+        for frame in ensure_list(local_frames):
+
+            self.fill(frame=frame)
+
+            print "==== %s ===="%(self.basename)
+            print "== %i time elapsed %f =="%(frame, time.time()-start_time)
+
+            #Find the density peak for all field,axis plots for this snapshot.
+            if self.operation == 'DensityPeakSlice':
+                print "getting peak"
+                value,center = self.ds.find_max('Density')
+                self.center = np.array(center)
+
+            for field in ensure_list(self.fields):
+
+                #Find the center, if the center is to come from the min/max.
+                #If a multi plot, use the first plot given.  
+                
+                if self.operation == 'PeakSlice':
+                    value,center = self.ds.find_max( ensure_list(field)[0] )
+                    self.center = np.array(center)
+                elif self.operation == 'MinSlice':
+                    value,self.center = self.ds.find_min( ensure_list(field)[0] )
+                    self.center = np.array(center)
+
+                #start axing
+                for axis in ensure_list(self.axis):
+                    #if multiple plots are used, do_plot will return a figure object.
+                    plot_or_fig = self.do_plots(field,axis,FirstOne)
+                    if hasattr(plot_or_fig,'savefig'):
+                        
+                        filename = frame_template%(self.returnsetnumber(frame))
+                        filename += "_"+self.operation
+                        filename += "_"+['x','y','z'][axis]
+
+                        for i in field:
+                            filename += "_"+i
+                        if self.format:
+                            filename += "."+self.format
+                        else:
+                            filename += ".png"
+                        print filename
+                        #fig.savefig(filename)
+                        #dsave(fig,filename,field_name=field,ds_list=[self.basename],script_name='uber')
+                        plot_or_fig.savefig(filename)
+                        print filename
+                    else:
+                        print plot_or_fig.save(frame_template%frame)
+    def do_plots(self,sub_field,axis,FirstOne):
+
+        """Adds the plot to the plot collection.  Loops over plots for multi-plots.
+        FirstOne tracks the first plot, for colorbar purposes"""
+        sub_field_list = ensure_list(sub_field)
+        orient = 'horizontal' #hard coded for devel!  
+        use_colorbar = self.use_colorbar #local copy made for multi plots
+        extra_args = self.plot_args
+
+        #set up the multi plot if this field is a list.
+        if len(sub_field_list) > 1:
+            config = guess_multi_configuration(len(sub_field_list))
+            #fig, axes, colorbars = raven.get_multi_plot( config[0], config[1], colorbar=orient, bw = 4)
+            fig, axes, colorbars = get_multi_plot( 2, 1, colorbar=orient, bw = 4)
+            use_colorbar = False 
+            extra_args = {'figure':fig,'axes':0}
+        for num, field in enumerate(sub_field_list):
+            if extra_args.has_key('axes'):
+                #extra_args['axes'] = axes[wp(num)[0]][wp(num)[1]]
+                extra_args['axes'] = wp(axes,num) #axes[wp(num)[0]][wp(num)[1]]
+
+            if self.operation == 'multi_test':
+                the_plot = yt.SlicePlot(self.ds,axis,field,center=self.center,origin=self.plot_origin,**extra_args)
+                #not tested.
+                #the_plot = self.pc.add_slice(field,axis, use_colorbar=use_colorbar,
+                #                             **extra_args)
+            elif self.operation == 'Full':
+                if not extra_args.has_key('weight_field'):
+                    extra_args['weight_field'] = None
+                the_plot = yt.ProjectionPlot(self.ds,axis,field, center=self.center, **extra_args)
+                #self.pc.add_projection(field,axis, use_colorbar=use_colorbar,
+                #                            **extra_args)
+                self.zlim = self.proj_zlim
+
+            elif self.operation == 'RegionProjection':
+                """Might be broken"""
+                #setup a projection
+                self.center = 0.5*(self.left + self.right)
+                reg = self.region(self.center, self.left,self.right,field)
+                self.reg = weakref.proxy(reg)
+                self.proj = self.ds.proj(axis,field,center=self.center,source=self.reg,periodic=self.periodic)
+                the_plot = self.proj.to_pw()
+                self.zlim = self.proj_zlim
+            elif self.operation in ['MinSlice','PeakSlice','DensityPeakSlice','CenterSlice']:
+                """peak taken outside the axis loop"""
+                the_plot = yt.SlicePlot(self.ds,axis,field,center=self.center,origin=self.plot_origin,**extra_args)
+                self.zlim = self.slice_zlim
+            else:
+                raise OperationException(self.operation)
+
+            #this is to clean up old implementations
+            if not self.cmap:
+                self.cmap = {'default':None}
+            if not self.cmap.has_key(field):
+                self.cmap[field] = self.cmap['default']
+
+            the_plot.set_cmap( field, self.cmap[field] )
+            #the_plot.label_kws['size'] = 'x-large'
+            if self.Colorbar:
+                if self.Colorbar == 'Monotone':
+                    if FirstOne:
+                        self.zlim[field] = [the_plot.data[field].min(),the_plot.data[field].max()]
+                    else:
+                        self.zlim[field][0] = min([self.zlim[field][0],the_plot.data[field].min()])
+                        self.zlim[field][1] = max([self.zlim[field][1],the_plot.data[field].max()])
+                    if self.verbose:
+                        print "set lim", self.zlim[field]
+                elif self.Colorbar == 'Fixed':
+                    if not self.zlim.has_key(field):
+                        self.zlim[field] = [the_plot.data[field].min(),the_plot.data[field].max()]
+                    if self.verbose:
+                        print "set lim", self.zlim[field]
+                the_plot.set_zlim(field, self.zlim[field][0], self.zlim[field][1])
+
+                if self.operation in ['Full','RegionProjection']:
+                    self.proj_zlim = self.zlim
+                elif self.operation in ['MinSlice','PeakSlice','DensityPeakSlice','CenterSlice']:
+                    self.slice_zlim = self.zlim
+
+        self.the_plot = the_plot #this does actually need to be a list.
+        FirstOne = False
+        try:
+            self.add_callbacks(the_plot, axis=axis)
+        except:
+            pass
+        if self.restrict:
+            if self.width:
+                the_plot.set_width(self.width*self.ds.parameters['LengthUnits'],'cm')                    
+
+        if len(sub_field_list) > 1:
+            raise PortException("multiplots")
+            for p,cax in zip(self.pc.plots, colorbars):
+                # Now we make a colorbar, using the 'image' attribute of the plot.
+                # 'image' is usually not accessed; we're making a special exception here,
+                # though.  'image' will tell the colorbar what the limits of the data are.
+                cbar = cb.Colorbar(cax, p.image, orientation=orient)
+                # Now, we have to do a tiny bit of magic -- we tell the plot what its
+                # colorbar is, and then we tell the plot to set the label of that colorbar.
+                p.colorbar = cbar
+                p._autoset_label()                
+            return fig
+            
+        else:
+            return the_plot
+
+    def product_dir(self,frame):
+        """Destination of intermediate products.  Typically of the form 
+        simdir/DD0001.products
+        """
         if self.name_syntax == 'preset':
             return self.pdir_old(frame)
         elif self.name_syntax == 'outputlog':
@@ -388,6 +559,8 @@ class taxi:
     def pdir_old(self,frame):
         """Finds .products directores in self.directory.  
         Makes the questionable assumption that directories are uniquely numbered."""
+        print "old style pdir needs to be checked."
+        raise PortException("old style product directory")
         if hasattr(self,'pdirdict'):
             return self.pdirdict[frame]
         else:
@@ -408,46 +581,132 @@ class taxi:
                     self.pdirdict[ int(match.groups(1)[0])] = L
             return self.pdirdict[frame]
 
+    def make_cg(self,frame=None,field=None, num_ghost_zones=0):
+        """Makes a covering grid for the root grid."""
+        if field == None:
+            field = self.fields[0]
+        self.fill(frame)
+        left=[0.0]*3
+        resolution = self.ds['TopGridDimensions'] + 2*num_ghost_zones
+        self.cg=self.ds.covering_grid(0,left,resolution,num_ghost_zones=num_ghost_zones)#,fields=fields)
 
-    def pf_string(self,frame=None):
-        self.set_filename(frame)
-        return "self.pf = %s('%s')"%(self.OutputName,self.basename)
-    def fill(self, frame = None,get_region=True):
-        """populate parameter file, plot collection, hierarchy, region if desired."""
-        self.set_filename(frame)
-        try:
-            exec("self.pf = %s('%s')"%(self.OutputName,self.basename))
-        except:
-            no_trailing_comments(self.basename)
-            try:
-                exec("self.pf = %s('%s')"%(self.OutputName,self.basename))
-            except:
-                raise
+    def extract_root(self,frame=None,field=None,make_cg=True,num_ghost_zones=0,debug=0,dtype='float32'):
+        """Extracts a grid the size of the root grid.  
+        Cached in self.directory+".products"+"cube_<field>.single" exists, reads that.
+        *num_ghost_zones* is for fields that require derivatives, etc.
+        Currently defaults to first frame, all fields"""
+        if frame == None:
+            frame = self.frames[0]
+        if field == None:
+            field = self.fields[0]
+        directory = self.product_dir(frame)
+        filename_no_ghost = "%s/cube_%s.%s"%(directory,field,dtype)
+        if debug > 0:
+            print filename_no_ghost
+        remove_gz = False
+        if num_ghost_zones >= 0:
+            filename = "%s.%d"%(filename_no_ghost,num_ghost_zones)
+        else:
+            """If num_ghost_zones < 0, try to read with ngz=0.  If not there, try larger values.
+            If extant, use that and remove ghost zones."""
+            filename = "%s.%d"%(filename_no_ghost,0)
+            if glob.glob(filename) == []:
+                with_ghost_list = glob.glob(filename_no_ghost+"*")
+                if with_ghost_list != []:
+                    ghost_zones_available = [ int(a.split(".")[-1]) for a in with_ghost_list]
+                    ngz = min(ghost_zones_available)
+                    filename = "%s.%d"%(filename_no_ghost, ngz)
+                    if debug>0:
+                        print "Found",filename, "with ngz",ngz
+                    remove_gz = True
 
-        if True:
-            self.pf.conversion_factors = dict((a, 1.0) for a in self.pf.conversion_factors)
-        na_errors= na.seterr(all='ignore')
-        self.pf.parameters.update(self.GlobalParameters)
-        self.pc = PlotCollection(self.pf,center=self.center)
-        self.h = weakref.proxy(self.pf.h)
-        na.seterr(**na_errors)
-        if get_region:
-            self.region = self.h.region(0.5*(self.left+ self.right), self.left, self.right)
-            for parameter in self.field_parameters.keys():
-                self.region.set_field_parameter(parameter, self.field_parameters[parameter])
-            if False:
-                if "VelocityDispersion" in self.fields or "RelKineticEnergy" in self.fields:
-                    print "Setting bulk velocity"
-                    self.region.set_field_parameter("bulk_velocity",self.region.quantities["BulkVelocity"]())
-                if "MassFraction" in self.fields:
-                    self.region.set_field_parameter("TotalMass",self.region.quantities["TotalMass"]())
+        if glob.glob(filename):
+            if debug > 0:
+                print "open set from disk"
+            file = h5py.File(filename,'r')
+            set = file[field][:]
+            file.close()
+            if remove_gz:
+                if debug>0:
+                    print "stripping"
+                set = set[ngz:-ngz,ngz:-ngz,ngz:-ngz]
+        else:
+            if glob.glob(directory) == []:
+                print "making directory",directory
+                os.mkdir(directory)
+            if debug > 0:
+                print "Create set"
+            if make_cg or self.cg == None:
+                if debug > 0:
+                    print "make cg"
+                self.make_cg(frame,field,num_ghost_zones)
+            set = self.cg[field]
+            file = h5py.File(filename,'w')
+            file.create_dataset(field,set.shape, data=set, dtype=dtype)
+            file.close()
+        return set
 
-#        if self.pf.parameters['TopGridRank']:
-#            self.operation='CenterSlice'
-#            self.axis=[2]
+    def fft(self,frame=None,field=None,data=None,make_cg=True,num_ghost_zones=0,dtype='float32',debug=0,fft_func=np.fft.fftn):
+        """Make an fft of a field.
+        As with extract_root, look for a cached version on disk first.
+        Defaults to the ghost zone guess"""
+        if dtype == 'float32':
+            fft_dtype = 'complex64'
+        elif dtype == 'float64':
+            fft_dtype = 'complex128'
+        elif dtype not in ['complex64','complex128']:
+            print "Can't cast type ",dtype, "to a complex type."
+            return None
+        if frame == None:
+            frame = self.frames[0]
+        if field == None:
+            field = self.fields[0]
+        directory = self.product_dir(frame) #"%s/%s%04d.products/"%(self.directory,self.DirectoryPrefix,frame)
+        filename = "%s/fft_%s.%s"%(directory,field,dtype)
+        if debug > 0:
+            print filename
+        if glob.glob(filename):
+            if debug > 0:
+                print "open FFT from disk"
+            file = h5py.File(filename,'r')
+            fft = file[field][:]
+            file.close()
+        else:
+            if glob.glob(directory) == []:
+                print "making directory",directory
+                os.mkdir(directory)
+            if debug > 0:
+                print "Create FFT"
+            if data == None:
+                this_set = self.extract_root(frame,field,make_cg,num_ghost_zones,dtype)
+            else:
+                this_set = data
+            if debug > 0:
+                print "Do fft."
+            fft = fft_func(this_set)/this_set.size
+            if debug > 0:
+                print "save"
+            fptr = h5py.File(filename,'w')
 
+            fptr.create_dataset(field,fft.shape, data=fft, dtype=fft_dtype)
+            fptr.close()
+        return fft
+    def add_callbacks(self,the_plot,axis=None):
+        for i,callback in enumerate(self.callbacks):
+            if isinstance(callback,types.StringType):
+                if callback == 'velocity':
+                    the_plot.annotate_velocity()
+                else:
+                    raise PortError("Callback %s not supported"%callback)
+class other_horsecrap():
+######################### stuff not ported
+    def set_region(self,frame=None):
+        raise PortError('set_regin')
+        self.region = self.region(0.5*(self.left+ self.right), self.left, self.right)
+        for parameter in self.field_parameters.keys():
+            self.region.set_field_parameter(parameter, self.field_parameters[parameter])
 
-    def addCallbacks(self,axis=None):
+    def add_callbacks(self,axis=None):
         """Adds specified callbacks in the uberInstance.callbacks array to the last plot.
         Options are either callback shortcut string or instance of an appropriate callback
         object.  Acceptable shortcuts can be found in uber.callbacks()"""
@@ -455,6 +714,8 @@ class taxi:
         #
         # callbacks
         #
+        if len(self.callbacks):
+            raise PortError('callbacks')
         
         for i,callback in enumerate(self.callbacks):
             if isinstance(callback,types.StringType):
@@ -544,7 +805,7 @@ class taxi:
         axis_text = {0:'x',1:'y',2:'z'}[axis]
         try:
             for n in self.frames:
-                for i,x in enumerate( na.arange(0.0,1.0, 1./n_slices) ):
+                for i,x in enumerate( np.arange(0.0,1.0, 1./n_slices) ):
                     self.center[axis] = x
                     self.outname = prefix + '_%04d'%i
                     text = '%s = %0.2f'%(axis_text,x)
@@ -556,85 +817,6 @@ class taxi:
         finally:
             self.__dict__.update(save)
     
-    def plot(self,local_frames=None):
-        print self.zlim
-        """Makes the uber plot.  Options for plot can be found in the uber description,
-        plot operations can be found by typing uber.operations()"""
-        start_time = time.time()    
-        
-        frame_template = self.outname + "_%04i"
-        FirstOne = True #For monotonic plots.
-
-        if local_frames==None:
-            local_frames=self.frames
-
-        for frame in ensure_list(local_frames):
-
-            self.fill(frame=frame,get_region=False)
-
-            print "==== %s ===="%(self.basename)
-            print "== %i time elapsed %f =="%(frame, time.time()-start_time)
-
-            #Find the density peak for all field,axis plots for this snapshot.
-            if self.operation == 'DensityPeakSlice':
-                print "getting peak"
-                value,center = self.pf.h.find_max('Density')
-                self.center = na.array(center)
-
-            for field in ensure_list(self.fields):
-
-                #Find the center, if the center is to come from the min/max.
-                #If a multi plot, use the first plot given.  
-                
-                if self.operation == 'PeakSlice':
-                    value,center = self.pf.h.find_max( ensure_list(field)[0] )
-                    self.center = na.array(center)
-                elif self.operation == 'MinSlice':
-                    value,self.center = self.pf.h.find_min( ensure_list(field)[0] )
-                    self.center = na.array(center)
-
-                #start axing
-                for axis in ensure_list(self.axis):
-                    self.pc = []
-                    try:
-                        fig = self.add_plots(field,axis,FirstOne)
-                    except OperationException:
-                        print "Invalid operation:",self.operation
-                        #operations()
-                        raise
-                      
-                    if fig:
-                        
-                        filename = frame_template%(self.returnsetnumber(frame))
-                        filename += "_"+self.operation
-                        filename += "_"+['x','y','z'][axis]
-
-                        for i in field:
-                            filename += "_"+i
-                        if self.format:
-                            filename += "."+self.format
-                        else:
-                            filename += ".png"
-                        print filename
-                        #fig.savefig(filename)
-                        dsave(fig,filename,field_name=field,pf_list=[self.basename],script_name='uber')
-                    else:
-                        
-                        for plot in self.pc:
-                            if self.format == 'dave':
-                                dsave(plot,frame_template%(self.returnsetnumber(frame)),
-                                      field_name = field,
-                                      pf_list=[self.basename],
-                                      script_name='uber')
-                            else:
-                                format_addition = ""
-                                if self.format[0] != ".":
-                                    self.format = "."+self.format
-                                if self.format is not None: format_addition = "%s"%self.format
-                                new_name = frame_template%(self.returnsetnumber(frame))+ "_%s_%s_%s%s"%(field,self.operation,'xyz'[axis],self.format)
-
-                                print plot.save(new_name)
-                            #print frame_template%(frame)
 
     def quantities(self,quantity,*args,**kwargs):
         """Uber wrapper for derived quantities.
@@ -659,6 +841,7 @@ class taxi:
         if len(fields) != 3:
             print "wrong number of fields: needs 3.", fields
             return
+        raise PortException("phase")
         frame_template = self.outname + "_%04i"
         for frame in ensure_list(self.frames):
             self.fill(frame)
@@ -688,9 +871,9 @@ class taxi:
                         fptr.create_dataset(fld,this_field.shape, data=this_field)
                     fptr.create_dataset('x_bin_field',data=self.pc.plots[0].data.x_bin_field)
                     fptr.create_dataset('y_bin_field',data=self.pc.plots[0].data.y_bin_field)
-                    fptr.create_dataset('pf_name',data=self.basename.split("/")[-1])
-                    fptr.create_dataset('InitialTime',data=self.pf['InitialTime'])
-                    fptr.create_dataset('InitialCycle',data=self.pf['InitialCycleNumber'])
+                    fptr.create_dataset('ds_name',data=self.basename.split("/")[-1])
+                    fptr.create_dataset('InitialTime',data=self.ds['InitialTime'])
+                    fptr.create_dataset('InitialCycle',data=self.ds['InitialCycleNumber'])
                     fptr.close()
 
 
@@ -699,7 +882,7 @@ class taxi:
             elif self.format == 'dave':
                 dsave(self.pc,frame_template%(self.returnsetnumber(frame)),
                       field_name = "%s"*len(fields)%tuple(fields),
-                      pf_list=[self.basename],
+                      ds_list=[self.basename],
                       script_name='uber')
             else:
                 print self.pc.save(frame_template%(self.returnsetnumber(frame)), format = self.format)
@@ -711,7 +894,7 @@ class taxi:
         for all frames in self.frame, run a profile object on the region.
         Run all callbacks on the plot.
         *use_cg* generates a covering grid and uses that, instead."""
-        mark_time = time_marker()
+        raise PortException('profiles')
         if len(fields) != 2:
             print "wrong number of fields: needs 2."
             return
@@ -745,9 +928,9 @@ class taxi:
                     for i in range(2):
                         set = self.pc.plots[-1].data[fields[i]]
                         file.create_dataset(fields[i],set.shape,data=set)
-                    file.create_dataset('pf_name',data=self.basename.split("/")[-1])
-                    file.create_dataset('InitialTime',data=self.pf['InitialTime'])
-                    file.create_dataset('InitialCycle',data=self.pf['InitialCycleNumber'])
+                    file.create_dataset('ds_name',data=self.basename.split("/")[-1])
+                    file.create_dataset('InitialTime',data=self.ds['InitialTime'])
+                    file.create_dataset('InitialCycle',data=self.ds['InitialCycleNumber'])
                     file.close()
                     if self.verbose:
                         print "wrote profile file ",filename
@@ -757,7 +940,7 @@ class taxi:
                     profile.add_callback(call)
             if title != None:
                 if time == True:
-                    title += " %0.2e %s"%(self.pf.parameters['InitialTime']*\
+                    title += " %0.2e %s"%(self.ds.parameters['InitialTime']*\
                                         self.UnitMultiplier,self.UnitName)
                 self.pc.plots[-1]._axes.set_title(title)
                 print title
@@ -768,7 +951,7 @@ class taxi:
                 n_fields=len(fields)
                 dsave(self.pc,frame_template%(self.returnsetnumber(frame)),
                       field_name = "%s_"*n_fields%tuple(fields),
-                      pf_list=[self.basename],
+                      ds_list=[self.basename],
                       script_name='uber')
             else:
                 print self.pc.save(frame_template%(self.returnsetnumber(frame)), format = self.format)
@@ -824,9 +1007,9 @@ class taxi:
                 continue
             self.fill(i,get_region=False)
             #basename = "%s/DD%04d/data%04d"%(self.directory,i,i)
-            #exec("pf = %s('%s')"%(self.OutputName,basename))
-            pf=self.pf
-            print "CURRENT HASH:",pf._hash()
+            #exec("ds = %s('%s')"%(self.OutputName,basename))
+            ds=self.ds
+            print "CURRENT HASH:",ds._hash()
             file = open('stuff_monitor.txt','a')
             file.write('%d reading\n %f'%(i,time.time()-t0))
             file.close()
@@ -840,7 +1023,7 @@ class taxi:
             except KeyError as e:
                 print "Key Error:  Probably a bad hash.  Get CTID in the dang code."
                 print "You might want to try:"
-                print "sed -i 's,%s,%s,g' %s"%(e.args[0][0],pf._hash(),filename)
+                print "sed -i 's,%s,%s,g' %s"%(e.args[0][0],ds._hash(),filename)
                 raise
             except:
                 print "Probably the module error."
@@ -872,7 +1055,7 @@ class taxi:
                 raise
 
         sh=datacube.shape
-        dest=na.zeros( sh )
+        dest=np.zeros( sh )
         datacube.read_direct(dest)
         dest = dest.transpose()
         if len(sh) == 1:
@@ -889,7 +1072,7 @@ class taxi:
         bz = self.grid(n,g,'BzF')
         #davetools.stat(bz,'bz')
         sh=bx.shape
-        dest=na.zeros( sh - nar([1,0,0]))
+        dest=np.zeros( sh - nar([1,0,0]))
         dest += bx[1:,:,:]-bx[:-1,:,:]
         dest += by[:,1:,:]-by[:,:-1,:]
         dest += bz[:,:,1:]-bz[:,:,:-1]
@@ -942,15 +1125,6 @@ class taxi:
             maximum = max(this_max, maximum)
             print "%4d, (%0.2e, %0.2e) (%0.2e, %0.2e)"%(g,this_min,this_max,minimum,maximum)
 
-    def make_cg(self,frame=None,field=None, num_ghost_zones=0):
-        """Makes a covering grid for the root grid."""
-        if field == None:
-            field = self.fields[0]
-        self.fill(frame)
-        left=na.amin(self.h.grid_left_edge,axis=0)
-        right=na.amax(self.h.grid_right_edge,axis=0)
-        resolution = (right-left)/self.h.grids[0]['dx']+2*num_ghost_zones
-        self.cg=self.h.covering_grid(0,left,resolution,num_ghost_zones=num_ghost_zones)#,fields=fields)
 
     def save_set(self,set,frame=None,field=None,prefix="cube", num_ghost_zones=0, debug=0, dtype='float32'):
         """Saves *set* to disk using standard naming conventions."""
@@ -958,7 +1132,7 @@ class taxi:
             frame = self.frames[0]
         if field == None:
             field = self.fields[0]
-        directory = self.pdir(frame)
+        directory = self.product_dir(frame)
         filename= "%s/%s_%s.%s.%d"%(directory,prefix,field,dtype,num_ghost_zones)
         if debug > 0:
             print "saving", filename
@@ -966,223 +1140,7 @@ class taxi:
         file.create_dataset(field,set.shape, data=set, dtype=dtype)
         file.close()
 
-    def extract_root(self,frame=None,field=None,make_cg=True,num_ghost_zones=0,debug=0,dtype='float32'):
-        """Extracts a grid the size of the root grid.  
-        Cached in self.directory+".products"+"cube_<field>.single" exists, reads that.
-        *num_ghost_zones* is for fields that require derivatives, etc.
-        Currently defaults to first frame, all fields"""
-        if frame == None:
-            frame = self.frames[0]
-        if field == None:
-            field = self.fields[0]
-        directory = self.pdir(frame)
-        filename_no_ghost = "%s/cube_%s.%s"%(directory,field,dtype)
-        if debug > 0:
-            print filename_no_ghost
-        remove_gz = False
-        if num_ghost_zones >= 0:
-            filename = "%s.%d"%(filename_no_ghost,num_ghost_zones)
-        else:
-            """If num_ghost_zones < 0, try to read with ngz=0.  If not there, try larger values.
-            If extant, use that and remove ghost zones."""
-            filename = "%s.%d"%(filename_no_ghost,0)
-            if glob.glob(filename) == []:
-                with_ghost_list = glob.glob(filename_no_ghost+"*")
-                if with_ghost_list != []:
-                    ghost_zones_available = [ int(a.split(".")[-1]) for a in with_ghost_list]
-                    ngz = min(ghost_zones_available)
-                    filename = "%s.%d"%(filename_no_ghost, ngz)
-                    if debug>0:
-                        print "Found",filename, "with ngz",ngz
-                    remove_gz = True
-
-        if glob.glob(filename):
-            if debug > 0:
-                print "open set from disk"
-            file = h5py.File(filename,'r')
-            set = file[field][:]
-            file.close()
-            if remove_gz:
-                if debug>0:
-                    print "stripping"
-                set = set[ngz:-ngz,ngz:-ngz,ngz:-ngz]
-        else:
-            if glob.glob(directory) == []:
-                print "making directory",directory
-                os.mkdir(directory)
-            if debug > 0:
-                print "Create set"
-            if make_cg or self.cg == None:
-                if debug > 0:
-                    print "make cg"
-                self.make_cg(frame,field,num_ghost_zones)
-            set = self.cg[field]
-            file = h5py.File(filename,'w')
-            file.create_dataset(field,set.shape, data=set, dtype=dtype)
-            file.close()
-        return set
 
 
-    def fft(self,frame=None,field=None,data=None,make_cg=True,num_ghost_zones=-1,dtype='float32',debug=0,fft_func=na.fft.fftn):
-        """Make an fft of a field.
-        As with extract_root, look for a cached version on disk first.
-        Defaults to the ghost zone guess"""
-        if dtype == 'float32':
-            fft_dtype = 'complex64'
-        elif dtype == 'float64':
-            fft_dtype = 'complex128'
-        elif dtype in ['complex64','complex128']:
-            pass
-        else:
-            print "Can't cast type ",dtype, "to a complex type."
-            return None
-        if frame == None:
-            frame = self.frames[0]
-        if field == None:
-            field = self.fields[0]
-        directory = self.pdir(frame) #"%s/%s%04d.products/"%(self.directory,self.DirectoryPrefix,frame)
-        filename = "%s/fft_%s.%s"%(directory,field,dtype)
-        if debug > 0:
-            print filename
-        if glob.glob(filename):
-            if debug > 0:
-                print "open FFT from disk"
-            file = h5py.File(filename,'r')
-            fft = file[field][:]
-            file.close()
-        else:
-            if glob.glob(directory) == []:
-                print "making directory",directory
-                os.mkdir(directory)
-            if debug > 0:
-                print "Create FFT"
-            if data == None:
-                set = self.extract_root(frame,field,make_cg,num_ghost_zones,dtype)
-            else:
-                set = data
-            if debug > 0:
-                print "Do fft."
-            fft = fft_func(set)/set.size
-            if debug > 0:
-                print "save"
-            file = h5py.File(filename,'w')
 
-            file.create_dataset(field,fft.shape, data=fft, dtype=fft_dtype)
-            file.close()
-        return fft
-
-
-    def add_plots(self,sub_field,axis,FirstOne):
-
-        """Adds the plot to the plot collection.  Loops over plots for multi-plots.
-        FirstOne tracks the first plot, for colorbar purposes"""
-        sub_field_list = ensure_list(sub_field)
-        orient = 'horizontal' #hard coded for devel!  
-        use_colorbar = self.use_colorbar #local copy made for multi plots
-        extra_args = self.plot_args
-
-        #set up the multi plot if this field is a list.
-        if len(sub_field_list) > 1:
-            config = guess_multi_configuration(len(sub_field_list))
-            #fig, axes, colorbars = raven.get_multi_plot( config[0], config[1], colorbar=orient, bw = 4)
-            fig, axes, colorbars = get_multi_plot( 2, 1, colorbar=orient, bw = 4)
-            use_colorbar = False 
-            extra_args = {'figure':fig,'axes':0}
-        for num, field in enumerate(sub_field_list):
-            if extra_args.has_key('axes'):
-                #extra_args['axes'] = axes[wp(num)[0]][wp(num)[1]]
-                extra_args['axes'] = wp(axes,num) #axes[wp(num)[0]][wp(num)[1]]
-
-            if self.operation == 'multi_test':
-                the_plot = SlicePlot(self.pf,axis,field,center=self.center,origin=self.plot_origin,**extra_args)
-                #not tested.
-                #the_plot = self.pc.add_slice(field,axis, use_colorbar=use_colorbar,
-                #                             **extra_args)
-            elif self.operation == 'Full':
-                if not extra_args.has_key('weight_field'):
-                    extra_args['weight_field'] = None
-                the_plot = ProjectionPlot(self.pf,axis,field, center=self.center, **extra_args)
-                #self.pc.add_projection(field,axis, use_colorbar=use_colorbar,
-                #                            **extra_args)
-                self.zlim = self.proj_zlim
-
-            elif self.operation == 'RegionProjection':
-                """Might be broken"""
-                #setup a projection
-                self.center = 0.5*(self.left + self.right)
-                reg = self.h.region(self.center, self.left,self.right,field)
-                self.reg = weakref.proxy(reg)
-                self.proj = self.h.proj(axis,field,center=self.center,source=self.reg,periodic=self.periodic)
-                the_plot = self.proj.to_pw()
-                self.zlim = self.proj_zlim
-            elif self.operation in ['MinSlice','PeakSlice','DensityPeakSlice','CenterSlice']:
-                """peak taken outside the axis loop"""
-                the_plot = SlicePlot(self.pf,axis,field,center=self.center,origin=self.plot_origin,**extra_args)
-                self.zlim = self.slice_zlim
-            else:
-                raise OperationException(self.operation)
-
-            #this is to clean up old implementations
-            if not self.cmap:
-                self.cmap = {'default':None}
-            if not self.cmap.has_key(field):
-                self.cmap[field] = self.cmap['default']
-
-            the_plot.set_cmap( field, self.cmap[field] )
-            #the_plot.label_kws['size'] = 'x-large'
-            if self.Colorbar:
-                if self.extra_save:
-                    print self.pc.save('temp')
-                if self.Colorbar == 'Monotone':
-                    if FirstOne:
-                        self.zlim[field] = [the_plot.data[field].min(),the_plot.data[field].max()]
-                    else:
-                        self.zlim[field][0] = min([self.zlim[field][0],the_plot.data[field].min()])
-                        self.zlim[field][1] = max([self.zlim[field][1],the_plot.data[field].max()])
-                    if self.verbose:
-                        print "set lim", self.zlim[field]
-                    
-
-                elif self.Colorbar == 'Fixed':
-                    if not self.zlim.has_key(field):
-                        self.zlim[field] = [the_plot.data[field].min(),the_plot.data[field].max()]
-                                            
-                    if self.verbose:
-                        print "set lim", self.zlim[field]
-                if self.extra_save:
-                    #for some reason that I didn't document,
-                    #setting zlim (and cmap) worked better on pc than on the_plot.
-                    #If it comes up again, please document.
-                    self.pc.set_zlim(self.zlim[field][0], self.zlim[field][1])
-                else:
-                    the_plot.set_zlim(field, self.zlim[field][0], self.zlim[field][1])
-                    #self.pc.set_zlim(field, self.zlim[field][0], self.zlim[field][1])
-
-                if self.operation in ['Full','RegionProjection']:
-                    self.proj_zlim = self.zlim
-                elif self.operation in ['MinSlice','PeakSlice','DensityPeakSlice','CenterSlice']:
-                    self.slice_zlim = self.zlim
-
-        FirstOne = False
-        self.pc.append(the_plot)
-        self.addCallbacks(axis=axis)
-        if self.restrict:
-            if self.width:
-                for ppp in self.pc:
-                    ppp.set_width(self.width*self.pf.parameters['LengthUnits'],'cm')                    
-
-        if len(sub_field_list) > 1:
-            for p,cax in zip(self.pc.plots, colorbars):
-                # Now we make a colorbar, using the 'image' attribute of the plot.
-                # 'image' is usually not accessed; we're making a special exception here,
-                # though.  'image' will tell the colorbar what the limits of the data are.
-                cbar = cb.Colorbar(cax, p.image, orientation=orient)
-                # Now, we have to do a tiny bit of magic -- we tell the plot what its
-                # colorbar is, and then we tell the plot to set the label of that colorbar.
-                p.colorbar = cbar
-                p._autoset_label()                
-            return fig
-            
-        else:
-            return None
         
