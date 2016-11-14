@@ -27,6 +27,10 @@ import matplotlib.colorbar as cb
 import re
 import copy
 
+def lim_down(value):
+    return 10**(np.floor(np.log10(value)))
+def lim_up(value):
+    return 10**(np.ceil(np.log10(value)))
 
 class PortException(Exception):
     def __init__(self, value = ""):
@@ -138,11 +142,13 @@ class taxi:
         self.field_parameters = {}
         self.left=np.array([0.0,0.0,0.0])      #The left of the region extraction.
         self.right=np.array([1.0,1.0,1.0])     #The right of the extracted region.
+        self.radius=None
         self.restrict = False                   #Restric plot to img_left, img_right
         self.img_left = None                   #left edge of image
         self.img_right = None                  #right edge of image.
         self.img_width = None                  #width of image.
         self.width = None
+        self.region_type = 'sphere'
         self.center= 0.5*(self.left+self.right)#Center, used for all things that need a center
         self.periodic = False              #For projection shift
         self.cmap = {'default':None}       #color map, field driven. Everyone uses default.
@@ -175,6 +181,7 @@ class taxi:
         self.frame_template = None
         self.basename_template = "data"
         self.name_syntax = 'outputlog'
+        self.extrema = {}
         self.frame_dict = None
         self.ExcludeFromWrite.append('frame_dict')
         self.basename = None
@@ -377,6 +384,20 @@ class taxi:
         self.ds = yt.load(self.basename)
         na_errors= np.seterr(all='ignore')
         np.seterr(**na_errors)
+    def get_region(self, frame=None):
+        if frame is not None or self.ds is None:
+            self.fill(frame)
+        if self.region_type.lower()=='sphere':
+            reg = self.ds.sphere(self.center, self.radius)
+        if self.region_type.lower() in ['rectangle','region']:
+            self.center = 0.5*(self.left + self.right)
+            reg = self.region(self.center, self.left,self.right,field)
+        if self.region_type.lower() in ['all','all_data']:
+            reg = self.ds.all_data()
+        #self.reg  = weakref.proxy(reg)
+        return reg
+
+
 
 
     def plot(self,local_frames=None):
@@ -473,13 +494,20 @@ class taxi:
                 #                            **extra_args)
                 self.zlim = self.proj_zlim
 
-            elif self.operation == 'RegionProjection':
+            elif self.operation == 'RegionProjection_kill_this':
                 """Might be broken"""
                 #setup a projection
                 self.center = 0.5*(self.left + self.right)
                 reg = self.region(self.center, self.left,self.right,field)
                 self.reg = weakref.proxy(reg)
                 self.proj = self.ds.proj(axis,field,center=self.center,source=self.reg,periodic=self.periodic)
+                the_plot = self.proj.to_pw()
+                self.zlim = self.proj_zlim
+            elif self.operation == 'RegionProjection':
+                """Might be broken"""
+                #setup a projection
+                self.get_region()
+                self.proj = self.ds.proj(field,axis,center=self.center,data_source=self.reg) #,periodic=self.periodic)
                 the_plot = self.proj.to_pw()
                 self.zlim = self.proj_zlim
             elif self.operation in ['MinSlice','PeakSlice','DensityPeakSlice','CenterSlice']:
@@ -526,7 +554,7 @@ class taxi:
             pass
         if self.restrict:
             if self.width:
-                the_plot.set_width(self.width*self.ds.parameters['LengthUnits'],'cm')                    
+                the_plot.set_width(self.width)                    
 
         if len(sub_field_list) > 1:
             raise PortException("multiplots")
@@ -691,6 +719,116 @@ class taxi:
             fptr.create_dataset(field,fft.shape, data=fft, dtype=fft_dtype)
             fptr.close()
         return fft
+    def find_extrema(self,fields=None,frames=None):
+        if fields:
+            local_fields = fields
+        else:
+            local_fields = self.fields
+        if frames:
+            local_frames = frames
+        else:
+            local_frames = self.frames
+        for frame in local_frames:
+            self.fill(frame)
+            reg=self.get_region(frame)
+            for field in local_fields:
+                this_extrema = reg.quantities['Extrema'](field)
+                if not self.extrema.has_key(field):
+                    self.extrema[field] = [this_extrema[0].v, this_extrema[1].v]
+                else:
+                    self.extrema[field][0] = min([this_extrema[0].v, self.extrema[field][0]])
+                    self.extrema[field][1] = max([this_extrema[1].v, self.extrema[field][1]])
+
+    def phase(self,fields, callbacks=None, weight_field=None, phase_args={},save=True, n_bins=[64,64]):
+        """Uber wrapper for phase objects.
+        for all frames in self.frame, run a phase plot object on the region.
+        Run all callbacks on the plot.
+        *save* pickles the region in PhaseFiles"""
+        if len(fields) != 3:
+            print "wrong number of fields: needs 3.", fields
+            return
+        frame_template = self.outname + "_%04i"
+        for frame in ensure_list(self.frames):
+            reg = self.get_region(frame)
+            local_extrema = None
+            if self.Colorbar in ['fixed', 'monotonic']:
+                print "start: ", self.extrema
+                if self.extrema.has_key(fields[0]) and self.extrema.has_key(fields[1]):
+                    local_extream = self.extrema
+                else:
+                    local_extrema = None
+            print "mid: ", local_extrema
+            phase = yt.create_profile(reg,bin_fields=[fields[0],fields[1]], 
+                                      fields=[fields[2]],weight_field=weight_field,
+                                      extrema=local_extrema, n_bins=n_bins)
+            #self.phase = weakref.proxy(phase)
+            pp = yt.PhasePlot.from_profile(phase)
+            pp.set_xlabel(fields[0])
+            pp.set_ylabel(fields[1])
+            if 1:
+                if self.Colorbar == 'monotonic':
+                    if self.extrema.has_key(fields[0]):
+                        xmin=min([self.extrema[fields[0]][0], phase.x_bins[0]])
+                        xmax=max([self.extrema[fields[0]][1], phase.x_bins[-1]])
+                        ymin=min([self.extrema[fields[1]][0], phase.y_bins[0]])
+                        ymax=max([self.extrema[fields[1]][1], phase.y_bins[-1]])
+                    else:
+                        xmin=phase.x_bins[0]
+                        xmax=phase.x_bins[-1]
+                        ymin=phase.y_bins[0]
+                        ymax=phase.y_bins[-1]
+                    self.extrema[fields[0]] = [xmin,xmax]
+                    self.extrema[fields[1]] = [ymin,ymax]
+                    print "extrema, post", self.extrema
+                if self.Colorbar in ['fixed','monotonic']:
+                    pp.set_xlim( lim_down(self.extrema[fields[0]][0]), lim_up(self.extrema[fields[0]][1]))
+                    pp.set_ylim( lim_down(self.extrema[fields[1]][0]), lim_up(self.extrema[fields[1]][1]))
+
+            print pp.save("%s_%04d"%(self.outname,frame))
+            old_code = """
+            phase = self.pc.add_phase_object(self.region,fields, lazy_reader=True,weight=weight,**phase_args)
+            if callbacks:
+                for call in ensure_list(callbacks):
+                    phase.add_callback(call)
+                    
+            if save and davetools.ImRoot():
+                if glob.glob(self.ProfileDir) == []:
+                    os.mkdir(self.ProfileDir)
+                    print "made directory", self.ProfileDir
+                filename = "%s/%s_%s_%s_%s_%s"%(self.ProfileDir,frame_template%(self.returnsetnumber(frame)),fields[0],fields[1],fields[2],weight)
+                all_files = glob.glob(filename+"*")
+                if 0:
+                    filename += "_%d.pickle"%(len(all_files))
+                    #fPickle.bdump(self.pc.plots[-1].data._data,filename)
+                    fPickle.bdump(self.pc.plots[-1].data,filename)
+                    print "saved pickle %s"%filename
+                if 1:
+                    filename += "_%d.h5"%(len(all_files))
+                    print "Writing H5 file",filename
+                    fptr = h5py.File(filename,"w")
+                    the_dict = self.pc.plots[0].data.field_data
+                    for fld in the_dict.keys():
+                        this_field = the_dict[fld]
+                        fptr.create_dataset(fld,this_field.shape, data=this_field)
+                    fptr.create_dataset('x_bin_field',data=self.pc.plots[0].data.x_bin_field)
+                    fptr.create_dataset('y_bin_field',data=self.pc.plots[0].data.y_bin_field)
+                    fptr.create_dataset('ds_name',data=self.basename.split("/")[-1])
+                    fptr.create_dataset('InitialTime',data=self.ds['InitialTime'])
+                    fptr.create_dataset('InitialCycle',data=self.ds['InitialCycleNumber'])
+                    fptr.close()
+
+
+            if self.format == None:
+                print self.pc.save(frame_template%(self.returnsetnumber(frame)))
+            elif self.format == 'dave':
+                dsave(self.pc,frame_template%(self.returnsetnumber(frame)),
+                      field_name = "%s"*len(fields)%tuple(fields),
+                      ds_list=[self.basename],
+                      script_name='uber')
+            else:
+                print self.pc.save(frame_template%(self.returnsetnumber(frame)), format = self.format)
+                #print frame_template%(frame)
+                """
     def add_callbacks(self,the_plot,axis=None):
         for i,callback in enumerate(self.callbacks):
             if isinstance(callback,types.StringType):
@@ -833,60 +971,6 @@ class other_horsecrap():
             output[frame] = self.region.quantities[quantity](*args,**kwargs)
         return output
 
-    def phase(self,fields, callbacks=None, weight=None, phase_args={},save=True):
-        """Uber wrapper for phase objects.
-        for all frames in self.frame, run a phase plot object on the region.
-        Run all callbacks on the plot.
-        *save* pickles the region in PhaseFiles"""
-        if len(fields) != 3:
-            print "wrong number of fields: needs 3.", fields
-            return
-        raise PortException("phase")
-        frame_template = self.outname + "_%04i"
-        for frame in ensure_list(self.frames):
-            self.fill(frame)
-            phase = self.pc.add_phase_object(self.region,fields, lazy_reader=True,weight=weight,**phase_args)
-            if callbacks:
-                for call in ensure_list(callbacks):
-                    phase.add_callback(call)
-                    
-            if save and davetools.ImRoot():
-                if glob.glob(self.ProfileDir) == []:
-                    os.mkdir(self.ProfileDir)
-                    print "made directory", self.ProfileDir
-                filename = "%s/%s_%s_%s_%s_%s"%(self.ProfileDir,frame_template%(self.returnsetnumber(frame)),fields[0],fields[1],fields[2],weight)
-                all_files = glob.glob(filename+"*")
-                if 0:
-                    filename += "_%d.pickle"%(len(all_files))
-                    #fPickle.bdump(self.pc.plots[-1].data._data,filename)
-                    fPickle.bdump(self.pc.plots[-1].data,filename)
-                    print "saved pickle %s"%filename
-                if 1:
-                    filename += "_%d.h5"%(len(all_files))
-                    print "Writing H5 file",filename
-                    fptr = h5py.File(filename,"w")
-                    the_dict = self.pc.plots[0].data.field_data
-                    for fld in the_dict.keys():
-                        this_field = the_dict[fld]
-                        fptr.create_dataset(fld,this_field.shape, data=this_field)
-                    fptr.create_dataset('x_bin_field',data=self.pc.plots[0].data.x_bin_field)
-                    fptr.create_dataset('y_bin_field',data=self.pc.plots[0].data.y_bin_field)
-                    fptr.create_dataset('ds_name',data=self.basename.split("/")[-1])
-                    fptr.create_dataset('InitialTime',data=self.ds['InitialTime'])
-                    fptr.create_dataset('InitialCycle',data=self.ds['InitialCycleNumber'])
-                    fptr.close()
-
-
-            if self.format == None:
-                print self.pc.save(frame_template%(self.returnsetnumber(frame)))
-            elif self.format == 'dave':
-                dsave(self.pc,frame_template%(self.returnsetnumber(frame)),
-                      field_name = "%s"*len(fields)%tuple(fields),
-                      ds_list=[self.basename],
-                      script_name='uber')
-            else:
-                print self.pc.save(frame_template%(self.returnsetnumber(frame)), format = self.format)
-                #print frame_template%(frame)
 
     def profiles(self,fields, callbacks=None, weight=None, profile_args={},
                  title=None,time=True,save=True,use_cg=False,lazy_reader=True,num_ghost_zones=0):
