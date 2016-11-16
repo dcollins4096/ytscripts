@@ -506,8 +506,8 @@ class taxi:
             elif self.operation == 'RegionProjection':
                 """Might be broken"""
                 #setup a projection
-                self.get_region()
-                self.proj = self.ds.proj(field,axis,center=self.center,data_source=self.reg) #,periodic=self.periodic)
+                reg = self.get_region()
+                self.proj = self.ds.proj(field,axis,center=self.center,data_source=reg) #,periodic=self.periodic)
                 the_plot = self.proj.to_pw()
                 self.zlim = self.proj_zlim
             elif self.operation in ['MinSlice','PeakSlice','DensityPeakSlice','CenterSlice']:
@@ -526,17 +526,17 @@ class taxi:
             the_plot.set_cmap( field, self.cmap[field] )
             #the_plot.label_kws['size'] = 'x-large'
             if self.Colorbar:
-                if self.Colorbar == 'Monotone':
+                if self.Colorbar in ['Monotone', 'monotonic']:
                     if FirstOne:
-                        self.zlim[field] = [the_plot.data[field].min(),the_plot.data[field].max()]
+                        self.zlim[field] = [the_plot.data_source[field].min(),the_plot.data_source[field].max()]
                     else:
-                        self.zlim[field][0] = min([self.zlim[field][0],the_plot.data[field].min()])
-                        self.zlim[field][1] = max([self.zlim[field][1],the_plot.data[field].max()])
+                        self.zlim[field][0] = min([self.zlim[field][0],the_plot.data_source[field].min()])
+                        self.zlim[field][1] = max([self.zlim[field][1],the_plot.data_source[field].max()])
                     if self.verbose:
                         print "set lim", self.zlim[field]
                 elif self.Colorbar == 'Fixed':
                     if not self.zlim.has_key(field):
-                        self.zlim[field] = [the_plot.data[field].min(),the_plot.data[field].max()]
+                        self.zlim[field] = [the_plot.data_source[field].min(),the_plot.data_source[field].max()]
                     if self.verbose:
                         print "set lim", self.zlim[field]
                 the_plot.set_zlim(field, self.zlim[field][0], self.zlim[field][1])
