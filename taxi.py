@@ -12,6 +12,8 @@ matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 import yt
 import numpy as np
+nar = np.array
+array=np.array
 import pdb
 import os
 import h5py
@@ -49,7 +51,7 @@ class OperationException(Exception):
 
 def writefunction(thing):
     """
-    uber.read(file) populates itself from file by executing each line in the file.
+    taxi.read(file) populates itself from file by executing each line in the file.
     writefunction(thing) returns a string that, when executed, repopulates uber.
     Assumes all numpy nd arrays are 1d.  This can be fixed with recursion, but I'm lazy."""
 
@@ -87,9 +89,7 @@ class taxi:
         """
         Either reads in taxifile *fileame* or just sets some defaults."""
 
-        #List of members that will NOT be written.  This is mostly for the lagos objects.
-        #The goal is to be able to re-create the lagos objects from the info in uber,
-        #and not have to pickel the lagos objects.
+        #List of members that will NOT be written.  
         self.ExcludeFromWrite = ['ExcludeFromWrite']
 
         #To make the file easier to use, some of the uber members are written first
@@ -108,7 +108,7 @@ class taxi:
         self.frames = []             #Dump numbers to be plotted.
         self.fields = 'Density'      #Field (hopefully to be list) for the plot
         self.weight = 'dx'           #Weight field.  Projections?    
-        self.name   = 'sim'          #identifier for this uber instance
+        self.name   = 'sim'          #identifier for this taxi instance
         self.outname = 'Image'       #Prefix for output
         self.directory = '.'         #Directory where the simulation was run. (Where the DD* dirs are)
         self.DirectoryPrefix = "DD"  #Prefix on said directories
@@ -116,7 +116,7 @@ class taxi:
         self.ProfileName = None
         self.setname = "cycle"        #prefix on data file
         self.subdir = True           #Are there DD0000 directories, or is it just data0000.grid*?
-        self.operation = 'Full'      #The operation that will be done.  uber.operations() for a list.
+        self.operation = 'Full'      #The operation that will be done.  taxi.operations() for a list.
                                      #    or physically motivated ones.  Options are 'Code' or 'Physics'
         self.format = 'png'
         self.plot_args = {}
@@ -157,7 +157,7 @@ class taxi:
         self.zlim = {}
         self.slice_zlim = {}
         self.proj_zlim = {}
-        self.callbacks = []                #Which callbacks to use.  uber.callbacks() for options
+        self.callbacks = []                #Which callbacks to use.  taxi.callbacks() for options
         self.callback_args={}
         #self.ExcludeFromWrite.append('callbacks')
         self.WriteSpecial['callbacks'] = self.write_callbacks
@@ -199,12 +199,12 @@ class taxi:
 
 
         if filename != None:
-            #If no directories are mentioned, assume the actual file is ./uber/filename
+            #If no directories are mentioned, assume the actual file is ./taxi_stand/filename
             try:
                 filename.index('/')
                 actual_filename = filename
             except:
-                actual_filename = "uber/%s"%filename
+                actual_filename = "taxi_stand/%s"%filename
             self.load(actual_filename)
         if dir != None:
             self.directory=dir
@@ -224,7 +224,12 @@ class taxi:
     def save(self,filename='DefaultFile'):
         """Writes out the taxi file.  Writes the entire contents of taxi.__dict__,
         making a hopefully appropriate assumption about the type."""
-        file = open(filename,"w")
+        try:
+            filename.index('/')
+            actual_filename = filename
+        except:
+            actual_filename = "taxi_stand/%s"%filename
+        file = open(actual_filename,"w")
         for i in self.WriteMeFirst:
             file.write("self."+i + " = " + writefunction(self.__dict__[i]) + "\n")            
 
@@ -239,6 +244,7 @@ class taxi:
         for i in self.WriteSpecial.keys():
             file.write( self.WriteSpecial[i]() )
         file.close()
+        print "saved", actual_filename
 
     def write_callbacks(self):
         """checkrel"""
@@ -528,15 +534,23 @@ class taxi:
             if self.Colorbar:
                 if self.Colorbar in ['Monotone', 'monotonic']:
                     if FirstOne:
-                        self.zlim[field] = [the_plot.data_source[field].min(),the_plot.data_source[field].max()]
+                        do_log = True #please get this from the yt object.
+                        if do_log:
+                            non_zero = the_plot.data_source[field].min() != 0
+                            this_min = the_plot.data_source[field][non_zero].min()
+                        self.zlim[field] = [this_min,the_plot.data_source[field].max()]
                     else:
                         self.zlim[field][0] = min([self.zlim[field][0],the_plot.data_source[field].min()])
                         self.zlim[field][1] = max([self.zlim[field][1],the_plot.data_source[field].max()])
                     if self.verbose:
                         print "set lim", self.zlim[field]
-                elif self.Colorbar == 'Fixed':
+                elif self.Colorbar in  ['Fixed', 'fixed'] :
                     if not self.zlim.has_key(field):
-                        self.zlim[field] = [the_plot.data_source[field].min(),the_plot.data_source[field].max()]
+                        do_log = True #please get this from the yt object.
+                        if do_log:
+                            non_zero = the_plot.data_source[field] != 0
+                            this_min = the_plot.data_source[field][non_zero].min()
+                        self.zlim[field] = [this_min,the_plot.data_source[field].max()]
                     if self.verbose:
                         print "set lim", self.zlim[field]
                 the_plot.set_zlim(field, self.zlim[field][0], self.zlim[field][1])
@@ -720,7 +734,7 @@ class taxi:
             fptr.close()
         return fft
     def find_extrema(self,fields=None,frames=None):
-        if fields:
+        if fields is not None:
             local_fields = fields
         else:
             local_fields = self.fields
