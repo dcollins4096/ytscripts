@@ -1,15 +1,9 @@
 from xtra_operators import *    
-if 0:
-    ef('xtra_operators.py')
-    def _scaled_div_b(field,data):
-        sdb = np.abs(data['enzo','DivB'])
-        sdb /= data['magnetic_field_strength']
-        sdb *= data.dds.max()
-        return sdb
 #yt.add_field('scaled_div_b',  function=_scaled_div_b, validators=[yt.ValidateGridType()])
 
 # \dU/dt = -grad P - 1/8 pi \grad(b^2) -1/4pi B\cdot \grad 
 
+if 1:
     momentum_units = 'g/(cm**2*s)'
     def _momentum_x(field,data):
         return data['density']*data['velocity_x']
@@ -25,6 +19,28 @@ if 0:
         return np.sqrt(out)
     yt.add_field('momentum_magnitude',function=_momentum_magnitude,units=momentum_units)
 
+    def _mean_square_velocity(field,data):
+        out = data['velocity_x']**2+data['velocity_y']**2 + data['velocity_z']**2
+        return out
+    yt.add_field('mean_square_velocity',function=_mean_square_velocity,units="cm**2/s**2")
+
+    eng_units = 'g/(cm*s**2)'
+    def _eng_x(field,data):
+        return data['density']*data['velocity_x']*data['velocity_x']
+    yt.add_field('eng_x',function=_eng_x,units=eng_units)
+    def _eng_y(field,data):
+        return data['density']*data['velocity_y']*data['velocity_y']
+    yt.add_field('eng_y',function=_eng_y,units=eng_units)
+    def _eng_z(field,data):
+        return data['density']*data['velocity_z']*data['velocity_z']
+    yt.add_field('eng_z',function=_eng_z,units=eng_units)
+if 0:
+    ef('xtra_operators.py')
+    def _scaled_div_b(field,data):
+        sdb = np.abs(data['enzo','DivB'])
+        sdb /= data['magnetic_field_strength']
+        sdb *= data.dds.max()
+        return sdb
     def _InductionNorm(field,data):
         """ || Curl( V cross B) ||"""
         B = [ data['Bx'],
