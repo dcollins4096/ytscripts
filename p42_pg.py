@@ -122,7 +122,7 @@ SolWeights = {
       }
 
 plt.clf()
-if 1:
+if 0:
     aq32 = taxi.taxi(directory='/scratch1/dcollins/Paper42_new_turb/aq32_m2.9_drive1_32',name='aq32',frames=range(0,42,2),fields=['density'])
     aq31 = taxi.taxi(directory='/scratch1/dcollins/Paper42_new_turb/aq31_m2.9_drive0.5_32',name='aq31',frames=range(0,42,2),fields=['density'])
     aq16 = taxi.taxi(directory='/scratch1/dcollins/Paper42_new_turb/aq16_ppm_m9_drive0_noamr_128',name='aq15',frames=range(17),fields=['density'])
