@@ -2,6 +2,16 @@
 if 'ef' not in dir():
     execfile('go')
 sim_base_dir = {}
+sim_base_dir['aq05'] = 'aq05_hydro_m9_32'
+sim_base_dir['bq05'] = 'bq05_hydro_m9_32_grav'
+sim_base_dir['cq05'] = 'cq05_hydro_m9_32_grav_nodrive'
+sim_base_dir['bq04'] = 'bq04_m9_grav_512_L1_J4'
+sim_base_dir['aq15'] = 'aq15_ppm_m9_drive2_noamr_128'
+sim_base_dir['aq16'] = 'aq16_ppm_m9_drive0_noamr_128'
+sim_base_dir['dq04'] = 'dq04_m9_grav_512_L4_J4'
+sim_base_dir['cq04'] = 'cq04_m9_nodrive_512_grav'
+sim_base_dir['eq04'] = 'eq04_m9_grav_512_L4_J32'
+sim_base_dir['aq04'] = 'aq04_hydro_M9_drive_512'
 sim_base_dir['aq05'] = 'aq05_hydro_M9_32'
 sim_base_dir['aq06'] = 'aq06_hydro_m9_32'
 sim_base_dir['aq07'] = 'aq07_hydro_v0.1_32'
@@ -21,14 +31,10 @@ weight_fields = {'scaled_div_b':'cell_volume'}
 methods = {'abs_divb':'mip'}
 
 if 'framelist' not in dir():
-    framelist = range(0,240,10) + [236] 
-    framelist = range(0,520,20)
-#framelist =range(200,0,-10)+[1]
-    framelist =[1] + range(10,210,10)
-#framelist=[200]
-#framelist=[150]
+    framelist = [76]
 fieldlist = ['density','magnetic_field_strength']
 fieldlist = ['density'] #,'magnetic_field_strength']
+fieldlist = ['density'] #,'TotalEnergy']
 fieldlist = ['vorticity_magnitude']
 phase_list = [['kinetic_energy','magnetic_energy']]
 phase_list = [['density','magnetic_field_strength']]
@@ -63,6 +69,39 @@ plt.close('all')
 #fieldlist = ['%s-velocity'%s for s in 'xyz']
 accumulation = False
 project = 'p42'
+<<<<<<< /home1/00369/tg456484/yt3_scripts/p42_harry_plotter.py
+do_proj = False
+do_phase= False
+do_profile=False
+do_quan = True
+if 'quan_list' not in dir():
+    quan_list = []
+if 0:
+    try:
+        fff = open('/scratch/00369/tg456484/Paper42_NewAK/aq16_ppm_m9_drive0_noamr_128/OutputLog')
+        names = []
+        times = []
+        frames = []
+        for l in fff.readlines():
+            nw= no_whites(l.split(" "))
+            times.append(float(nw[4]))
+            names.append(nw[2])
+            frames.append( int(names[-1][4:8]) )
+        times=nar(times)
+    except:
+        raise
+
+for frame_looper in framelist:
+    for nsim,sim  in enumerate(simlist):
+        if nsim == 1 and False:
+            last_time = ds['InitialTime']
+            frame = frames[ np.argmin( np.abs(times - last_time)) ]
+        else:
+            frame = frame_looper
+
+
+        name  = '%s/%s/DD%04d/data%04d'%(bd,sim_base_dir[sim],frame,frame)
+=======
 do_proj = False
 do_phase= False
 do_profile=False
@@ -103,8 +142,34 @@ for sim  in ['aq18']:
     for nf,frame in enumerate(framelist):
         name  = '%s/%s/%s%04d/%s%04d'%(this_bd,sim_base_dir[sim],dirname,frame,setname,frame)
         print name
+>>>>>>> /tmp/p42_harry_plotter.py~other.mkKaed
         ds = yt.load(name)
+        print name, "t=",ds['InitialTime']
+        #print fieldlist
+        #continue
         ad=ds.all_data()
+<<<<<<< /home1/00369/tg456484/yt3_scripts/p42_harry_plotter.py
+        if do_quan:
+            quan_list.append( [(ad['density']*ad['%s-velocity'%dim]**2*ad['cell_volume']).sum() for dim in 'xyz'] )
+        if 0:
+            px = ad.quantities['WeightedAverageQuantity']('momentum_x','cell_volume')
+            py = ad.quantities['WeightedAverageQuantity']('momentum_y','cell_volume')
+            pz = ad.quantities['WeightedAverageQuantity']('momentum_z','cell_volume')
+            print px
+        if do_profile:
+            field = 'density'
+            prof = yt.create_profile(ds.all_data(),field,fields='cell_mass',weight_field=None,accumulation=accumulation,
+                                    fractional=True)
+            plt.clf()
+            plt.plot(0.5*(prof.x_bins[1:]+prof.x_bins[0:-1]),prof['cell_mass'], label=sim)
+            plt.xscale('log'); plt.yscale('log')
+            profname = '%s_prof_%s_n%04d.pdf'%(project, field, frame)
+            plt.savefig(profname)
+            print profname
+        if do_phase:
+            for f1, f2 in phase_list:
+                phase = yt.create_profile(ds.all_data(),bin_fields=[f1,f2], fields=['cell_mass'],weight_field=None)
+=======
         if do_quan:
             #quan_list.append( ad.quantities['WeightedAverageQuantity']('kinetic_energy','cell_volume'))
             #quan_list.append( ad.quantities['Extrema']('density')[1])
@@ -169,7 +234,15 @@ for sim  in ['aq18']:
                                           extrema={x_field:lims[x_field], y_field:lims[y_field]},
                                           n_bins=[128,128])
                                           #logs={x_field:x_log,y_field:y_log}) #, n_bins=[32,32])
+>>>>>>> /tmp/p42_harry_plotter.py~other.mkKaed
                 pp = yt.PhasePlot.from_profile(phase)
+<<<<<<< /home1/00369/tg456484/yt3_scripts/p42_harry_plotter.py
+                pp.set_xlabel(f1)
+                pp.set_ylabel(f2)
+                print pp.save('%s_%s_n%04d.pdf'%(project,sim,frame))
+        if do_proj:
+            for ax in 'z':
+=======
                 pp.set_xlabel(x_field)
                 pp.set_ylabel(y_field)
                 print pp.save("%s_%s_%04d"%(project,sim,frame))
@@ -178,12 +251,22 @@ for sim  in ['aq18']:
                     print pp.save("%s_%s_%04d"%(project,sim,frame))
         if do_proj:
             for ax in 'x': #yz':
+>>>>>>> /tmp/p42_harry_plotter.py~other.mkKaed
                 for field in fieldlist:
                     proj = yt.ProjectionPlot(ds,ax,field) #,weight_field=weight_fields.get(field,None),method=methods.get(field,'integrate'))
                     #proj.set_width(50,'Mpc')
                     #proj.annotate_streamlines('Bx','By')
                     #proj.annotate_magnetic_field()
+<<<<<<< /home1/00369/tg456484/yt3_scripts/p42_harry_plotter.py
+                    if 1:
+                        tff = (3*np.pi/(32.*ds['GravitationalConstant']*1))**0.5
+                        t_tff = ds['InitialTime']/tff
+                        proj.annotate_text([0.05,0.05,0.05],r"$t=%0.2f t_{\rm{ff}}$"%t_tff)
+                    if 1:
+                        proj.annotate_grids()
+=======
                     proj.annotate_grids()
+>>>>>>> /tmp/p42_harry_plotter.py~other.mkKaed
                     print proj.save('%s_%s_n%04d'%(project,sim,frame))
         if 0:
             vx = ad['x-velocity'].in_units('code_velocity')
