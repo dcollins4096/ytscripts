@@ -81,18 +81,18 @@ def parse_hierarchy_for_particles(ds_name):
         hptr.close()
     return fake_grid_list
 
-def add_particles(ds, setname , outdir, method=0):
+def add_particles(ds, setname , outdir,outnumber=0, method=0):
     """adds a bunch of particles to ds.
     method = 0: one particle at each zone center."""
     fake_grid_list = parse_hierarchy_for_particles(setname)
-    out_basename = outdir + "/DD%04d"%(ds['DataDumpNumber'])
+    out_basename = outdir + "/DD%04d"%(outnumber)
     if glob.glob(out_basename) == []:
         os.mkdir(out_basename)
 
-    out_hierarchy_name = outdir + "/DD%04d/%s%04d.hierarchy"%(ds['DataDumpNumber'],ds['DataDumpName'], ds['DataDumpNumber'])
+    out_hierarchy_name = outdir + "/DD%04d/%s%04d.hierarchy"%(outnumber,'data', outnumber)
     out_hierarchy_fptr = open(out_hierarchy_name,'w')
     particle_count_list = np.zeros(ds.index.grids.size)
-    tracer_mass = 8e-10
+    tracer_mass = 1e-10
     last_index = 0
     particle_fields = ['particle_index', 'particle_mass', 'particle_type',\
                        'particle_position_x', 'particle_position_y', 'particle_position_z', \
@@ -143,6 +143,7 @@ def add_particles(ds, setname , outdir, method=0):
         
         """Write the data files"""
         out_file_name = "%s/%s"%(out_basename , g.filename.split("/")[-1])
+        print "writing", out_file_name
         in_cpu = h5py.File(g.filename,'r')
         in_group = in_cpu['Grid%08d'%g.id]
         out_cpu = h5py.File(out_file_name,'a')
@@ -185,7 +186,7 @@ def add_particles(ds, setname , outdir, method=0):
         
     out_hierarchy_fptr.close()
     """write the parameter files"""
-    out_ds_name = outdir + "/DD%04d/%s%04d"%(ds['DataDumpNumber'],ds['DataDumpName'], ds['DataDumpNumber'])
+    out_ds_name = outdir + "/DD%04d/%s%04d"%(outnumber,'data',outnumber)
     out_ds = open(out_ds_name,'w')
     in_ds = open(setname,'r')
     for line in in_ds:
@@ -194,8 +195,7 @@ def add_particles(ds, setname , outdir, method=0):
         elif line.startswith('NumberOfParticles'):
             out_ds.write('NumberOfParticles      = %d (do not modify)\n'%particle_count_list.sum()) #haha, do not modify.
         elif line.startswith('DataDumpNumber'):
-            DataDumpNumber = int(line.split('=')[1])
-            out_ds.write('DataDumpNumber = %d\n'%(DataDumpNumber+1))
+            out_ds.write('DataDumpNumber = %d\n'%(outnumber+1))
         elif line.startswith('StopCycle'):
             StopCycle = int(line.split('=')[1])
             out_ds.write('StopCycle = %d\n'%(StopCycle+3))
@@ -215,15 +215,24 @@ def add_particles(ds, setname , outdir, method=0):
         shutil.copy(source_file,dest_file)
 
 
-dirname = '/scratch/00369/tg456484/Paper37_Restart/a00_ics'
-outdir  = '/scratch/00369/tg456484/Paper37_Restart/a01_with_uniform_particles'
-dirname = '/Users/dcollins/scratch/Paper36_TracerTests/AddPost/b01_slab'
-outdir = '/Users/dcollins/scratch/Paper36_TracerTests/AddPost/b03_slab_add_particles'
-outdir = '/Users/dcollins/scratch/Paper36_TracerTests/AddPost/b04_slab_fast'
-frame = 60;setname = '%s/RS%04d/restart%04d'%(dirname,frame,frame) 
-frame = 1;setname = '%s/DD%04d/data%04d'%(dirname,frame,frame)
+#dirname = '/scratch/00369/tg456484/Paper37_Restart/a00_ics'
+#outdir  = '/scratch/00369/tg456484/Paper37_Restart/a01_with_uniform_particles'
+#dirname = '/Users/dcollins/scratch/Paper36_TracerTests/AddPost/b01_slab'
+#outdir = '/Users/dcollins/scratch/Paper36_TracerTests/AddPost/b03_slab_add_particles'
+#outdir = '/Users/dcollins/scratch/Paper36_TracerTests/AddPost/b04_slab_fast'
+#frame = 60;setname = '%s/RS%04d/restart%04d'%(dirname,frame,frame) 
 
-if 'ds' not in dir():
+if 0:
+    """works."""
+    dirname = '/scratch1/dcollins/Paper36_tracertests/AddPost/c02_small_sphere_noparticles'
+    outdir = '/scratch1/dcollins/Paper36_tracertests/AddPost/c03_c02_added'
+    frame = 0;setname = '%s/DD%04d/data%04d'%(dirname,frame,frame)
     ds = yt.load(setname)
-
-add_particles(ds,setname,outdir)
+    add_particles(ds,setname,outdir)
+if 1:
+    """works."""
+    dirname = '/scratch1/dcollins/Paper36_tracertests/AddPost/c05_sphere_amr_no'
+    outdir = '/scratch1/dcollins/Paper36_tracertests/AddPost/c06_c05_add'
+    frame = 2;setname = '%s/DD%04d/data%04d'%(dirname,frame,frame)
+    ds = yt.load(setname)
+    add_particles(ds,setname,outdir)
