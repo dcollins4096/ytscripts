@@ -148,7 +148,7 @@ class taxi:
         self.img_right = None                  #right edge of image.
         self.img_width = None                  #width of image.
         self.width = None
-        self.region_type = 'sphere'
+        self.region_type = 'all'
         self.center= 0.5*(self.left+self.right)#Center, used for all things that need a center
         self.periodic = False              #For projection shift
         self.cmap = {'default':None}       #color map, field driven. Everyone uses default.
@@ -753,6 +753,39 @@ class taxi:
                     self.extrema[field][0] = min([this_extrema[0].v, self.extrema[field][0]])
                     self.extrema[field][1] = max([this_extrema[1].v, self.extrema[field][1]])
 
+    def profile(self,fields, callbacks=None, weight_field=None, accumulation=False, fractional=True, scales=['log','log']):
+        """needs to be generalized with bins."""
+        frame_template = self.outname + "_%04i"
+        if weight_field is not None:
+            frame_template += "_%s"%weight
+        for frame in ensure_list(self.frames):
+            reg = self.get_region(frame)
+            local_extrema = None
+            prof = yt.create_profile(reg,fields[0],fields[1],weight_field=weight_field,accumulation=accumulation,
+                                    fractional=fractional)
+            plt.clf()
+            plt.plot(0.5*(prof.x_bins[1:]+prof.x_bins[0:-1]),prof[fields[1]])
+            plt.xscale(scales[0]); plt.yscale(scales[1])
+            profname = '%s_prof_%s_%s_n%04d.pdf'%(self.outname, fields[0], fields[1], frame)
+            plt.savefig(profname)
+            print profname
+            if True:
+                if glob.glob(self.ProfileDir) == []:
+                    os.mkdir(self.ProfileDir)
+                    print "made directory", self.ProfileDir
+                filename = "%s/%s_%s_%s"%(self.ProfileDir,frame_template%(self.returnsetnumber(frame)),fields[0],fields[1])
+                all_files = glob.glob(filename+"*")
+                filename += "_%d.h5"%(len(all_files))
+                fptr=h5py.File(filename,"w")
+                fptr.create_dataset(fields[0],prof.x_bins.shape,data=prof.x_bins)
+                fptr.create_dataset(fields[1],prof[fields[1]].shape,data=prof[fields[1]])
+                fptr.create_dataset('pf_name',data=self.name)
+                fptr.create_dataset('InitialTime',data=self.ds['InitialTime'])
+                fptr.create_dataset('InitialCycle',data=self.ds['InitialCycleNumber'])
+                fptr.close()
+                if self.verbose:
+                    print "wrote profile file ",filename
+
     def phase(self,fields, callbacks=None, weight_field=None, phase_args={},save=True, n_bins=[64,64]):
         """Uber wrapper for phase objects.
         for all frames in self.frame, run a phase plot object on the region.
@@ -848,6 +881,8 @@ class taxi:
             if isinstance(callback,types.StringType):
                 if callback == 'velocity':
                     the_plot.annotate_velocity()
+                if 'grids' in self.callbacks:
+                    the_plot.annotate_grids()
                 else:
                     raise PortError("Callback %s not supported"%callback)
 class other_horsecrap():
