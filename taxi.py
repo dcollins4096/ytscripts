@@ -29,6 +29,42 @@ import matplotlib.colorbar as cb
 import re
 import copy
 
+class fleet():
+    def __init__(self,taxi_list=[]):
+        self.taxi_list = taxi_list
+        self.namelength = max([len(t.name) for t in taxi_list])
+        self.nt = "%"+str(self.namelength+1)+"s "
+
+    def __getitem__(self,item):
+        out = []
+        for car in self.taxi_list:
+            print self.nt%car.name, car.__dict__[item]
+            out.append(car.__dict__[item])
+        return out
+    def __setitem__(self,item,value ):
+        for car in self.taxi_list:
+            car.__dict__[item] = value
+            
+    def plot(self,*args, **kwargs):
+        for car in self.taxi_list:
+            car.plot(*args, **kwargs)
+    def __call__(self,string, frames=False):
+        for car in self.taxi_list:
+            if frames is False:
+                exec(string)
+            else:
+                for frame in frames:
+                    car.fill(frame)
+                    exec(string)
+    def save(self,suffix=""):
+        for car in self.taxi_list:
+            thisname = car.name+suffix
+            car.save(thisname)
+
+
+
+
+
 def lim_down(value):
     return 10**(np.floor(np.log10(value)))
 def lim_up(value):
@@ -107,7 +143,7 @@ class taxi:
         self.axis = 0                #Axis for the plot
         self.frames = []             #Dump numbers to be plotted.
         self.fields = 'Density'      #Field (hopefully to be list) for the plot
-        self.weight = 'dx'           #Weight field.  Projections?    
+        self.weight_field = None           #Weight field.  Projections?    
         self.name   = 'sim'          #identifier for this taxi instance
         self.outname = 'Image'       #Prefix for output
         self.directory = '.'         #Directory where the simulation was run. (Where the DD* dirs are)
@@ -158,7 +194,7 @@ class taxi:
         self.slice_zlim = {}
         self.proj_zlim = {}
         self.callbacks = []                #Which callbacks to use.  taxi.callbacks() for options
-        self.callback_args={}
+        self.callback_args={'particles':{'args':1,'kwargs':{'col':'r'}}}
         #self.ExcludeFromWrite.append('callbacks')
         self.WriteSpecial['callbacks'] = self.write_callbacks
 
@@ -194,6 +230,7 @@ class taxi:
         #Covering grid.
         self.cg = None
         self.ExcludeFromWrite.append('cg')
+        self.ExcludeFromWrite.append('the_plot')
         self.hold_values={}
  
 
@@ -493,9 +530,7 @@ class taxi:
                 #the_plot = self.pc.add_slice(field,axis, use_colorbar=use_colorbar,
                 #                             **extra_args)
             elif self.operation == 'Full':
-                if not extra_args.has_key('weight_field'):
-                    extra_args['weight_field'] = None
-                the_plot = yt.ProjectionPlot(self.ds,axis,field, center=self.center, **extra_args)
+                the_plot = yt.ProjectionPlot(self.ds,axis,field, center=self.center, weight_field=self.weight_field, **extra_args)
                 #self.pc.add_projection(field,axis, use_colorbar=use_colorbar,
                 #                            **extra_args)
                 self.zlim = self.proj_zlim
@@ -506,14 +541,13 @@ class taxi:
                 self.center = 0.5*(self.left + self.right)
                 reg = self.region(self.center, self.left,self.right,field)
                 self.reg = weakref.proxy(reg)
-                self.proj = self.ds.proj(axis,field,center=self.center,source=self.reg,periodic=self.periodic)
+                self.proj = self.ds.proj(axis,field,center=self.center,source=self.reg,periodic=self.periodic,weight_field=self.weight_field)
                 the_plot = self.proj.to_pw()
                 self.zlim = self.proj_zlim
             elif self.operation == 'RegionProjection':
-                """Might be broken"""
                 #setup a projection
                 reg = self.get_region()
-                self.proj = self.ds.proj(field,axis,center=self.center,data_source=reg) #,periodic=self.periodic)
+                self.proj = self.ds.proj(field,axis,center=self.center,data_source=reg, weight_field=self.weight_field) #,periodic=self.periodic)
                 the_plot = self.proj.to_pw()
                 self.zlim = self.proj_zlim
             elif self.operation in ['MinSlice','PeakSlice','DensityPeakSlice','CenterSlice']:
@@ -532,27 +566,27 @@ class taxi:
             the_plot.set_cmap( field, self.cmap[field] )
             #the_plot.label_kws['size'] = 'x-large'
             if self.Colorbar:
+                do_log = True #please get this from the yt object.
+                ok_zones = np.isnan(the_plot.data_source[field]) == False
+                if do_log:
+                    ok_zones = np.logical_and(ok_zones, the_plot.data_source[field].min() != 0)
+                this_min = the_plot.data_source[field][ok_zones].min()
+                this_max = the_plot.data_source[field][ok_zones].max()
                 if self.Colorbar in ['Monotone', 'monotonic']:
                     if FirstOne:
-                        do_log = True #please get this from the yt object.
-                        if do_log:
-                            non_zero = the_plot.data_source[field].min() != 0
-                            this_min = the_plot.data_source[field][non_zero].min()
-                        self.zlim[field] = [this_min,the_plot.data_source[field].max()]
+                        self.zlim[field] = [this_min,this_max]
                     else:
-                        self.zlim[field][0] = min([self.zlim[field][0],the_plot.data_source[field].min()])
-                        self.zlim[field][1] = max([self.zlim[field][1],the_plot.data_source[field].max()])
+                        self.zlim[field][0] = min([self.zlim[field][0],this_min])
+                        self.zlim[field][1] = max([self.zlim[field][1],this_max])
                     if self.verbose:
                         print "set lim", self.zlim[field]
                 elif self.Colorbar in  ['Fixed', 'fixed'] :
                     if not self.zlim.has_key(field):
                         do_log = True #please get this from the yt object.
-                        if do_log:
-                            non_zero = the_plot.data_source[field] != 0
-                            this_min = the_plot.data_source[field][non_zero].min()
-                        self.zlim[field] = [this_min,the_plot.data_source[field].max()]
+                        self.zlim[field] = [this_min,this_max]
                     if self.verbose:
                         print "set lim", self.zlim[field]
+
                 the_plot.set_zlim(field, self.zlim[field][0], self.zlim[field][1])
 
                 if self.operation in ['Full','RegionProjection']:
@@ -565,7 +599,7 @@ class taxi:
         try:
             self.add_callbacks(the_plot, axis=axis)
         except:
-            pass
+            raise
         if self.restrict:
             if self.width:
                 the_plot.set_width(self.width)                    
@@ -892,11 +926,21 @@ class taxi:
                 """
     def add_callbacks(self,the_plot,axis=None):
         for i,callback in enumerate(self.callbacks):
+            myargs=self.callback_args[callback]['args']
+            mykwargs=self.callback_args[callback]['kwargs']
             if isinstance(callback,types.StringType):
                 if callback == 'velocity':
                     the_plot.annotate_velocity()
-                if 'grids' in self.callbacks:
+                elif callback == 'grids':
                     the_plot.annotate_grids()
+                elif callback == 'particles':
+                    if self.ds['NumberOfParticles']>0:
+                        the_plot.annotate_particles(*myargs,**mykwargs)
+                elif callback == 'text':
+                        the_plot.annotate_text(myargs[0],myargs[1],**mykwargs)
+                elif callback == 'nparticles':
+                        the_plot.annotate_text(myargs[0],r'$n_p=%d$'%self.ds['NumberOfParticles'],**mykwargs)
+
                 else:
                     raise PortError("Callback %s not supported"%callback)
 class other_horsecrap():
