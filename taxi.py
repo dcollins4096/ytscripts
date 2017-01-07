@@ -758,6 +758,8 @@ class taxi:
         frame_template = self.outname + "_%04i"
         if weight_field is not None:
             frame_template += "_%s"%weight
+        all_xbins = []
+        all_profiles = []
         for frame in ensure_list(self.frames):
             reg = self.get_region(frame)
             local_extrema = None
@@ -765,6 +767,8 @@ class taxi:
                                     fractional=fractional)
             plt.clf()
             plt.plot(0.5*(prof.x_bins[1:]+prof.x_bins[0:-1]),prof[fields[1]])
+            all_xbins.append(prof.x_bins)
+            all_profiles.append(prof[fields[1]])
             plt.xscale(scales[0]); plt.yscale(scales[1])
             profname = '%s_prof_%s_%s_n%04d.pdf'%(self.outname, fields[0], fields[1], frame)
             plt.savefig(profname)
@@ -785,6 +789,16 @@ class taxi:
                 fptr.close()
                 if self.verbose:
                     print "wrote profile file ",filename
+        ntotal = len(self.frames)
+        rm = davetools.rainbow_map(ntotal)
+        plt.clf()
+        for i,n in enumerate(self.frames):
+            plt.plot( 0.5*(all_xbins[i][1:]+all_xbins[i][0:-1]), all_profiles[i],c=rm(i))
+        plt.xscale(scales[0]); plt.yscale(scales[1])
+        allframes = "_%04d"*ntotal%tuple(self.frames)
+        profname = '%s_prof_%s_%s_n%s.pdf'%(self.outname, fields[0], fields[1], allframes)
+        print profname
+        plt.savefig(profname)
 
     def phase(self,fields, callbacks=None, weight_field=None, phase_args={},save=True, n_bins=[64,64]):
         """Uber wrapper for phase objects.
