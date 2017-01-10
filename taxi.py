@@ -49,6 +49,9 @@ class fleet():
         for car in self.taxi_list:
             car.plot(*args, **kwargs)
     def __call__(self,string, frames=False):
+        """Execute arbitrary code on the cars in the taxi fleet.
+        output can be used to return values."""
+        output = []
         for car in self.taxi_list:
             if frames is False:
                 exec(string)
@@ -56,6 +59,7 @@ class fleet():
                 for frame in frames:
                     car.fill(frame)
                     exec(string)
+        return output
     def save(self,suffix=""):
         for car in self.taxi_list:
             thisname = car.name+suffix
@@ -799,6 +803,7 @@ class taxi:
             local_extrema = None
             prof = yt.create_profile(reg,fields[0],fields[1],weight_field=weight_field,accumulation=accumulation,
                                     fractional=fractional)
+            self.last_prof=prof
             plt.clf()
             plt.plot(0.5*(prof.x_bins[1:]+prof.x_bins[0:-1]),prof[fields[1]])
             all_xbins.append(prof.x_bins)
