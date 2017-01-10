@@ -12,6 +12,7 @@ import dsdiff_helpers
 import fPickle
 execfile('xtra_fields.py')
 execfile('davetools.py') #as needed, no more execfile.  
+import taxi
 if  not_in_yt3:
   import better_cbar
   #GET from img_region import * 

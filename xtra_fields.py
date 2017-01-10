@@ -2,7 +2,9 @@ from xtra_operators import *
 #yt.add_field('scaled_div_b',  function=_scaled_div_b, validators=[yt.ValidateGridType()])
 
 # \dU/dt = -grad P - 1/8 pi \grad(b^2) -1/4pi B\cdot \grad 
-
+def _od(field,data):
+    return data['density'].in_units('code_density').v
+yt.add_field('od',_od)
 if 1:
     momentum_units = 'g/(cm**2*s)'
     def _momentum_x(field,data):
