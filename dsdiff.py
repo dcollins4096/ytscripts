@@ -60,7 +60,9 @@ class udiff():
         self.p['output_at_half']=True
         self.p['normalize']=True
         self.p['output_prefix']='dbmf'
-        self.p['grid_direct']=True
+        self.p['grid_direct']=kwargs.get('grid_direct',True)
+        self.p['zlim'] = None
+        self.p['unit_function'] = kwargs.get('unit_function',lambda x:x)
 
         self.update(kwargs)
     def __getitem__(self,item):
@@ -103,7 +105,7 @@ class udiff():
                         output_prefix, field,output,xyz,n1,grid1,uber1.outname
         """
 
-        total = 0.0
+        total = None
         maxdiff = None
         max_raster=0.0
 
@@ -134,9 +136,9 @@ class udiff():
             except:
                 ds1=None
                 ds2=None
-            if not self.p['grid_direct']:
-                print "only grid_direct presently supported"
-                raise NotImplementedError
+#           if not self.p['grid_direct']:
+#               print "only grid_direct presently supported"
+#               raise NotImplementedError
             for g in grids:
                 try:
                     grid1 = g[0]
@@ -172,8 +174,11 @@ class udiff():
                         #self.uber1.verbose, self.uber2.verbose=False,False
                         #self.uber1.fill(n1,get_region=False)
                         #self.uber2.fill(n2,get_region=False)
-                        g1_full = self.uber1.h.grids[grid1-1][field1]
-                        g2_full = self.uber2.h.grids[grid2-1][field2]
+                        g1_full = ds1.index.grids[grid1-1][field1]
+                        g1_full = self.p['unit_function'](g1_full)
+                        g2_full = ds2.index.grids[grid2-1][field2]
+                        g2_full = self.p['unit_function'](g2_full)
+                        print "DIRECT"
                         #self.uber1.verbose, self.uber2.verbose = verbose_save 
                     g1 = g1_full[Slice1]
                     g2 = g2_full[Slice2]
@@ -191,14 +196,20 @@ class udiff():
                         continue
 
                     self.diff = (g1-g2)
+                    difflabel='set1-set2'
                     diff = self.diff
                     if self.p['normalize']:
                         denom = (g1+g2)
                         ok = denom != 0
                         denom = denom[ ok ]
                         diff[ ok ] /= (0.5*(denom))
+                        difflabel=r'$2(set1-set2)/(set1+set2)$'
                     thismax = na.abs(diff).max()
-                    total += thismax
+                    if total is None:
+                        #this is a bit bothersome, but is necessary if units are employed.
+                        total = thismax
+                    else:
+                        total += thismax
 
                     if maxdiff == None or maxdiff[0] < thismax:
                         maxdiff = (thismax,n1,n2,field1,field2,grid1,grid2)
@@ -243,14 +254,14 @@ class udiff():
                         for x in local_output_range: #range(g1.shape[0]):
                             subset[index]= x #min([x,g1[subset].shape[index]-1,g2[subset].shape[index]-1])
                             plave(g1[subset],self.output_format%(output_prefix,\
-                                                           n1,grid1,field1,output,x,'set1'))
+                                                           n1,grid1,field1,output,x,'set1'), zlim=self.p['zlim'], label='%s set1'%field1)
                             plave(g2[subset],self.output_format%(output_prefix,
-                                                           n2,grid2,field2,output,x,'set2'))
+                                                           n2,grid2,field2,output,x,'set2'), zlim=self.p['zlim'], label='%s set2'%field2 )
                             diff_out = field1
                             if field1 != field2:
                                 diff_out += field2
                             plave((diff)[subset],self.output_format%(output_prefix,\
-                                                               n1,grid1,diff_out,output,x,'diff'))
+                                                               n1,grid1,diff_out,output,x,'diff'), label = difflabel)
 
                     print "total =",total, "max", maxdiff
                     if raster:
