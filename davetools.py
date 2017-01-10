@@ -313,8 +313,9 @@ def psave(ax,name):
     print name
     ax.savefig(name)
 
-def plave(array,filename,axis=None,colorbar=True,clf=True):
-    """plot and save.  Takes *array*, saves an image and saves it in *filename*"""
+def plave(array,filename,axis=None,colorbar=True,clf=True, zlim=None, label="Value"):
+    """plot and save.  Takes *array*, saves an image and saves it in *filename*
+    *zlim* = [a,b] scales the colorbar form a to b."""
     if clf:
         plt.clf()
     if len(array.shape) == 2:
@@ -328,13 +329,23 @@ def plave(array,filename,axis=None,colorbar=True,clf=True):
 
 
     #plt.imshow(na.flipud(array_2d.transpose()), interpolation='nearest')#, origin='lower')
-    plt.imshow(array_2d, interpolation='nearest', origin='lower')
+    if zlim is not None:
+        plot = plt.imshow(array_2d, interpolation='nearest', origin='lower', vmin=zlim[0], vmax=zlim[1])
+    else:
+        plot = plt.imshow(array_2d, interpolation='nearest', origin='lower')
     plt.yticks(range(0,array_2d.shape[0],5))
     plt.xticks(range(0,array_2d.shape[1],5))
     print filename
+    norm = None
+    if zlim is not None:
+        norm=mpl.colors.Normalize(vmin=zlim[0], vmax=zlim[1])
     if colorbar:
-        plt.colorbar().set_label("Value")
+        colorbar = plt.colorbar(plot, norm=norm)
+        colorbar.set_label(label)
+        if zlim is not None:
+            colorbar.set_clim(zlim[0], zlim[1])
     plt.savefig(filename)
+    print filename
 
 def wp(axes,number,index_only=False):
     """Which Plot.  Takes 2d list *axes* and returns the row-major *number* element.
