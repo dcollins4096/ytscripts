@@ -30,7 +30,7 @@ import pyximport; pyximport.install()
 #import particle_ops
 import random
 #import clump_particles
-from yt.utilities.data_point_utilities import FindBindingEnergy
+#from yt.utilities.data_point_utilities import FindBindingEnergy
 from yt.utilities.physical_constants import \
             gravitational_constant_cgs as G
 
@@ -47,5 +47,5 @@ adiabatic_hydro = isothermal_hydro + ['TotalEnergy']
 adiabatic_mhd = isothermal_mhd + ['TotalEnergy']
 all_fields = adiabatic_mhd+staggered
 alphabet='abcdefghijklmnopqrstuvwxyz'
-ef('dave_callbacks.py')
+#ef('dave_callbacks.py')
 

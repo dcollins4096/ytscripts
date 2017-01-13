@@ -18,7 +18,7 @@ import pdb
 import os
 import h5py
 import types, time,weakref,davetools
-import dave_callbacks
+#import dave_callbacks
 from davetools import dsave, no_trailing_comments, ensure_list
 import time, fPickle, glob
 if not_ported:
