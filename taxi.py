@@ -31,15 +31,23 @@ import copy
 
 class fleet():
     def __init__(self,taxi_list=[]):
-        self.taxi_list = taxi_list
-        self.namelength = max([len(t.name) for t in taxi_list])
+        self.taxi_list = []
+        for car in taxi_list:
+            if isinstance(car,types.StringType):
+                self.taxi_list.append(taxi(car))
+            else:
+                self.taxi_list.append(car)
+        self.namelength = max([len(t.name) for t in self.taxi_list])
         self.nt = "%"+str(self.namelength+1)+"s "
 
     def __getitem__(self,item):
         out = []
-        for car in self.taxi_list:
-            print self.nt%car.name, car.__dict__[item]
-            out.append(car.__dict__[item])
+        if isinstance(item,types.IntType):
+            out = self.taxi_list[item]
+        else:
+            for car in self.taxi_list:
+                print self.nt%car.name, car.__dict__[item]
+                out.append(car.__dict__[item])
         return out
     def __setitem__(self,item,value ):
         for car in self.taxi_list:
@@ -64,6 +72,46 @@ class fleet():
         for car in self.taxi_list:
             thisname = car.name+suffix
             car.save(thisname)
+    def allnames(self):
+        ncar=len(self.taxi_list)
+        return "%s_"*ncar%tuple([car.name for car in self.taxi_list])
+    def profile(self,*args,**kwargs):
+        """Runs profile on all using *args and **kwargs.
+        Also plots the combined set"""
+        for car in self.taxi_list:
+            car.profile(*args,**kwargs)
+        plt.clf()
+        ntotal = max([len(car.frames) for car in self.taxi_list])
+        rm = davetools.rainbow_map(ntotal)
+        plt.clf()
+        linelist = ['-','--']
+        all_frames=[]
+        for n,car in enumerate(self.taxi_list):
+            all_xbins = car.profile_data['all_xbins']
+            all_profiles = car.profile_data['all_profiles']
+            for i,frame in enumerate(car.frames):
+                plt.plot( 0.5*(all_xbins[i][1:]+all_xbins[i][0:-1]), all_profiles[i],c=rm(i),linestyle=linelist[n])
+                if frame not in all_frames:
+                    all_frames.append(frame)
+        plt.xlabel(car.profile_data['frames'][0])
+        plt.ylabel(car.profile_data['frames'][1])
+        plt.xscale(car.profile_data['scales'][0]); plt.yscale(car.profile_data['scales'][1])
+        frame_name = "_%04d"*ntotal%tuple(all_frames)
+        profname = '%s_prof_%s_%s_n%s.pdf'%(self.allnames(), car.profile_data['fields'][0], car.profile_data['fields'][1], frame_name)
+        print profname
+        plt.savefig(profname)
+
+    def find_extrema(self,fields=None,frames=None):
+        for n,car in enumerate(self.taxi_list):
+            car.find_extrema(fields,frames)
+            if n==0:
+                extrema_store = car.extrema
+            else:
+                for field in car.extrema.keys():
+                    car.extrema[field][0] = min([extrema_store[field][0],car.extrema[field][0]])
+                    car.extrema[field][1] = max([extrema_store[field][1],car.extrema[field][1]])
+
+
 
 
 
@@ -179,10 +227,15 @@ class taxi:
         self.ExcludeFromWrite.append('extra_save')        
 
         self.ExcludeFromWrite.append('region')
+        self.last_particle_index_step = None
+        self.ExcludeFromWrite.append('last_particle_index_step')
+        self.last_particle_indices = None
+        self.ExcludeFromWrite.append('last_particle_indices')
         self.field_parameters = {}
         self.left=np.array([0.0,0.0,0.0])      #The left of the region extraction.
         self.right=np.array([1.0,1.0,1.0])     #The right of the extracted region.
         self.radius=None
+        self.height=None
         self.restrict = False                   #Restric plot to img_left, img_right
         self.img_left = None                   #left edge of image
         self.img_right = None                  #right edge of image.
@@ -198,7 +251,7 @@ class taxi:
         self.slice_zlim = {}
         self.proj_zlim = {}
         self.callbacks = []                #Which callbacks to use.  taxi.callbacks() for options
-        self.callback_args={'particles':{'args':1,'kwargs':{'col':'r'}}}
+        self.callback_args={'particles':{'args':1,'kwargs':{'col':'r'}},'dave_particles':{'args':1,'kwargs':{'col':'y'}}}
         #self.ExcludeFromWrite.append('callbacks')
         self.WriteSpecial['callbacks'] = self.write_callbacks
 
@@ -441,6 +494,9 @@ class taxi:
             reg = self.region(self.center, self.left,self.right,field)
         if self.region_type.lower() in ['all','all_data']:
             reg = self.ds.all_data()
+        if self.region_type.lower() in ['disk']:
+            print "OK!"
+            reg = self.ds.disk(self.center,self.normal,self.radius,self.height)
         #self.reg  = weakref.proxy(reg)
         return reg
 
@@ -448,6 +504,9 @@ class taxi:
 
 
     def plot(self,local_frames=None):
+        if 'new_particles' in self.callbacks:
+            if len(self.axis) *len(self.fields) > 1:
+                print "WARNING: new_particles callbacks does not work with multiple axes or fields."
         print self.zlim
         """Makes the uber plot.  Options for plot can be found in the uber description,
         plot operations can be found by typing uber.operations()"""
@@ -791,7 +850,7 @@ class taxi:
                     self.extrema[field][0] = min([this_extrema[0].v, self.extrema[field][0]])
                     self.extrema[field][1] = max([this_extrema[1].v, self.extrema[field][1]])
 
-    def profile(self,fields, callbacks=None, weight_field=None, accumulation=False, fractional=True, scales=['log','log']):
+    def profile(self,fields, callbacks=None, weight_field=None, accumulation=False, fractional=True, scales=['log','log'],n_bins=64,extrema=None):
         """needs to be generalized with bins."""
         frame_template = self.outname + "_%04i"
         if weight_field is not None:
@@ -802,7 +861,7 @@ class taxi:
             reg = self.get_region(frame)
             local_extrema = None
             prof = yt.create_profile(reg,fields[0],fields[1],weight_field=weight_field,accumulation=accumulation,
-                                    fractional=fractional)
+                                    fractional=fractional, n_bins=n_bins, extrema=extrema)
             self.last_prof=prof
             plt.clf()
             plt.plot(0.5*(prof.x_bins[1:]+prof.x_bins[0:-1]),prof[fields[1]])
@@ -838,6 +897,7 @@ class taxi:
         profname = '%s_prof_%s_%s_n%s.pdf'%(self.outname, fields[0], fields[1], allframes)
         print profname
         plt.savefig(profname)
+        self.profile_data={'all_xbins':all_xbins,'all_profiles':all_profiles, 'scales':scales, 'fields':fields}
 
     def phase(self,fields, callbacks=None, weight_field=None, phase_args={},save=True, n_bins=[64,64]):
         """Uber wrapper for phase objects.
@@ -929,25 +989,66 @@ class taxi:
                 print self.pc.save(frame_template%(self.returnsetnumber(frame)), format = self.format)
                 #print frame_template%(frame)
                 """
+    def count_particles(self):
+        """Turns out Metadata.NumberOfParticles isn't always updated close to the output in Enzo."""
+        nparticles = 0
+        reg = self.get_region()
+        try: 
+            nparticles = reg['particle_index'].size
+        except:
+            pass
+        return nparticles
+
+    def get_new_indices(self):
+        reg=self.get_region()
+        try:
+            these_indices = reg['particle_index']
+        except:
+            these_indices = self.ds.arr([],'dimensionless')
+        if self.last_particle_indices is not None and self.last_particle_index_step is not self.ds['InitialCycleNumber']:
+            to_plot = np.setdiff1d(these_indices,self.last_particle_indices)
+        else:
+            to_plot=these_indices
+        self.last_particle_indices=these_indices
+        self.last_particle_index_step = self.ds['InitialCycleNumber']
+        return to_plot
     def add_callbacks(self,the_plot,axis=None):
         for i,callback in enumerate(self.callbacks):
-            myargs=self.callback_args[callback]['args']
-            mykwargs=self.callback_args[callback]['kwargs']
+            args = self.callback_args.get(callback,{'args':[],'kwargs':{}})
+            myargs=args['args']
+            mykwargs=args['kwargs']
             if isinstance(callback,types.StringType):
                 if callback == 'velocity':
                     the_plot.annotate_velocity()
                 elif callback == 'grids':
                     the_plot.annotate_grids()
                 elif callback == 'particles':
-                    if self.ds['NumberOfParticles']>0:
+                    nparticles = self.count_particles()
+                    if nparticles>0:
                         the_plot.annotate_particles(*myargs,**mykwargs)
                 elif callback == 'text':
                         the_plot.annotate_text(myargs[0],myargs[1],**mykwargs)
                 elif callback == 'nparticles':
-                        the_plot.annotate_text(myargs[0],r'$n_p=%d$'%self.ds['NumberOfParticles'],**mykwargs)
+                        the_plot.annotate_text(myargs[0],r'$n_p=%d$'%self.count_particles(),**mykwargs)
+                elif callback == 'new_particles':
+                    """This callback does not work with multiple plots for each frame.
+                    This is due to the fact that the old particle list is updated each call
+                    A more sophisiticated cache system, or perhaps updating the 'last particle list'
+                    in the plot loop is necessary."""
+                    nparticles = self.count_particles()
+                    if nparticles>0:
+                        these_indices = self.get_new_indices()
+                        mykwargs['indices'] = these_indices
+                        mykwargs['col'] = 'r'
+                        the_plot.annotate_dave_particles(myargs[0], **mykwargs)
+                        pargs = self.callback_args['nparticles']['args']
+                        pkwargs=self.callback_args['nparticles']['kwargs']
+                        the_plot.annotate_text(pargs[0],r'$n_{\rm{new}}=%d$'%these_indices.shape,**pkwargs)
 
                 else:
                     raise PortError("Callback %s not supported"%callback)
+            else:
+                print "Where the heck did you get that callback at?"
 class other_horsecrap():
 ######################### stuff not ported
     def set_region(self,frame=None):
