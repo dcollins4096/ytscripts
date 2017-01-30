@@ -90,7 +90,7 @@ def _sf_jeans(field,data):
     return output
 yt.add_field('sf_jeans',function=_sf_jeans,take_log=False,validators=[yt.ValidateGridType()])
 
-if 1:
+if 0:
     aj15=taxi.taxi('aj15_sphere')
     aj16=taxi.taxi('aj16_sphere')
     aj17=taxi.taxi('aj17_sphere')
@@ -99,9 +99,9 @@ if 1:
 
 all_sf_fields =['sf_finest_level','sf_divv','sf_overdensity','sf_timescale','sf_jeans']
 all_ref_fields = ['ref_mass','ref_metal']
-fleet['fields']=all_ref_fields
-fleet['frames']=[0,1]
-fleet.plot()
+#fleet['fields']=all_ref_fields
+#fleet['frames']=[0,1]
+#fleet.plot()
 #print aj15.ds.index.grids[0]
 #reg = aj15.get_region()
 #stat(reg['sf_divv'])
