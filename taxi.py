@@ -75,6 +75,9 @@ class fleet():
     def allnames(self):
         ncar=len(self.taxi_list)
         return "%s_"*ncar%tuple([car.name for car in self.taxi_list])
+    def phase(self,*args,**kwargs):
+        for car in self.taxi_list:
+            car.phase(*args,**kwargs)
     def profile(self,*args,**kwargs):
         """Runs profile on all using *args and **kwargs.
         Also plots the combined set"""
@@ -108,8 +111,10 @@ class fleet():
                 extrema_store = car.extrema
             else:
                 for field in car.extrema.keys():
-                    car.extrema[field][0] = min([extrema_store[field][0],car.extrema[field][0]])
-                    car.extrema[field][1] = max([extrema_store[field][1],car.extrema[field][1]])
+                    extrema_store[field][0] = min([extrema_store[field][0],car.extrema[field][0]])
+                    extrema_store[field][1] = max([extrema_store[field][1],car.extrema[field][1]])
+        for car in self.taxi_list:
+            car.extrema = copy.copy(extrema_store)
 
 
 
@@ -497,6 +502,12 @@ class taxi:
         if self.region_type.lower() in ['disk']:
             print "OK!"
             reg = self.ds.disk(self.center,self.normal,self.radius,self.height)
+        if self.region_type.startswith('grid'):
+            """gridN gets grid N."""
+            N = int( self.region_type[4:])
+            g = self.ds.index.grids[N]
+            center = 0.5*(g.LeftEdge+g.RightEdge)
+            reg = self.ds.region(center,g.LeftEdge,g.RightEdge)
         #self.reg  = weakref.proxy(reg)
         return reg
 
@@ -912,12 +923,10 @@ class taxi:
             reg = self.get_region(frame)
             local_extrema = None
             if self.Colorbar in ['fixed', 'monotonic']:
-                print "start: ", self.extrema
                 if self.extrema.has_key(fields[0]) and self.extrema.has_key(fields[1]):
-                    local_extream = self.extrema
+                    local_extrema = {fields[0]:self.extrema[fields[0]], fields[1]:self.extrema[fields[1]]}
                 else:
                     local_extrema = None
-            print "mid: ", local_extrema
             phase = yt.create_profile(reg,bin_fields=[fields[0],fields[1]], 
                                       fields=[fields[2]],weight_field=weight_field,
                                       extrema=local_extrema, n_bins=n_bins)
@@ -925,26 +934,27 @@ class taxi:
             pp = yt.PhasePlot.from_profile(phase)
             pp.set_xlabel(fields[0])
             pp.set_ylabel(fields[1])
-            if 1:
-                if self.Colorbar == 'monotonic':
-                    if self.extrema.has_key(fields[0]):
-                        xmin=min([self.extrema[fields[0]][0], phase.x_bins[0]])
-                        xmax=max([self.extrema[fields[0]][1], phase.x_bins[-1]])
-                        ymin=min([self.extrema[fields[1]][0], phase.y_bins[0]])
-                        ymax=max([self.extrema[fields[1]][1], phase.y_bins[-1]])
-                    else:
-                        xmin=phase.x_bins[0]
-                        xmax=phase.x_bins[-1]
-                        ymin=phase.y_bins[0]
-                        ymax=phase.y_bins[-1]
-                    self.extrema[fields[0]] = [xmin,xmax]
-                    self.extrema[fields[1]] = [ymin,ymax]
-                    print "extrema, post", self.extrema
-                if self.Colorbar in ['fixed','monotonic']:
-                    pp.set_xlim( lim_down(self.extrema[fields[0]][0]), lim_up(self.extrema[fields[0]][1]))
-                    pp.set_ylim( lim_down(self.extrema[fields[1]][0]), lim_up(self.extrema[fields[1]][1]))
+            if self.Colorbar in ['fixed','monotonic']:
+                xmin=phase.x_bins[0]
+                xmax=phase.x_bins[-1]
+                ymin=phase.y_bins[0]
+                ymax=phase.y_bins[-1]
+                if self.extrema.has_key(fields[0]) and self.Colorbar == 'monotonic':
+                    xmin=min([self.extrema[fields[0]][0], phase.x_bins[0]])
+                    xmax=max([self.extrema[fields[0]][1], phase.x_bins[-1]])
+                    ymin=min([self.extrema[fields[1]][0], phase.y_bins[0]])
+                    ymax=max([self.extrema[fields[1]][1], phase.y_bins[-1]])
+                if self.Colorbar in ['fixed']:
+                    if not self.extrema.has_key(fields[0]):
+                        self.extrema[fields[0]] = [xmin,xmax]
+                    if not self.extrema.has_key(fields[1]):
+                        self.extrema[fields[1]] = [xmin,xmax]
+                #print "extrema, post", self.extrema
+                pp.set_xlim( lim_down(self.extrema[fields[0]][0]), lim_up(self.extrema[fields[0]][1]))
+                pp.set_ylim( lim_down(self.extrema[fields[1]][0]), lim_up(self.extrema[fields[1]][1]))
 
-            print pp.save("%s_%04d"%(self.outname,frame))
+            outname = "%s_%04d"%(self.outname,frame)
+            print pp.save(outname)
             old_code = """
             phase = self.pc.add_phase_object(self.region,fields, lazy_reader=True,weight=weight,**phase_args)
             if callbacks:
