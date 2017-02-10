@@ -104,9 +104,9 @@ class fleet():
         print profname
         plt.savefig(profname)
 
-    def find_extrema(self,fields=None,frames=None):
+    def find_extrema(self,fields=None,frames=None, manual_positive=False):
         for n,car in enumerate(self.taxi_list):
-            car.find_extrema(fields,frames)
+            car.find_extrema(fields,frames, manual_positive=manual_positive)
             if n==0:
                 extrema_store = car.extrema
             else:
@@ -841,7 +841,7 @@ class taxi:
             fptr.create_dataset(field,fft.shape, data=fft, dtype=fft_dtype)
             fptr.close()
         return fft
-    def find_extrema(self,fields=None,frames=None):
+    def find_extrema(self,fields=None,frames=None,manual_positive=False):
         if fields is not None:
             local_fields = fields
         else:
@@ -854,7 +854,14 @@ class taxi:
             self.fill(frame)
             reg=self.get_region(frame)
             for field in local_fields:
-                this_extrema = reg.quantities['Extrema'](field)
+                if manual_positive:
+                    vals = reg[field]
+                    positive = vals > 0
+                    this_extrema=[0,0]
+                    this_extrema[0] = vals[positive].min()
+                    this_extrema[1] = vals[positive].max()
+                else:
+                    this_extrema = reg.quantities['Extrema'](field,non_zero=True)
                 if not self.extrema.has_key(field):
                     self.extrema[field] = [this_extrema[0].v, this_extrema[1].v]
                 else:
@@ -934,6 +941,9 @@ class taxi:
             pp = yt.PhasePlot.from_profile(phase)
             pp.set_xlabel(fields[0])
             pp.set_ylabel(fields[1])
+            print pp.save('derp3.png')
+            outname = "%s_%04d"%(self.outname,frame)
+
             if self.Colorbar in ['fixed','monotonic']:
                 xmin=phase.x_bins[0]
                 xmax=phase.x_bins[-1]
@@ -953,8 +963,16 @@ class taxi:
                 pp.set_xlim( lim_down(self.extrema[fields[0]][0]), lim_up(self.extrema[fields[0]][1]))
                 pp.set_ylim( lim_down(self.extrema[fields[1]][0]), lim_up(self.extrema[fields[1]][1]))
 
-            outname = "%s_%04d"%(self.outname,frame)
+            if 0:
+                key = pp.plots.keys()[0]
+                this_axes = pp.plots[key].axes
+                pp.save('horm.png')
+                #this_axes.plot([1e7,1e10],[1e7,1e10])
+                this_axes.plot([1e-25,1e-23],[1e-25,1e-23])
+                pp.save('derp.png')
+
             print pp.save(outname)
+
             old_code = """
             phase = self.pc.add_phase_object(self.region,fields, lazy_reader=True,weight=weight,**phase_args)
             if callbacks:
@@ -999,6 +1017,7 @@ class taxi:
                 print self.pc.save(frame_template%(self.returnsetnumber(frame)), format = self.format)
                 #print frame_template%(frame)
                 """
+            return pp
     def count_particles(self):
         """Turns out Metadata.NumberOfParticles isn't always updated close to the output in Enzo."""
         nparticles = 0

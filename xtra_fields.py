@@ -36,6 +36,20 @@ if 1:
     def _eng_z(field,data):
         return data['density']*data['velocity_z']*data['velocity_z']
     yt.add_field('eng_z',function=_eng_z,units=eng_units)
+
+if 0:
+    def _metal_accounting(field,data):
+        output = np.zeros_like(data['density'])
+        for f in ['HI_Density','HII_Density','HeI_Density','HeII_Density','HeIII_Density']:
+            output += data[f]
+        return output/data['density']-1.0
+    yt.add_field('metal_accounting',function=_metal_accounting,units='dimensionless',take_log=False)
+    def _metal_accounting_2(field,data):
+        output = np.zeros_like(data['density'])
+        for f in ['HI_Density','HII_Density','HeI_Density','HeII_Density','HeIII_Density']:
+            output += data[f]
+        return output
+    yt.add_field('metal_accounting_2',function=_metal_accounting_2,units='g/cm**3')
 if 0:
     ef('xtra_operators.py')
     def _scaled_div_b(field,data):

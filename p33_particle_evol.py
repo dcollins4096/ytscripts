@@ -14,8 +14,19 @@ if 1:
     aj16=taxi.taxi('aj16')
     aj17=taxi.taxi('aj17')
     #fleet  = taxi.fleet([aj15,aj16,aj17])
-    fleet = taxi.fleet(['aj19_sphere','aj20_sphere'])
-    fleet = taxi.fleet(['aj23','aj24'])
+    #fleet = taxi.fleet(['aj19_sphere','aj20_sphere'])
+    #fleet = taxi.fleet(['aj23','aj24'])
+    #fleet = taxi.fleet(['aj25','aj26'])
+    #fleet = taxi.fleet(['aj27','aj28'])
+    #fleet = taxi.fleet(['aj25','aj26','aj27','aj28','aj29','aj30','aj31','aj32'])
+    #fleet = taxi.fleet(['aj37','aj38'])
+    fleet = taxi.fleet(['aj43','aj44'])
+    fleet['frames'] = range(15)
+    #fleet[4].frames=range(0,500,15) + [500]
+    #fleet[5].frames=range(0,500,15) + [500]
+    #fleet[6].frames=range(0,500,15) + [500]
+    #fleet[7].frames=range(0,500,15) + [500]
+
 #taxi_list = [aj15,aj16,aj17]
 
 if 1:
@@ -23,15 +34,17 @@ if 1:
     npart = {}
     ncycle={}
     mass={}
+    frames={}
     for car in fleet.taxi_list:
-        car.frames=range(600)
-        t1[car.name] = []
-        npart[car.name] = []
-        ncycle[car.name]=[]
-        mass[car.name]=[]
+
+        t1[car.name] = t1.get(car.name, [])
+        npart[car.name] = npart.get(car.name,[])
+        ncycle[car.name]= ncycle.get(car.name,[])
+        mass[car.name]= mass.get(car.name,[])
+        frames[car.name] = frames.get(car.name,[])
         car.fill(0)
         for n in car.frames:
-            if not car.frame_dict.has_key(n):
+            if n in ncycle[car.name]:
                 continue
             car.fill(n)
             ncycle[car.name].append(car.ds['InitialCycleNumber'])
@@ -46,50 +59,54 @@ if 1:
 
 
 if 1:
+    #fleet[0].outname = 'aj25_ppm_def'
+    #fleet[1].outname = 'aj25_mhd_def'
+    #fleet[2].outname = 'aj25_ppm_no_def'
+    #fleet[3].outname = 'aj25_mhd_no_def'
     carnames = "all_0_100_%s"%fleet.allnames()
     plt.clf()
     for car in fleet.taxi_list:
-        plt.plot(ncycle[car.name],npart[car.name],label=car.name,marker='x')
+        plt.plot(ncycle[car.name],npart[car.name],label=car.outname,marker='x')
 
     plt.legend(loc=0)
     plt.xlabel('cycle'); plt.ylabel('nparticles')
-    outname = 'p33%s_cycle_particles.png'%carnames
+    outname = 'p33%s_cycle_particles.pdf'%carnames
     plt.savefig(outname)
     print outname
 
     plt.clf()
     for car in fleet.taxi_list:
-        plt.plot(t1[car.name],npart[car.name],label=car.name,marker='x')
+        plt.plot(t1[car.name],npart[car.name],label=car.outname,marker='x')
     plt.legend(loc=0)
     plt.xlabel('t'); plt.ylabel('nparticles')
-    outname = 'p33%s_time_particles.png'%carnames
+    outname = 'p33%s_time_particles.pdf'%carnames
     plt.savefig(outname)
     print outname
 
     plt.clf()
     for car in fleet.taxi_list:
-        plt.plot(t1[car.name],nar(mass[car.name])/nar(npart[car.name]),label=car.name,marker='x')
+        plt.plot(t1[car.name],nar(mass[car.name])/nar(npart[car.name]),label=car.outname,marker='x')
     plt.legend(loc=0)
     plt.xlabel('t'); plt.ylabel('average particle mass [msun]')
-    outname = 'p33%s_time_avgmass.png'%carnames
+    outname = 'p33%s_time_avgmass.pdf'%carnames
     plt.savefig(outname)
     print outname
 
     plt.clf()
     for car in fleet.taxi_list:
-        plt.plot(t1[car.name],mass[car.name],label=car.name,marker='x')
+        plt.plot(t1[car.name],mass[car.name],label=car.outname,marker='x')
     plt.legend(loc=0)
     plt.xlabel('t'); plt.ylabel('total particle mass [msun]')
-    outname = 'p33%s_time_mass.png'%carnames
+    outname = 'p33%s_time_mass.pdf'%carnames
     plt.savefig(outname)
     print outname
 
     plt.clf()
     for car in fleet.taxi_list:
-        plt.plot(ncycle[car.name],mass[car.name],label=car.name,marker='x')
+        plt.plot(ncycle[car.name],mass[car.name],label=car.outname,marker='x')
     plt.legend(loc=0)
     plt.xlabel('cycle'); plt.ylabel('total particle mass [msun]')
-    outname = 'p33%s_cycle_mass.png'%carnames
+    outname = 'p33%s_cycle_mass.pdf'%carnames
     plt.savefig(outname)
     print outname
 

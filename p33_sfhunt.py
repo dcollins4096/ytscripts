@@ -60,6 +60,34 @@ def _sf_timescale(field,data):
     return output
 yt.add_field('sf_timescale',function=_sf_timescale,take_log=False)
 
+def _jeans_density(field,data):
+    """
+               bmass = d(i,j,k)*dble(d1)*dble(x1*dx)**3 / msolar
+               isosndsp2 = sndspdC * temp(i,j,k)
+               jeanmass = pi/(6._RKIND*sqrt(d(i,j,k)*dble(d1))) *
+     &                    dble(pi * isosndsp2 / G)**1.5_RKIND / msolar
+
+               if (bmass .lt. jeanmass) goto 10z
+	"""
+    msolar = data.ds.quan(1.9891e33,'g')
+    G = data.ds.quan(6.67428e-8, 'cm**3/(g*s**2)')
+    d1 = data.ds['DensityUnits']
+    t1 = data.ds['TimeUnits']
+    L1 = data.ds['LengthUnits']
+    d = data['density'].in_units('g/cm**3') #data['density'].in_units('code_density')*d1 #might be round-about, but it ensures similarity
+#bmas=d*(data['dx'][0,0,0].in_units('code_length')*L1)**3/msolar
+    T = data[('enzo','Temperature')]
+    if hasattr(T,'units'):
+        k_over_m_units = 'cm**2/s**2/K'
+    else:
+        k_over_m_units = 'cm**2/s**2'
+    sndspdC=data.ds.quan(1.3095e8, k_over_m_units) #kB/(0.6 proton mass)
+    isosndsp2 = sndspdC*T
+    output=(np.pi/(6*(data['dx'][0,0,0].in_units('cm'))**3))**(2./3)*(np.pi*isosndsp2/G)
+    return output
+yt.add_field('jeans_density',function=_jeans_density,validators=[yt.ValidateGridType()],units='g/cm**3')
+
+
 def _sf_jeans(field,data):
     """
                bmass = d(i,j,k)*dble(d1)*dble(x1*dx)**3 / msolar
@@ -85,10 +113,57 @@ def _sf_jeans(field,data):
     sndspdC=data.ds.quan(1.3095e8, k_over_m_units) #kB/(0.6 proton mass)
     isosndsp2 = sndspdC*T
     jeansmass = np.pi/(6*np.sqrt(d))*(np.pi*isosndsp2/G)**1.5/msolar
-    output = np.zeros(bmas.shape)
-    output[bmas>jeansmass] = 1
+    output = np.zeros(jeansmass.shape)
+    output[ bmas > jeansmass] = 1
     return output
 yt.add_field('sf_jeans',function=_sf_jeans,take_log=False,validators=[yt.ValidateGridType()])
+
+def _mjeans(field,data):
+    """
+               bmass = d(i,j,k)*dble(d1)*dble(x1*dx)**3 / msolar
+               isosndsp2 = sndspdC * temp(i,j,k)
+               jeanmass = pi/(6._RKIND*sqrt(d(i,j,k)*dble(d1))) *
+     &                    dble(pi * isosndsp2 / G)**1.5_RKIND / msolar
+
+               if (bmass .lt. jeanmass) goto 10z
+	"""
+    msolar = data.ds.quan(1.9891e33,'g')
+    G = data.ds.quan(6.67428e-8, 'cm**3/(g*s**2)')
+    d1 = data.ds['DensityUnits']
+    t1 = data.ds['TimeUnits']
+    L1 = data.ds['LengthUnits']
+    d = data['density'].in_units('g/cm**3') #data['density'].in_units('code_density')*d1 #might be round-about, but it ensures similarity
+#bmas=d*(data['dx'][0,0,0].in_units('code_length')*L1)**3/msolar
+    bmas=d*(data['dx'][0,0,0].in_units('cm'))**3/msolar
+    T = data[('enzo','Temperature')]
+    if hasattr(T,'units'):
+        k_over_m_units = 'cm**2/s**2/K'
+    else:
+        k_over_m_units = 'cm**2/s**2'
+    sndspdC=data.ds.quan(1.3095e8, k_over_m_units) #kB/(0.6 proton mass)
+    isosndsp2 = sndspdC*T
+    jeansmass = np.pi/(6*np.sqrt(d))*(np.pi*isosndsp2/G)**1.5/msolar
+    return jeansmass
+yt.add_field('mjeans',function=_mjeans,validators=[yt.ValidateGridType()])#,take_log=False
+def _bmass(field,data):
+    """
+               bmass = d(i,j,k)*dble(d1)*dble(x1*dx)**3 / msolar
+               isosndsp2 = sndspdC * temp(i,j,k)
+               jeanmass = pi/(6._RKIND*sqrt(d(i,j,k)*dble(d1))) *
+     &                    dble(pi * isosndsp2 / G)**1.5_RKIND / msolar
+
+               if (bmass .lt. jeanmass) goto 10z
+	"""
+    msolar = data.ds.quan(1.9891e33,'g')
+    G = data.ds.quan(6.67428e-8, 'cm**3/(g*s**2)')
+    d1 = data.ds['DensityUnits']
+    t1 = data.ds['TimeUnits']
+    L1 = data.ds['LengthUnits']
+    d = data['density'].in_units('g/cm**3') #data['density'].in_units('code_density')*d1 #might be round-about, but it ensures similarity
+#bmas=d*(data['dx'][0,0,0].in_units('code_length')*L1)**3/msolar
+    bmas=d*(data['dx'][0,0,0].in_units('cm'))**3/msolar
+    return bmas
+yt.add_field('bmass',function=_bmass,validators=[yt.ValidateGridType()])#,take_log=False
 
 if 0:
     aj15=taxi.taxi('aj15_sphere')
