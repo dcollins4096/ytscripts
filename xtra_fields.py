@@ -2,7 +2,9 @@ from xtra_operators import *
 #yt.add_field('scaled_div_b',  function=_scaled_div_b, validators=[yt.ValidateGridType()])
 
 # \dU/dt = -grad P - 1/8 pi \grad(b^2) -1/4pi B\cdot \grad 
-
+def _od(field,data):
+    return data['density'].in_units('code_density').v
+yt.add_field('od',_od)
 if 1:
     momentum_units = 'g/(cm**2*s)'
     def _momentum_x(field,data):
@@ -69,6 +71,20 @@ if 1:
 
 
 
+
+if 0:
+    def _metal_accounting(field,data):
+        output = np.zeros_like(data['density'])
+        for f in ['HI_Density','HII_Density','HeI_Density','HeII_Density','HeIII_Density']:
+            output += data[f]
+        return output/data['density']-1.0
+    yt.add_field('metal_accounting',function=_metal_accounting,units='dimensionless',take_log=False)
+    def _metal_accounting_2(field,data):
+        output = np.zeros_like(data['density'])
+        for f in ['HI_Density','HII_Density','HeI_Density','HeII_Density','HeIII_Density']:
+            output += data[f]
+        return output
+    yt.add_field('metal_accounting_2',function=_metal_accounting_2,units='g/cm**3')
 
 if 0:
     ef('xtra_operators.py')

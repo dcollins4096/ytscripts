@@ -1,6 +1,9 @@
 
 import re
-def vis_file(filename):
+import numpy as np
+nar=np.array
+class vis_file():
+ def __init__(self,filename, counterlim=-1):
   fptr = open(filename,'r')
   print "started", filename
   #levelstep = re.compile(r'Level[0]: dt = 1.39534e-05\(This So Far: 1.39534e-05 Above: 1.39534e-05 Frac 1\)')
@@ -15,25 +18,34 @@ def vis_file(filename):
   Level[0]: dt = 0.0183712
   Level[1]: dt = 0.0183712  0.0183712 (0.0183712/0.0183712)
   """
+
+  #colors
+  k=[0.0,0.0,0.0,1.0]
+  r=[1.0,0.0,0.0,1.0]
+  g=[0.0,1.0,0.0,1.0]
+  b=[0.0,0.0,1.0,1.0]
+  c=[0.5,0.5,0.0,1.0]
+  m=[1.0,0.0,1.0,1.0]
+  y=[1.0,1.0,0.0,1.0]
+  gray=[0.5,0.5,0.5,1]
+
   levelstep = re.compile(string)
   all_the_things=[]
   level_time = {}
-  all_time=[]
-  all_level=[]
-  level_time_rel = {}
-  level_ind = {0:[],1:[],2:[],3:[],4:[],5:[]}
-  color_list=[]
+  self.time=[]
+  self.level=[]
+  self.dt=[]
+  self.color_list=[]
   counter = 0
   for line in fptr:
     #print line[:-1]
-    if counter < -1:
+    if counter > counterlim and counterlim > 0:
       break
     match = levelstep.match(line)
     if match is None:
         if line.startswith('Level'):
             print line
     else:
-      #print ".",
       if counter > 10000:
         break
     
@@ -52,42 +64,34 @@ def vis_file(filename):
           level_time[level] = 0
           print "NL0: 0"
       list_to_plot = [counter, level, level_time[level], dt,dt/Above]
-      k=[0.0,0.0,0.0,1.0]
-      r=[1.0,0.0,0.0,1.0]
-      g=[0.0,1.0,0.0,1.0]
-      b=[0.0,0.0,1.0,1.0]
-      c=[0.5,0.5,0.0,1.0]
-      m=[1.0,0.0,1.0,1.0]
-      y=[1.0,1.0,0.0,1.0]
-      gray=[0.5,0.5,0.5,1]
-      color_list.append([k,r,g,b,c,m,y,gray,gray][level])
-      #print list_to_plot
+      self.time.append(level_time[level])
+      self.dt.append(dt)
+      self.level.append(level)
+      self.color_list.append([k,r,g,b,c,m,y,gray,gray][level])
       all_the_things.append(list_to_plot)
-      #level_ind[level].getappend(counter)
       counter += 1
-      #print "...",counter
-      #print all_the_things
-      #print "."
-      #print list_to_plot, len(all_the_things), len(all_the_things[-1])
-      x = nar(all_the_things)
 
 
+  self.time=nar(self.time)
+  self.level=nar(self.level)
+  self.dt=nar(self.dt)
+  self.color_list=nar(self.color_list)
   all_the_things = nar(all_the_things)
-  for l in level_ind.keys():
-    level_ind[l] = nar(level_ind[l])
-  plt.clf()
-  #plt.plot( all_the_things[:,2])
-  return all_the_things,color_list, level_ind
+  self.l={}
+  for level in np.unique(self.level):
+      self.l[level] = self.level == level
+  self.all_the_things = all_the_things
 
-if 1:
+if 0:
     
     #fname_ak04 = '/Users/dcollins/RESEARCH2/Paper35_CosmologyMHD/2016-08-18-dt/5311520.bw.OU'; oname = 'ak04'
     #fname_ak04 = '/Users/dcollins/RESEARCH2/Paper35_CosmologyMHD/2016-08-18-dt/ak01.o5287803'; oname = 'ak01' #woah, so long.
     fname_ak04 = '/Users/dcollins/RESEARCH2/Paper35_CosmologyMHD/2016-08-18-dt/ak01.o.Level'; oname = 'ak01'
-    all_ak04, color_ak04, ind_ak04 = vis_file(fname_ak04)
+    fname = '/scratch1/dcollins/Paper33_galaxies/aj19_r2_ppm/dump'
+    all_ak04, color_ak04, ind_ak04 = vis_file(fname)
     color_ak04=nar(color_ak04)
     print all_ak04
-if 1:
+if 0:
     plt.clf()
     mslice = slice(None)
     

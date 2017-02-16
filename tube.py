@@ -116,6 +116,7 @@ def tube(ds_list,fields=None,times=None, points=[(0.0,0.0,0.0),(1.0,0.0,0.0)],wi
             if first_ax is None:
                 plot_args['label'] =  '%s %0.2f'%(labels[n_ds],ds['InitialTime'])
             plot_args['linewidth']=0.1
+            print this_y
             L = ax.plot(this_x,this_y,**plot_args)
             if this_y.min() > 0:
                 #ax.set_yscale('linear')

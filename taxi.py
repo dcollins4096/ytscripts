@@ -18,7 +18,7 @@ import pdb
 import os
 import h5py
 import types, time,weakref,davetools
-import dave_callbacks
+#import dave_callbacks
 from davetools import dsave, no_trailing_comments, ensure_list
 import time, fPickle, glob
 if not_ported:
@@ -28,6 +28,99 @@ if not_ported:
 import matplotlib.colorbar as cb
 import re
 import copy
+
+class fleet():
+    def __init__(self,taxi_list=[]):
+        self.taxi_list = []
+        for car in taxi_list:
+            if isinstance(car,types.StringType):
+                self.taxi_list.append(taxi(car))
+            else:
+                self.taxi_list.append(car)
+        self.namelength = max([len(t.name) for t in self.taxi_list])
+        self.nt = "%"+str(self.namelength+1)+"s "
+
+    def __getitem__(self,item):
+        out = []
+        if isinstance(item,types.IntType):
+            out = self.taxi_list[item]
+        else:
+            for car in self.taxi_list:
+                print self.nt%car.name, car.__dict__[item]
+                out.append(car.__dict__[item])
+        return out
+    def __setitem__(self,item,value ):
+        for car in self.taxi_list:
+            car.__dict__[item] = value
+            
+    def plot(self,*args, **kwargs):
+        for car in self.taxi_list:
+            car.plot(*args, **kwargs)
+    def __call__(self,string, frames=False):
+        """Execute arbitrary code on the cars in the taxi fleet.
+        output can be used to return values."""
+        output = []
+        for car in self.taxi_list:
+            if frames is False:
+                exec(string)
+            else:
+                for frame in frames:
+                    car.fill(frame)
+                    exec(string)
+        return output
+    def save(self,suffix=""):
+        for car in self.taxi_list:
+            thisname = car.name+suffix
+            car.save(thisname)
+    def allnames(self):
+        ncar=len(self.taxi_list)
+        return "%s_"*ncar%tuple([car.name for car in self.taxi_list])
+    def phase(self,*args,**kwargs):
+        for car in self.taxi_list:
+            car.phase(*args,**kwargs)
+    def profile(self,*args,**kwargs):
+        """Runs profile on all using *args and **kwargs.
+        Also plots the combined set"""
+        for car in self.taxi_list:
+            car.profile(*args,**kwargs)
+        plt.clf()
+        ntotal = max([len(car.frames) for car in self.taxi_list])
+        rm = davetools.rainbow_map(ntotal)
+        plt.clf()
+        linelist = ['-','--']
+        all_frames=[]
+        for n,car in enumerate(self.taxi_list):
+            all_xbins = car.profile_data['all_xbins']
+            all_profiles = car.profile_data['all_profiles']
+            for i,frame in enumerate(car.frames):
+                plt.plot( 0.5*(all_xbins[i][1:]+all_xbins[i][0:-1]), all_profiles[i],c=rm(i),linestyle=linelist[n])
+                if frame not in all_frames:
+                    all_frames.append(frame)
+        plt.xlabel(car.profile_data['frames'][0])
+        plt.ylabel(car.profile_data['frames'][1])
+        plt.xscale(car.profile_data['scales'][0]); plt.yscale(car.profile_data['scales'][1])
+        frame_name = "_%04d"*ntotal%tuple(all_frames)
+        profname = '%s_prof_%s_%s_n%s.pdf'%(self.allnames(), car.profile_data['fields'][0], car.profile_data['fields'][1], frame_name)
+        print profname
+        plt.savefig(profname)
+
+    def find_extrema(self,fields=None,frames=None, manual_positive=False):
+        for n,car in enumerate(self.taxi_list):
+            car.find_extrema(fields,frames, manual_positive=manual_positive)
+            if n==0:
+                extrema_store = car.extrema
+            else:
+                for field in car.extrema.keys():
+                    extrema_store[field][0] = min([extrema_store[field][0],car.extrema[field][0]])
+                    extrema_store[field][1] = max([extrema_store[field][1],car.extrema[field][1]])
+        for car in self.taxi_list:
+            car.extrema = copy.copy(extrema_store)
+
+
+
+
+
+
 
 def lim_down(value):
     return 10**(np.floor(np.log10(value)))
@@ -107,7 +200,7 @@ class taxi:
         self.axis = 0                #Axis for the plot
         self.frames = []             #Dump numbers to be plotted.
         self.fields = 'Density'      #Field (hopefully to be list) for the plot
-        self.weight = 'dx'           #Weight field.  Projections?    
+        self.weight_field = None           #Weight field.  Projections?    
         self.name   = 'sim'          #identifier for this taxi instance
         self.outname = 'Image'       #Prefix for output
         self.directory = '.'         #Directory where the simulation was run. (Where the DD* dirs are)
@@ -139,10 +232,15 @@ class taxi:
         self.ExcludeFromWrite.append('extra_save')        
 
         self.ExcludeFromWrite.append('region')
+        self.last_particle_index_step = None
+        self.ExcludeFromWrite.append('last_particle_index_step')
+        self.last_particle_indices = None
+        self.ExcludeFromWrite.append('last_particle_indices')
         self.field_parameters = {}
         self.left=np.array([0.0,0.0,0.0])      #The left of the region extraction.
         self.right=np.array([1.0,1.0,1.0])     #The right of the extracted region.
         self.radius=None
+        self.height=None
         self.restrict = False                   #Restric plot to img_left, img_right
         self.img_left = None                   #left edge of image
         self.img_right = None                  #right edge of image.
@@ -158,7 +256,7 @@ class taxi:
         self.slice_zlim = {}
         self.proj_zlim = {}
         self.callbacks = []                #Which callbacks to use.  taxi.callbacks() for options
-        self.callback_args={}
+        self.callback_args={'particles':{'args':1,'kwargs':{'col':'r'}},'dave_particles':{'args':1,'kwargs':{'col':'y'}}}
         #self.ExcludeFromWrite.append('callbacks')
         self.WriteSpecial['callbacks'] = self.write_callbacks
 
@@ -194,6 +292,7 @@ class taxi:
         #Covering grid.
         self.cg = None
         self.ExcludeFromWrite.append('cg')
+        self.ExcludeFromWrite.append('the_plot')
         self.hold_values={}
  
 
@@ -400,6 +499,15 @@ class taxi:
             reg = self.region(self.center, self.left,self.right,field)
         if self.region_type.lower() in ['all','all_data']:
             reg = self.ds.all_data()
+        if self.region_type.lower() in ['disk']:
+            print "OK!"
+            reg = self.ds.disk(self.center,self.normal,self.radius,self.height)
+        if self.region_type.startswith('grid'):
+            """gridN gets grid N."""
+            N = int( self.region_type[4:])
+            g = self.ds.index.grids[N]
+            center = 0.5*(g.LeftEdge+g.RightEdge)
+            reg = self.ds.region(center,g.LeftEdge,g.RightEdge)
         #self.reg  = weakref.proxy(reg)
         return reg
 
@@ -407,6 +515,9 @@ class taxi:
 
 
     def plot(self,local_frames=None):
+        if 'new_particles' in self.callbacks:
+            if len(self.axis) *len(self.fields) > 1:
+                print "WARNING: new_particles callbacks does not work with multiple axes or fields."
         print self.zlim
         """Makes the uber plot.  Options for plot can be found in the uber description,
         plot operations can be found by typing uber.operations()"""
@@ -493,9 +604,7 @@ class taxi:
                 #the_plot = self.pc.add_slice(field,axis, use_colorbar=use_colorbar,
                 #                             **extra_args)
             elif self.operation == 'Full':
-                if not extra_args.has_key('weight_field'):
-                    extra_args['weight_field'] = None
-                the_plot = yt.ProjectionPlot(self.ds,axis,field, center=self.center, **extra_args)
+                the_plot = yt.ProjectionPlot(self.ds,axis,field, center=self.center, weight_field=self.weight_field, **extra_args)
                 #self.pc.add_projection(field,axis, use_colorbar=use_colorbar,
                 #                            **extra_args)
                 self.zlim = self.proj_zlim
@@ -506,14 +615,13 @@ class taxi:
                 self.center = 0.5*(self.left + self.right)
                 reg = self.region(self.center, self.left,self.right,field)
                 self.reg = weakref.proxy(reg)
-                self.proj = self.ds.proj(axis,field,center=self.center,source=self.reg,periodic=self.periodic)
+                self.proj = self.ds.proj(axis,field,center=self.center,source=self.reg,periodic=self.periodic,weight_field=self.weight_field)
                 the_plot = self.proj.to_pw()
                 self.zlim = self.proj_zlim
             elif self.operation == 'RegionProjection':
-                """Might be broken"""
                 #setup a projection
                 reg = self.get_region()
-                self.proj = self.ds.proj(field,axis,center=self.center,data_source=reg) #,periodic=self.periodic)
+                self.proj = self.ds.proj(field,axis,center=self.center,data_source=reg, weight_field=self.weight_field) #,periodic=self.periodic)
                 the_plot = self.proj.to_pw()
                 self.zlim = self.proj_zlim
             elif self.operation in ['MinSlice','PeakSlice','DensityPeakSlice','CenterSlice']:
@@ -532,27 +640,27 @@ class taxi:
             the_plot.set_cmap( field, self.cmap[field] )
             #the_plot.label_kws['size'] = 'x-large'
             if self.Colorbar:
+                do_log = True #please get this from the yt object.
+                ok_zones = np.isnan(the_plot.data_source[field]) == False
+                if do_log:
+                    ok_zones = np.logical_and(ok_zones, the_plot.data_source[field].min() != 0)
+                this_min = the_plot.data_source[field][ok_zones].min()
+                this_max = the_plot.data_source[field][ok_zones].max()
                 if self.Colorbar in ['Monotone', 'monotonic']:
                     if FirstOne:
-                        do_log = True #please get this from the yt object.
-                        if do_log:
-                            non_zero = the_plot.data_source[field].min() != 0
-                            this_min = the_plot.data_source[field][non_zero].min()
-                        self.zlim[field] = [this_min,the_plot.data_source[field].max()]
+                        self.zlim[field] = [this_min,this_max]
                     else:
-                        self.zlim[field][0] = min([self.zlim[field][0],the_plot.data_source[field].min()])
-                        self.zlim[field][1] = max([self.zlim[field][1],the_plot.data_source[field].max()])
+                        self.zlim[field][0] = min([self.zlim[field][0],this_min])
+                        self.zlim[field][1] = max([self.zlim[field][1],this_max])
                     if self.verbose:
                         print "set lim", self.zlim[field]
                 elif self.Colorbar in  ['Fixed', 'fixed'] :
                     if not self.zlim.has_key(field):
                         do_log = True #please get this from the yt object.
-                        if do_log:
-                            non_zero = the_plot.data_source[field] != 0
-                            this_min = the_plot.data_source[field][non_zero].min()
-                        self.zlim[field] = [this_min,the_plot.data_source[field].max()]
+                        self.zlim[field] = [this_min,this_max]
                     if self.verbose:
                         print "set lim", self.zlim[field]
+
                 the_plot.set_zlim(field, self.zlim[field][0], self.zlim[field][1])
 
                 if self.operation in ['Full','RegionProjection']:
@@ -565,7 +673,7 @@ class taxi:
         try:
             self.add_callbacks(the_plot, axis=axis)
         except:
-            pass
+            raise
         if self.restrict:
             if self.width:
                 the_plot.set_width(self.width)                    
@@ -733,7 +841,7 @@ class taxi:
             fptr.create_dataset(field,fft.shape, data=fft, dtype=fft_dtype)
             fptr.close()
         return fft
-    def find_extrema(self,fields=None,frames=None):
+    def find_extrema(self,fields=None,frames=None,manual_positive=False):
         if fields is not None:
             local_fields = fields
         else:
@@ -746,14 +854,21 @@ class taxi:
             self.fill(frame)
             reg=self.get_region(frame)
             for field in local_fields:
-                this_extrema = reg.quantities['Extrema'](field)
+                if manual_positive:
+                    vals = reg[field]
+                    positive = vals > 0
+                    this_extrema=[0,0]
+                    this_extrema[0] = vals[positive].min()
+                    this_extrema[1] = vals[positive].max()
+                else:
+                    this_extrema = reg.quantities['Extrema'](field,non_zero=True)
                 if not self.extrema.has_key(field):
                     self.extrema[field] = [this_extrema[0].v, this_extrema[1].v]
                 else:
                     self.extrema[field][0] = min([this_extrema[0].v, self.extrema[field][0]])
                     self.extrema[field][1] = max([this_extrema[1].v, self.extrema[field][1]])
 
-    def profile(self,fields, callbacks=None, weight_field=None, accumulation=False, fractional=True, scales=['log','log']):
+    def profile(self,fields, callbacks=None, weight_field=None, accumulation=False, fractional=True, scales=['log','log'],n_bins=64,extrema=None):
         """needs to be generalized with bins."""
         frame_template = self.outname + "_%04i"
         if weight_field is not None:
@@ -764,7 +879,8 @@ class taxi:
             reg = self.get_region(frame)
             local_extrema = None
             prof = yt.create_profile(reg,fields[0],fields[1],weight_field=weight_field,accumulation=accumulation,
-                                    fractional=fractional)
+                                    fractional=fractional, n_bins=n_bins, extrema=extrema)
+            self.last_prof=prof
             plt.clf()
             plt.plot(0.5*(prof.x_bins[1:]+prof.x_bins[0:-1]),prof[fields[1]])
             all_xbins.append(prof.x_bins)
@@ -799,6 +915,7 @@ class taxi:
         profname = '%s_prof_%s_%s_n%s.pdf'%(self.outname, fields[0], fields[1], allframes)
         print profname
         plt.savefig(profname)
+        self.profile_data={'all_xbins':all_xbins,'all_profiles':all_profiles, 'scales':scales, 'fields':fields}
 
     def phase(self,fields, callbacks=None, weight_field=None, phase_args={},save=True, n_bins=[64,64]):
         """Uber wrapper for phase objects.
@@ -813,12 +930,10 @@ class taxi:
             reg = self.get_region(frame)
             local_extrema = None
             if self.Colorbar in ['fixed', 'monotonic']:
-                print "start: ", self.extrema
                 if self.extrema.has_key(fields[0]) and self.extrema.has_key(fields[1]):
-                    local_extream = self.extrema
+                    local_extrema = {fields[0]:self.extrema[fields[0]], fields[1]:self.extrema[fields[1]]}
                 else:
                     local_extrema = None
-            print "mid: ", local_extrema
             phase = yt.create_profile(reg,bin_fields=[fields[0],fields[1]], 
                                       fields=[fields[2]],weight_field=weight_field,
                                       extrema=local_extrema, n_bins=n_bins)
@@ -826,26 +941,38 @@ class taxi:
             pp = yt.PhasePlot.from_profile(phase)
             pp.set_xlabel(fields[0])
             pp.set_ylabel(fields[1])
-            if 1:
-                if self.Colorbar == 'monotonic':
-                    if self.extrema.has_key(fields[0]):
-                        xmin=min([self.extrema[fields[0]][0], phase.x_bins[0]])
-                        xmax=max([self.extrema[fields[0]][1], phase.x_bins[-1]])
-                        ymin=min([self.extrema[fields[1]][0], phase.y_bins[0]])
-                        ymax=max([self.extrema[fields[1]][1], phase.y_bins[-1]])
-                    else:
-                        xmin=phase.x_bins[0]
-                        xmax=phase.x_bins[-1]
-                        ymin=phase.y_bins[0]
-                        ymax=phase.y_bins[-1]
-                    self.extrema[fields[0]] = [xmin,xmax]
-                    self.extrema[fields[1]] = [ymin,ymax]
-                    print "extrema, post", self.extrema
-                if self.Colorbar in ['fixed','monotonic']:
-                    pp.set_xlim( lim_down(self.extrema[fields[0]][0]), lim_up(self.extrema[fields[0]][1]))
-                    pp.set_ylim( lim_down(self.extrema[fields[1]][0]), lim_up(self.extrema[fields[1]][1]))
+            print pp.save('derp3.png')
+            outname = "%s_%04d"%(self.outname,frame)
 
-            print pp.save("%s_%04d"%(self.outname,frame))
+            if self.Colorbar in ['fixed','monotonic']:
+                xmin=phase.x_bins[0]
+                xmax=phase.x_bins[-1]
+                ymin=phase.y_bins[0]
+                ymax=phase.y_bins[-1]
+                if self.extrema.has_key(fields[0]) and self.Colorbar == 'monotonic':
+                    xmin=min([self.extrema[fields[0]][0], phase.x_bins[0]])
+                    xmax=max([self.extrema[fields[0]][1], phase.x_bins[-1]])
+                    ymin=min([self.extrema[fields[1]][0], phase.y_bins[0]])
+                    ymax=max([self.extrema[fields[1]][1], phase.y_bins[-1]])
+                if self.Colorbar in ['fixed']:
+                    if not self.extrema.has_key(fields[0]):
+                        self.extrema[fields[0]] = [xmin,xmax]
+                    if not self.extrema.has_key(fields[1]):
+                        self.extrema[fields[1]] = [xmin,xmax]
+                #print "extrema, post", self.extrema
+                pp.set_xlim( lim_down(self.extrema[fields[0]][0]), lim_up(self.extrema[fields[0]][1]))
+                pp.set_ylim( lim_down(self.extrema[fields[1]][0]), lim_up(self.extrema[fields[1]][1]))
+
+            if 0:
+                key = pp.plots.keys()[0]
+                this_axes = pp.plots[key].axes
+                pp.save('horm.png')
+                #this_axes.plot([1e7,1e10],[1e7,1e10])
+                this_axes.plot([1e-25,1e-23],[1e-25,1e-23])
+                pp.save('derp.png')
+
+            print pp.save(outname)
+
             old_code = """
             phase = self.pc.add_phase_object(self.region,fields, lazy_reader=True,weight=weight,**phase_args)
             if callbacks:
@@ -890,15 +1017,67 @@ class taxi:
                 print self.pc.save(frame_template%(self.returnsetnumber(frame)), format = self.format)
                 #print frame_template%(frame)
                 """
+            return pp
+    def count_particles(self):
+        """Turns out Metadata.NumberOfParticles isn't always updated close to the output in Enzo."""
+        nparticles = 0
+        reg = self.get_region()
+        try: 
+            nparticles = reg['particle_index'].size
+        except:
+            pass
+        return nparticles
+
+    def get_new_indices(self):
+        reg=self.get_region()
+        try:
+            these_indices = reg['particle_index']
+        except:
+            these_indices = self.ds.arr([],'dimensionless')
+        if self.last_particle_indices is not None and self.last_particle_index_step is not self.ds['InitialCycleNumber']:
+            to_plot = np.setdiff1d(these_indices,self.last_particle_indices)
+        else:
+            to_plot=these_indices
+        self.last_particle_indices=these_indices
+        self.last_particle_index_step = self.ds['InitialCycleNumber']
+        return to_plot
     def add_callbacks(self,the_plot,axis=None):
         for i,callback in enumerate(self.callbacks):
+            args = self.callback_args.get(callback,{'args':[],'kwargs':{}})
+            myargs=args['args']
+            mykwargs=args['kwargs']
             if isinstance(callback,types.StringType):
                 if callback == 'velocity':
                     the_plot.annotate_velocity()
-                if 'grids' in self.callbacks:
+                elif callback == 'grids':
                     the_plot.annotate_grids()
+                elif callback == 'particles':
+                    nparticles = self.count_particles()
+                    if nparticles>0:
+                        the_plot.annotate_particles(*myargs,**mykwargs)
+                elif callback == 'text':
+                        the_plot.annotate_text(myargs[0],myargs[1],**mykwargs)
+                elif callback == 'nparticles':
+                        the_plot.annotate_text(myargs[0],r'$n_p=%d$'%self.count_particles(),**mykwargs)
+                elif callback == 'new_particles':
+                    """This callback does not work with multiple plots for each frame.
+                    This is due to the fact that the old particle list is updated each call
+                    A more sophisiticated cache system, or perhaps updating the 'last particle list'
+                    in the plot loop is necessary."""
+                    nparticles = self.count_particles()
+                    if nparticles>0:
+                        these_indices = self.get_new_indices()
+                        mykwargs['indices'] = these_indices
+                        mykwargs['col'] = 'r'
+                        the_plot.annotate_dave_particles(myargs[0], **mykwargs)
+                        pargs = self.callback_args['nparticles']['args']
+                        pkwargs=self.callback_args['nparticles']['kwargs']
+                        the_plot.annotate_text(pargs[0],r'$n_{\rm{new}}=%d$'%these_indices.shape,**pkwargs)
+
                 else:
                     raise PortError("Callback %s not supported"%callback)
+            else:
+                print "Where the heck did you get that callback at?"
 class other_horsecrap():
 ######################### stuff not ported
     def set_region(self,frame=None):
