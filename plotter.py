@@ -1,28 +1,45 @@
 #!/usr/bin/env python
 
-import yt
-import sys
-if len(sys.argv) < 3:
-    print "plotter.py frame name"
-    sys.exit(0)
-frame = int( sys.argv[1])
-name = sys.argv[2]
+execfile('go')
+yt.enable_parallelism()
+if 0:
+    if len(sys.argv) < 3:
+        print "plotter.py frame name"
+        sys.exit(0)
+    frame = int( sys.argv[1])
+    name = sys.argv[2]
 
 field_list  = ['density','temperature']#,'metallicity']
-do_the_vectors=False
-if len(sys.argv) == 4:
-    print "her"
-    field_list += ['magnetic_energy']
-    do_the_vectors=True
-for field in field_list:
-    print field
-    ds =  yt.load('DD%04d/DD%04d'%(frame,frame))
-    proj = ds.proj(field,2)
-    pw = proj.to_pw() #width=(0.1,'code_length'))
-    if do_the_vectors:
-        pw.annotate_streamlines('Bx','By')
-    pw.save('%s_zoom_%04d'%(name, frame))
-    
+eq42 = taxi.taxi(directory='/scratch/00369/tg456484/Paper42_NewAK/eq42_m9_grav_512_p59_ppm_L4_J32',name='eq42')
+
+basedir = '/scratch/00369/tg456484/Paper42_NewAK/eq42_m9_grav_512_p59_ppm_L4_J32'
+
+for frame in []: # range(54):
+    ds = yt.load('%s/DD%04d/data%04d'%(basedir,frame,frame))
+    p = yt.ProjectionPlot(ds,0,'density')
+    print p.save('eq42')
+car=eq42
+car.fill(0)
+car.frames=[5] #car.frame_dict.keys()
+car.fields=['density']
+car.Colorbar='monotonic'
+car.plot()
+
+if 0:
+    do_the_vectors=False
+    if len(sys.argv) == 4:
+        print "her"
+        field_list += ['magnetic_energy']
+        do_the_vectors=True
+    for field in field_list:
+        print field
+        ds =  yt.load('DD%04d/DD%04d'%(frame,frame))
+        proj = ds.proj(field,2)
+        pw = proj.to_pw() #width=(0.1,'code_length'))
+        if do_the_vectors:
+            pw.annotate_streamlines('Bx','By')
+        pw.save('%s_zoom_%04d'%(name, frame))
+        
 
 #end
 
