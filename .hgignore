@@ -17,6 +17,7 @@ taxi_stand/*
 *.eps
 *.pdf
 *.pyc
+*/*.pyc
 .*swp
 *~
 uber
