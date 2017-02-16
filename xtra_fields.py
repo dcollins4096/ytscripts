@@ -26,14 +26,50 @@ if 1:
 
     eng_units = 'g/(cm*s**2)'
     def _eng_x(field,data):
-        return data['density']*data['velocity_x']*data['velocity_x']
+        return 0.5*data['density']*data['velocity_x']*data['velocity_x']
     yt.add_field('eng_x',function=_eng_x,units=eng_units)
     def _eng_y(field,data):
-        return data['density']*data['velocity_y']*data['velocity_y']
+        return 0.5*data['density']*data['velocity_y']*data['velocity_y']
     yt.add_field('eng_y',function=_eng_y,units=eng_units)
     def _eng_z(field,data):
-        return data['density']*data['velocity_z']*data['velocity_z']
+        return 0.5*data['density']*data['velocity_z']*data['velocity_z']
     yt.add_field('eng_z',function=_eng_z,units=eng_units)
+
+    def _rel_kinetic_energy(field,data):
+        if data.has_field_parameter('bulk_velocity'):
+            vbar = data.get_field_parameter('bulk_velocity')
+        else:
+            vbar = data.ds.arr([0]*3,'code_velocity')
+
+
+        vx = data['velocity_x']-vbar[0]
+        vy = data['velocity_y']-vbar[1]
+        vz = data['velocity_z']-vbar[2]
+        return 0.5*data['density']*(vx*vx+vy*vy+vz*vz)
+    yt.add_field('rel_kinetic_energy',function=_rel_kinetic_energy,units=eng_units,validators=[yt.ValidateParameter('bulk_velocity')])
+
+    def _grav_pot_grad(field,data):
+        gx = grad(data,'PotentialField',0)
+        gy = grad(data,'PotentialField',1)
+        gz = grad(data,'PotentialField',2)
+
+    def _grav_pot(field,data):
+        try:
+            output = 0.5*data['density']*data['PotentialField']
+        except:
+            output = data['density']*0
+
+        return output
+    yt.add_field('grav_pot',function=_grav_pot,units=eng_units)
+
+    def _gas_work(field,data):
+        return (data['density'].in_units('code_density').v*np.log(data['density'].in_units('code_density').v))*data.ds.quan(1,eng_units)
+    yt.add_field('gas_work',function=_gas_work,units=eng_units)
+
+
+
+
+
 if 0:
     ef('xtra_operators.py')
     def _scaled_div_b(field,data):
