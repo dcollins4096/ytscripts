@@ -231,8 +231,8 @@ if 0:
     add_particles(ds,setname,outdir)
 if 1:
     """works."""
-    dirname = '/scratch1/dcollins/Paper36_tracertests/AddPost/c05_sphere_amr_no'
-    outdir = '/scratch1/dcollins/Paper36_tracertests/AddPost/c06_c05_add'
-    frame = 2;setname = '%s/DD%04d/data%04d'%(dirname,frame,frame)
+    dirname = '/scratch/00369/tg456484/Paper42_NewAK/bq42_m9_drive0.5_512_p59_ppm/'
+    outdir = '/scratch/00369/tg456484/Paper42_NewAK/bq42_m9_drive0.5_512_p59_ppm/'
+    frame = 40;setname = '%s/IC%04d/data%04d'%(dirname,frame,frame)
     ds = yt.load(setname)
     add_particles(ds,setname,outdir)
