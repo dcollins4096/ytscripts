@@ -32,6 +32,7 @@ import random
 from yt.utilities.data_point_utilities import FindBindingEnergy
 from yt.utilities.physical_constants import \
             gravitational_constant_cgs as G
+import taxi
 
 isothermal_hydro=['Density']+['%s-velocity'%s for s in 'xyz'] 
 isothermal_mhd = isothermal_hydro + ['B%s'%s for s in 'xyz']
