@@ -11,6 +11,9 @@ packrat
 ProfileFilesTrash
 fourier_tools
 *.png
+pickles/*
+LOGS/*
+taxi_stand/*
 *.eps
 *.pdf
 *.pyc
