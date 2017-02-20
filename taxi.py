@@ -926,6 +926,7 @@ class taxi:
             print "wrong number of fields: needs 3.", fields
             return
         frame_template = self.outname + "_%04i"
+        phase_list = []
         for frame in ensure_list(self.frames):
             reg = self.get_region(frame)
             local_extrema = None
@@ -971,53 +972,30 @@ class taxi:
                 this_axes.plot([1e-25,1e-23],[1e-25,1e-23])
                 pp.save('derp.png')
 
+            phase_list.append(pp)
             print pp.save(outname)
-
-            old_code = """
-            phase = self.pc.add_phase_object(self.region,fields, lazy_reader=True,weight=weight,**phase_args)
-            if callbacks:
+            #
+            # some old hdf5 and callback code. Harvest later.
+            #
+            if 0:
+                filename += "_%d.h5"%(len(all_files))
+                print "Writing H5 file",filename
+                fptr = h5py.File(filename,"w")
+                the_dict = self.pc.plots[0].data.field_data
+                for fld in the_dict.keys():
+                    this_field = the_dict[fld]
+                    fptr.create_dataset(fld,this_field.shape, data=this_field)
+                fptr.create_dataset('x_bin_field',data=self.pc.plots[0].data.x_bin_field)
+                fptr.create_dataset('y_bin_field',data=self.pc.plots[0].data.y_bin_field)
+                fptr.create_dataset('ds_name',data=self.basename.split("/")[-1])
+                fptr.create_dataset('InitialTime',data=self.ds['InitialTime'])
+                fptr.create_dataset('InitialCycle',data=self.ds['InitialCycleNumber'])
+                fptr.close()
+            if 0:
                 for call in ensure_list(callbacks):
                     phase.add_callback(call)
-                    
-            if save and davetools.ImRoot():
-                if glob.glob(self.ProfileDir) == []:
-                    os.mkdir(self.ProfileDir)
-                    print "made directory", self.ProfileDir
-                filename = "%s/%s_%s_%s_%s_%s"%(self.ProfileDir,frame_template%(self.returnsetnumber(frame)),fields[0],fields[1],fields[2],weight)
-                all_files = glob.glob(filename+"*")
-                if 0:
-                    filename += "_%d.pickle"%(len(all_files))
-                    #fPickle.bdump(self.pc.plots[-1].data._data,filename)
-                    fPickle.bdump(self.pc.plots[-1].data,filename)
-                    print "saved pickle %s"%filename
-                if 1:
-                    filename += "_%d.h5"%(len(all_files))
-                    print "Writing H5 file",filename
-                    fptr = h5py.File(filename,"w")
-                    the_dict = self.pc.plots[0].data.field_data
-                    for fld in the_dict.keys():
-                        this_field = the_dict[fld]
-                        fptr.create_dataset(fld,this_field.shape, data=this_field)
-                    fptr.create_dataset('x_bin_field',data=self.pc.plots[0].data.x_bin_field)
-                    fptr.create_dataset('y_bin_field',data=self.pc.plots[0].data.y_bin_field)
-                    fptr.create_dataset('ds_name',data=self.basename.split("/")[-1])
-                    fptr.create_dataset('InitialTime',data=self.ds['InitialTime'])
-                    fptr.create_dataset('InitialCycle',data=self.ds['InitialCycleNumber'])
-                    fptr.close()
 
-
-            if self.format == None:
-                print self.pc.save(frame_template%(self.returnsetnumber(frame)))
-            elif self.format == 'dave':
-                dsave(self.pc,frame_template%(self.returnsetnumber(frame)),
-                      field_name = "%s"*len(fields)%tuple(fields),
-                      ds_list=[self.basename],
-                      script_name='uber')
-            else:
-                print self.pc.save(frame_template%(self.returnsetnumber(frame)), format = self.format)
-                #print frame_template%(frame)
-                """
-            return pp
+        return phase_list
     def count_particles(self):
         """Turns out Metadata.NumberOfParticles isn't always updated close to the output in Enzo."""
         nparticles = 0
