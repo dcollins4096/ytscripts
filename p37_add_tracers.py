@@ -214,6 +214,59 @@ def add_particles(ds, setname , outdir,outnumber=0, method=0):
         dest_file = "%s%s"%(out_ds_name,fl)
         shutil.copy(source_file,dest_file)
 
+def copy_driving(ds1, ds2, fields=["%s-acceleration"%s for s in "xyz"]):
+    """adds the [xyz]-acceleration from ds1 to ds2"""
+
+    for grid_index, g1 in enumerate(ds1.index.grids): 
+        g2 = ds2.index.grids[grid_index]
+        if np.abs(g1.LeftEdge - g2.LeftEdge).sum() > g2.dds.min():
+            raise CopyError("Left Edge")
+        if np.abs(g1.RightEdge - g2.RightEdge).sum() > g2.dds.min():
+            raise CopyError("Left Edge")
+        if np.abs( g1.dds.in_units('code_length') - g2.dds.in_units('code_length')).sum() > g2.dds.in_units('code_length').min()*1e-7:
+            raise CopyError("Cell Width")
+        if np.abs( g1.ActiveDimensions  - g2.ActiveDimensions ).sum() > 0:
+            raise CopyError("Nzones")
+
+        in_cpu = h5py.File(g1.filename,'r')
+        in_group = in_cpu['Grid%08d'%g1.id]
+        out_cpu = h5py.File(g2.filename,'r+')
+        out_group = out_cpu.require_group( 'Grid%08d'%g2.id )
+        for field in fields:
+            out_group.require_dataset(name=field,shape=in_group[field].shape, dtype=in_group[field].dtype)
+            out_group[field][:] = in_group[field][:]
+        out_cpu.close()
+        in_cpu.close()
+
+
+    setname = ds2.fullpath+"/"+str(ds2)
+    fake_grid_list = parse_hierarchy_for_particles(setname)
+    out_hierarchy_name = setname + ".hierarchy.new"
+    in_hierarchy_name = setname + ".hierarchy"
+    out_hierarchy_fptr = open(out_hierarchy_name,'w')
+    in_hierarchy_fptr = open(in_hierarchy_name,'r')
+    for line in in_hierarchy_fptr:
+        if line.startswith("FieldType"):
+            out_hierarchy_fptr.write( line[:-1] + " 55 56 57\n")
+        elif line.startswith("NumberOfBaryonFields"):
+            N = int(line.split(" ")[-1]) +3
+            out_hierarchy_fptr.write("NumberOfBaryonFields = %d\n"%N)
+
+
+        else:
+            out_hierarchy_fptr.write(line)
+    out_hierarchy_fptr.close()
+
+
+
+
+
+
+
+ds1 = yt.load('/scratch1/dcollins/Paper48_DrivingFiller/Breeder8/DD0041/data0041')
+ds2 = yt.load('/scratch1/dcollins/Paper48_DrivingFiller/DD0000/data0000')
+copy_driving(ds1,ds2)
+
 
 #dirname = '/scratch/00369/tg456484/Paper37_Restart/a00_ics'
 #outdir  = '/scratch/00369/tg456484/Paper37_Restart/a01_with_uniform_particles'
@@ -229,7 +282,7 @@ if 0:
     frame = 0;setname = '%s/DD%04d/data%04d'%(dirname,frame,frame)
     ds = yt.load(setname)
     add_particles(ds,setname,outdir)
-if 1:
+if 0:
     """works."""
     dirname = '/scratch/00369/tg456484/Paper42_NewAK/bq42_m9_drive0.5_512_p59_ppm/'
     outdir = '/scratch/00369/tg456484/Paper42_NewAK/bq42_m9_drive0.5_512_p59_ppm/'
