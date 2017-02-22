@@ -20,12 +20,14 @@ if 1:
     #fleet = taxi.fleet(['aj27','aj28'])
     #fleet = taxi.fleet(['aj25','aj26','aj27','aj28','aj29','aj30','aj31','aj32'])
     #fleet = taxi.fleet(['aj37','aj38'])
-    fleet = taxi.fleet(['aj43','aj44'])
-    fleet['frames'] = range(15)
+    #fleet = taxi.fleet(['aj43','aj44'])
+    #fleet['frames'] = range(15)
     #fleet[4].frames=range(0,500,15) + [500]
     #fleet[5].frames=range(0,500,15) + [500]
     #fleet[6].frames=range(0,500,15) + [500]
     #fleet[7].frames=range(0,500,15) + [500]
+    fleet = taxi.fleet(['aj31','aj41','aj43','aj46'])
+    fleet['frames']=range(0,30,2)
 
 #taxi_list = [aj15,aj16,aj17]
 

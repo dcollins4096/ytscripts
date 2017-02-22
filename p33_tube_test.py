@@ -4,6 +4,7 @@ if 'ef' not in dir():
 import tube
 reload(tube)
 basedir = '/Users/dcollins/scratch/Paper33_galaxies'
+basedir = '/scratch1/dcollins/Paper33_galaxies/'
 sims = {}
 sims['aj13e'] =  '%s/aj13e_square'%basedir
 sims['aj13g'] =  '%s/aj13g_square_pico'%basedir
