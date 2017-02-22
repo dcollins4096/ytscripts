@@ -246,6 +246,7 @@ class taxi:
         self.img_right = None                  #right edge of image.
         self.img_width = None                  #width of image.
         self.width = None
+        self.zoom_sequence=None
         self.region_type = 'all'
         self.center= 0.5*(self.left+self.right)#Center, used for all things that need a center
         self.periodic = False              #For projection shift
@@ -558,6 +559,7 @@ class taxi:
                 for axis in ensure_list(self.axis):
                     #if multiple plots are used, do_plot will return a figure object.
                     plot_or_fig = self.do_plots(field,axis,FirstOne)
+
                     if hasattr(plot_or_fig,'savefig'):
                         
                         filename = frame_template%(self.returnsetnumber(frame))
@@ -576,7 +578,18 @@ class taxi:
                         plot_or_fig.savefig(filename)
                         print filename
                     else:
-                        print plot_or_fig.save(frame_template%frame)
+                        if self.zoom_sequence is not None:
+                            for nz,width in enumerate(self.zoom_sequence):
+                                plot_or_fig.set_width(width)
+                                this_frame_template = frame_template + "_zoom%02d"%nz
+                                print plot_or_fig.save(this_frame_template%frame)
+                        else:
+                            print plot_or_fig.save(frame_template%frame)
+    def set_center_max(self,field='density', frame=None):
+        if self.ds is None or frame is not None:
+            self.fill(frame)
+        value,center = self.ds.find_max(field)
+        self.center = np.array(center)
     def do_plots(self,sub_field,axis,FirstOne):
 
         """Adds the plot to the plot collection.  Loops over plots for multi-plots.
