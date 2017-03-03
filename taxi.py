@@ -1065,6 +1065,8 @@ class taxi:
                         pkwargs=self.callback_args['nparticles']['kwargs']
                         the_plot.annotate_text(pargs[0],r'$n_{\rm{new}}=%d$'%these_indices.shape,**pkwargs)
 
+                elif callback == 'magnetic_field':
+                    the_plot.annotate_magnetic_field()
                 else:
                     raise PortError("Callback %s not supported"%callback)
             else:
