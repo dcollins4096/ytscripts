@@ -187,7 +187,7 @@ class taxi:
 
         #To make the file easier to use, some of the uber members are written first
         self.WriteMeFirst = ['name','directory','outname','operation','frames','fields','axis',
-                            'name_syntax', 'setname','DirectoryPrefix','GlobalParameters',
+                            'name_syntax', 'name_files','name_dir','GlobalParameters',
                              'ProfileDir','ProfileName']
         self.ExcludeFromWrite.append('WriteMeFirst')
 
@@ -204,10 +204,8 @@ class taxi:
         self.name   = 'sim'          #identifier for this taxi instance
         self.outname = 'Image'       #Prefix for output
         self.directory = '.'         #Directory where the simulation was run. (Where the DD* dirs are)
-        self.DirectoryPrefix = "DD"  #Prefix on said directories
         self.ProfileDir= "./ProfileFiles/"
         self.ProfileName = None
-        self.setname = "cycle"        #prefix on data file
         self.subdir = True           #Are there DD0000 directories, or is it just data0000.grid*?
         self.operation = 'Full'      #The operation that will be done.  taxi.operations() for a list.
                                      #    or physically motivated ones.  Options are 'Code' or 'Physics'
@@ -279,7 +277,9 @@ class taxi:
         self.old_outname = None
         self.frame_template = None
         self.basename_template = "data"
-        self.name_syntax = 'outputlog'
+        self.name_syntax = 'outputlog'  #outputlog or preset
+        self.name_files = "data"        #prefix on data file
+        self.name_dir = "DD"  #Prefix on said directories
         self.extrema = {}
         self.frame_dict = None
         self.ExcludeFromWrite.append('frame_dict')
@@ -393,11 +393,11 @@ class taxi:
         if frame == None:
             frame = self.frames[-1]
         #take 1: no subdirectory (very old style)
-        self.basename_template = self.directory+'/'+self.setname+'%04i'
+        self.basename_template = self.directory+'/'+self.name_files+'%04i'
         self.basename = self.basename_template %(frame)
         if glob.glob(self.basename+".hierarchy") == []:
-            self.basename_template = self.directory + "/" + self.DirectoryPrefix + '%04i/'\
-                                     + self.setname + "%04i"
+            self.basename_template = self.directory + "/" + self.name_dir + '%04i/'\
+                                     + self.name_files + "%04i"
             self.basename = self.basename_template %(frame,frame)
         if self.verbose == True:
             print "==== %s ===="%(self.basename)
@@ -456,18 +456,18 @@ class taxi:
                 match2 = SetNumber.match(linesplit[2])
                 if match is not None:
                     self.frame_dict[nframe]['DirPrefix']=match.group(1)
-                    self.frame_dict[nframe]['SetName'] = match.group(3)
+                    self.frame_dict[nframe]['name_files'] = match.group(3)
                     self.frame_dict[nframe]['SetNumber'] = int(match.group(2))
                 elif match2 is not None:
                     self.frame_dict[nframe]['DirPrefix']=None
-                    self.frame_dict[nframe]['SetName'] = match2.group(1)
+                    self.frame_dict[nframe]['name_files'] = match2.group(1)
                     self.frame_dict[nframe]['SetNumber'] = int(match2.group(2))
                 else:
                     print "error in set parsing"
                     print linesplit[2]
 
                     self.frame_dict[nframe]['DirPrefix']=None
-                    self.frame_dict[nframe]['SetName']  =None
+                    self.frame_dict[nframe]['name_files']  =None
                     self.frame_dict[nframe]['SetNumber']=-1
 
                 try:
@@ -729,7 +729,7 @@ class taxi:
         else:
             produs = glob.glob(self.directory+"/*.products")
             first_to_check = "%s/%s%04d.products"%(self.directory,
-                                                   self.DirectoryPrefix,
+                                                   self.name_dir,
                                                    frame)
 
             if first_to_check in produs:
@@ -824,7 +824,7 @@ class taxi:
             frame = self.frames[0]
         if field == None:
             field = self.fields[0]
-        directory = self.product_dir(frame) #"%s/%s%04d.products/"%(self.directory,self.DirectoryPrefix,frame)
+        directory = self.product_dir(frame) #"%s/%s%04d.products/"%(self.directory,self.name_dir,frame)
         filename = "%s/fft_%s.%s"%(directory,field,dtype)
         if debug > 0:
             print filename
