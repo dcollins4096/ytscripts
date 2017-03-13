@@ -9,7 +9,8 @@ fname = '%s/RS%04d/restart%04d'%(basedir, frame,frame)
 
 if 1:
   ds = yt.load(fname)
-  master_clump = Clump(ds.all_data(),"density")
+  region = ds.region([0.5]*3, [0.25]*3, [0.75]*3)
+  master_clump = Clump(region,"density")
   t0 = time.time()
   find_clumps(master_clump, 5e5,1e8,10)
   t1 = time.time()
