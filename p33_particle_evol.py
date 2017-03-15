@@ -9,10 +9,11 @@ def g(n):
         print "%s %d"%(car.name, car.ds['NumberOfParticles'])
 
 #taxi_list = [aj01,aj02]
-if 1:
-    aj15=taxi.taxi('aj15')
-    aj16=taxi.taxi('aj16')
-    aj17=taxi.taxi('aj17')
+if 0:
+    pass
+    #aj15=taxi.taxi('aj15')
+    #aj16=taxi.taxi('aj16')
+    #aj17=taxi.taxi('aj17')
     #fleet  = taxi.fleet([aj15,aj16,aj17])
     #fleet = taxi.fleet(['aj19_sphere','aj20_sphere'])
     #fleet = taxi.fleet(['aj23','aj24'])
@@ -26,8 +27,9 @@ if 1:
     #fleet[5].frames=range(0,500,15) + [500]
     #fleet[6].frames=range(0,500,15) + [500]
     #fleet[7].frames=range(0,500,15) + [500]
-    fleet = taxi.fleet(['aj31','aj41','aj43','aj46'])
-    fleet['frames']=range(0,30,2)
+    #fleet = taxi.fleet(['aj31','aj41','aj43','aj46'])
+    #fleet = taxi.fleet(['aj50','aj51','aj52'])
+    #fleet['frames']=range(0,41,2)
 
 #taxi_list = [aj15,aj16,aj17]
 

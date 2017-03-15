@@ -214,10 +214,10 @@ def add_particles(ds, setname , outdir,outnumber=0, method=0):
         dest_file = "%s%s"%(out_ds_name,fl)
         shutil.copy(source_file,dest_file)
 
-def copy_driving(ds1, ds2, fields=["%s-acceleration"%s for s in "xyz"]):
-    """adds the [xyz]-acceleration from ds1 to ds2"""
+def copy_all_fields(ds1, ds2, fields=["%s-acceleration"%s for s in "xyz"]):
+    """adds the fields from ds1 to ds2"""
 
-    for grid_index, g1 in enumerate(ds1.index.grids): 
+    for grid_index, g1 in enumerate(ds1.index.grids):
         g2 = ds2.index.grids[grid_index]
         if np.abs(g1.LeftEdge - g2.LeftEdge).sum() > g2.dds.min():
             raise CopyError("Left Edge")
@@ -239,9 +239,10 @@ def copy_driving(ds1, ds2, fields=["%s-acceleration"%s for s in "xyz"]):
         in_cpu.close()
 
 
+def add_driving_to_hierarchy(ds1,ds2):
+    """might be broken."""
     setname = ds2.fullpath+"/"+str(ds2)
-    fake_grid_list = parse_hierarchy_for_particles(setname)
-    out_hierarchy_name = setname + ".hierarchy.new"
+    ut_hierarchy_name = setname + ".hierarchy.new"
     in_hierarchy_name = setname + ".hierarchy"
     out_hierarchy_fptr = open(out_hierarchy_name,'w')
     in_hierarchy_fptr = open(in_hierarchy_name,'r')
@@ -257,15 +258,90 @@ def copy_driving(ds1, ds2, fields=["%s-acceleration"%s for s in "xyz"]):
             out_hierarchy_fptr.write(line)
     out_hierarchy_fptr.close()
 
+def boundary(ds1,ds2):
+    boundary1 = ds2.fullpath+"/"+str(ds2) + ".boundary"
+    boundary2 = ds2.fullpath+"/"+str(ds2) + ".boundary_temp"
+
+    boundary1hdf = ds2.fullpath+"/"+str(ds2) + ".boundary.hdf"
+    boundary2hdf = ds2.fullpath+"/"+str(ds2) + ".boundary_temp.hdf"
+
+    in_boundary_fptr =  open(boundary1,"r")
+    out_boundary_fptr = open(boundary2,"w")
+
+    dims = []
+    NBF = -1
+    fields = []
+    for line in in_boundary_fptr:
+        if line.startswith("BoundaryDimension"):
+            for item in line.split(" "):
+                try:
+                    dims.append(int(item))
+                except:
+                    pass
+            out_boundary_fptr.write(line)
+        elif line.startswith("NumberOfBaryon"):
+            NBF = int(line.split("=")[1])
+            out_boundary_fptr.write("NumberOfBaryonFields = %d\n"%(NBF+3))
+        elif line.startswith("BoundaryFieldType"):
+            for item in line.split(" "):
+                try:
+                    fields.append(int(item))
+                except:
+                    pass
+            out_boundary_fptr.write("%s 55 56 57\n"%line[:-1])
+        elif line.startswith("BaryonFileName"):
+            in_file_name = line.split("=")[1]
+            out_boundary_fptr.write(line)
+        else:
+            out_boundary_fptr.write(line)
+
+    out_boundary_fptr.close()
+    in_boundary_fptr.close()
+
+    in_hdf = boundary1+".hdf"
+    out_hdf = boundary2+".hdf"
+
+    inFptr = h5py.File(in_hdf,"r")
+    outFptr = h5py.File(out_hdf,"w")
+    nfields = len(fields)
+    try:
+        for field in inFptr.keys():
+            total = inFptr[field].shape[0]
+            face_size = total/(nfields*2)
+            new_size = total + face_size*3*2 #3 new fields and 2 sides
+            new_array =np.zeros(new_size,dtype=inFptr[field][:].dtype)
+            new_array[:total] = inFptr[field][:]
+            v_index = fields.index(4)
+            new_array[total:] = inFptr[field][:][face_size*(v_index)*2:face_size*(v_index+3)*2]
+            outFptr.require_dataset(name=field,shape=[new_size],dtype=inFptr[field].dtype)
+            outFptr[field][:] = new_array
+            
 
 
 
 
+    except:
+        raise
+    finally:
+        inFptr.close()
+        outFptr.close()
 
 
-ds1 = yt.load('/scratch1/dcollins/Paper48_DrivingFiller/Breeder8/DD0041/data0041')
-ds2 = yt.load('/scratch1/dcollins/Paper48_DrivingFiller/DD0000/data0000')
-copy_driving(ds1,ds2)
+
+
+                
+            #out_boundary_fptr.write(
+
+
+
+
+#ds1 = yt.load('/scratch1/dcollins/Paper48_DrivingFiller/Breeder8/DD0041/data0041')
+#ds2 = yt.load('/scratch1/dcollins/Paper48_DrivingFiller/DD0000/data0000')
+#ds2 = yt.load('/scratch1/dcollins/Paper48_DrivingFiller/u05/DD0000/data0000')
+ds1 = yt.load('/scratch1/dcollins/Paper48_DrivingFiller/u05/DD0000_fresh/data0000')
+ds2 = yt.load('/scratch1/dcollins/Paper48_DrivingFiller/Bred8mhd/DD0001/data0001')
+#boundary(ds1,ds2)
+copy_all_fields(ds1,ds2,fields = ['BxF', 'ByF', 'BzF','Density', 'x-velocity','y-velocity','z-velocity', 'Bx','By','Bz'])
 
 
 #dirname = '/scratch/00369/tg456484/Paper37_Restart/a00_ics'

@@ -180,8 +180,8 @@ class udiff():
                         g2_full = self.p['unit_function'](g2_full)
                         print "DIRECT"
                         #self.uber1.verbose, self.uber2.verbose = verbose_save 
-                    g1 = g1_full[Slice1]
-                    g2 = g2_full[Slice2]
+                    g1 = g1_full[Slice1].v
+                    g2 = g2_full[Slice2].v
 
                     self.g1_full=g1_full; self.g2_full=g2_full
                     self.g1=g1; self.g2=g2

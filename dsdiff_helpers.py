@@ -3,15 +3,20 @@ import h5py
 import numpy as na
 nar = na.array
 def get_ds_name(directory, frame):
-    fname = "%s/OutputLog"%directory
-    fptr = open(fname)
-    lines = fptr.readlines()
-    fptr.close()
-    if frame >= len(lines):
-        print "Dataset %d not found"%frame
-        raise NotImplementedError
-    setname = lines[frame].split(' ')[2]
-    return "%s/%s"%(directory,setname)
+    if 0:
+        name ='%s/DD%04d/DD%04d'%(directory,frame,frame)
+    else:
+        fname = "%s/OutputLog"%directory
+        fptr = open(fname)
+        lines = fptr.readlines()
+        fptr.close()
+        if frame >= len(lines):
+            print "Dataset %d not found"%frame
+            raise NotImplementedError
+        setname = lines[frame].split(' ')[2]
+        name = "%s/%s"%(directory,setname)
+    print name
+    return name
 def find_grid_filename(directory, frame, grid):
     ds_name = get_ds_name(directory,frame)
     hname = "%s.hierarchy"%ds_name

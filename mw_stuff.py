@@ -6,7 +6,7 @@ import subprocess
 def mw_grav_write(name_base, clump, execpath="./"):
     namedict={}
     ascii_name = name_base+".txt"
-    dump_ascii(clump['cell_mass'], clump['x'], clump['y'], clump['z'],ascii_name)
+    dump_ascii(clump['cell_mass'].in_units('code_mass'), clump['x'].in_units('code_length'), clump['y'].in_units('code_length'), clump['z'].in_units('code_length'),ascii_name)
     doit_name = name_base + ".doit"
     sdf_name =  name_base + ".sdf"
     namedict['ascii_name'] = ascii_name
