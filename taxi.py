@@ -75,9 +75,13 @@ class fleet():
     def allnames(self):
         ncar=len(self.taxi_list)
         return "%s_"*ncar%tuple([car.name for car in self.taxi_list])
+    def dumb_profile(self,fields,**kwargs):
+        for car in self.taxi_list:
+            car.dumb_profile(fields,**kwargs)
     def phase(self,*args,**kwargs):
         for car in self.taxi_list:
             car.phase(*args,**kwargs)
+        
     def profile(self,*args,**kwargs):
         """Runs profile on all using *args and **kwargs.
         Also plots the combined set"""
@@ -93,12 +97,13 @@ class fleet():
             all_xbins = car.profile_data['all_xbins']
             all_profiles = car.profile_data['all_profiles']
             for i,frame in enumerate(car.frames):
-                plt.plot( 0.5*(all_xbins[i][1:]+all_xbins[i][0:-1]), all_profiles[i],c=rm(i),linestyle=linelist[n])
+                plt.plot( 0.5*(all_xbins[i][1:]+all_xbins[i][0:-1]), all_profiles[i],c=rm(i),linestyle=linelist[n],label='%s %04d'%(car.name,frame))
                 if frame not in all_frames:
                     all_frames.append(frame)
-        plt.xlabel(car.profile_data['frames'][0])
-        plt.ylabel(car.profile_data['frames'][1])
+        plt.xlabel(car.profile_data['fields'][0])
+        plt.ylabel(car.profile_data['fields'][1])
         plt.xscale(car.profile_data['scales'][0]); plt.yscale(car.profile_data['scales'][1])
+        plt.legend(loc=0)
         frame_name = "_%04d"*ntotal%tuple(all_frames)
         profname = '%s_prof_%s_%s_n%s.pdf'%(self.allnames(), car.profile_data['fields'][0], car.profile_data['fields'][1], frame_name)
         print profname
@@ -184,12 +189,15 @@ class taxi:
 
         #List of members that will NOT be written.  
         self.ExcludeFromWrite = ['ExcludeFromWrite']
+        
 
         #To make the file easier to use, some of the uber members are written first
         self.WriteMeFirst = ['name','directory','outname','operation','frames','fields','axis',
                             'name_syntax', 'name_files','name_dir','GlobalParameters',
                              'ProfileDir','ProfileName']
         self.ExcludeFromWrite.append('WriteMeFirst')
+        self.ExcludeFromWrite.append('profile_data')
+        self.ExcludeFromWrite.append('last_prof')
 
         #Some members may need special treatment.
         self.WriteSpecial = {}
@@ -509,6 +517,8 @@ class taxi:
             g = self.ds.index.grids[N]
             center = 0.5*(g.LeftEdge+g.RightEdge)
             reg = self.ds.region(center,g.LeftEdge,g.RightEdge)
+        for parameter in self.field_parameters.keys():
+            reg.set_field_parameter(parameter, self.field_parameters[parameter])
         #self.reg  = weakref.proxy(reg)
         return reg
 
@@ -881,7 +891,13 @@ class taxi:
                     self.extrema[field][0] = min([this_extrema[0].v, self.extrema[field][0]])
                     self.extrema[field][1] = max([this_extrema[1].v, self.extrema[field][1]])
 
-    def profile(self,fields, callbacks=None, weight_field=None, accumulation=False, fractional=True, scales=['log','log'],n_bins=64,extrema=None):
+    def dumb_profile(self,fields,**kwargs):
+        frame_template = self.outname + "_%04i"
+        for frame in self.frames:
+            reg = self.get_region(frame)
+            plot=yt.ProfilePlot(reg,fields[0],fields[1],**kwargs)
+            plot.save(frame_template%frame)
+    def profile(self,fields, callbacks=None, weight_field=None, accumulation=False, fractional=True, scales=['log','log'],n_bins=64,extrema=None, units=[None,None]):
         """needs to be generalized with bins."""
         frame_template = self.outname + "_%04i"
         if weight_field is not None:
@@ -889,17 +905,27 @@ class taxi:
         all_xbins = []
         all_profiles = []
         for frame in ensure_list(self.frames):
+            plt.clf()
             reg = self.get_region(frame)
             local_extrema = None
-            prof = yt.create_profile(reg,fields[0],fields[1],weight_field=weight_field,accumulation=accumulation,
+            prof = yt.create_profile(reg,fields[0],fields[1] ,weight_field=weight_field,accumulation=accumulation,
                                     fractional=fractional, n_bins=n_bins, extrema=extrema)
             self.last_prof=prof
-            plt.clf()
-            plt.plot(0.5*(prof.x_bins[1:]+prof.x_bins[0:-1]),prof[fields[1]])
-            all_xbins.append(prof.x_bins)
-            all_profiles.append(prof[fields[1]])
+            the_x = 0.5*(prof.x_bins[1:]+prof.x_bins[0:-1])
+            the_y = prof[fields[1]]
+            if units[0] is not None:
+                the_x = the_x.in_units(units[0])
+            if units[1] is not None and fractional is not True:
+                the_y = the_y.in_units(units[1])
+            x_units=the_x.units
+            y_units=the_y.units
+            plt.plot(the_x,the_y,label="n%04d"%frame)
+            all_xbins.append(the_x)
+            all_profiles.append(the_y)
             plt.xscale(scales[0]); plt.yscale(scales[1])
+            plt.xlabel(r'%s $%s$'%(fields[0],x_units)); plt.ylabel(r'%s $%s$'%(fields[1],y_units))
             profname = '%s_prof_%s_%s_n%04d.pdf'%(self.outname, fields[0], fields[1], frame)
+            plt.legend(loc=0)
             plt.savefig(profname)
             print profname
             if True:
@@ -922,8 +948,10 @@ class taxi:
         rm = davetools.rainbow_map(ntotal)
         plt.clf()
         for i,n in enumerate(self.frames):
-            plt.plot( 0.5*(all_xbins[i][1:]+all_xbins[i][0:-1]), all_profiles[i],c=rm(i))
+            plt.plot( all_xbins[i], all_profiles[i],c=rm(i),label="n%04d"%n)
         plt.xscale(scales[0]); plt.yscale(scales[1])
+        plt.xlabel(r'%s $%s$'%(fields[0],x_units)); plt.ylabel(r'%s $%s$'%(fields[1],y_units))
+        plt.legend(loc=0)
         allframes = "_%04d"*ntotal%tuple(self.frames)
         profname = '%s_prof_%s_%s_n%s.pdf'%(self.outname, fields[0], fields[1], allframes)
         print profname
