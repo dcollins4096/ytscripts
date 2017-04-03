@@ -54,7 +54,7 @@ if 0:
                 pw_full.annotate_point(peak_list[pind],pind,text_args={'color':colors[n]})
         print pw_full.save('u05_%04d_keepers1'%frame)
 
-if 0:
+if 1:
     if 'tdep' not in dir():
         tdep = {}
     if 'qdict' not in dir():

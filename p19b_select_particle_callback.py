@@ -2,8 +2,10 @@ import yt
 from yt.visualization.plot_modifications import *
 import pyximport; pyximport.install()
 import particle_ops
+import time
 import numpy as na
 dbg = 0
+
 def deposit_target_particles_1(field, data):
     #pdb.set_trace()
     indices_late = data.get_field_parameter('indices_late')
@@ -46,7 +48,6 @@ yt.add_field(      ("deposit","deposit_target_particles"),
                        yt.ValidateParameter('mask_to_get'), 
                        yt.ValidateGridType()],
          display_name = "target_particles")
-
 
 class SelectParticleCallback(PlotCallback):
     _type_name = "select_particles"
@@ -121,7 +122,7 @@ class SelectParticleCallback(PlotCallback):
             if self.minimum_mass is not None:
                 gg &= (reg["ParticleMassMsun"] >= self.minimum_mass)
                 if gg.sum() == 0: return
-        plot._axes.hold(True)
+        #plot._axes.hold(True)
         px, py = self.convert_to_plot(plot,
                     [np.array(reg[pt, field_x][gg][::self.stride]),
                      np.array(reg[pt, field_y][gg][::self.stride])])
@@ -129,7 +130,7 @@ class SelectParticleCallback(PlotCallback):
                            s=self.p_size, c=self.color)
         plot._axes.set_xlim(xx0,xx1)
         plot._axes.set_ylim(yy0,yy1)
-        plot._axes.hold(False)
+        #plot._axes.hold(False)
 
     def _get_region(self, xlim, ylim, axis, data):
         LE, RE = [None]*3, [None]*3
