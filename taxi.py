@@ -97,7 +97,7 @@ class fleet():
             all_xbins = car.profile_data['all_xbins']
             all_profiles = car.profile_data['all_profiles']
             for i,frame in enumerate(car.frames):
-                plt.plot( 0.5*(all_xbins[i][1:]+all_xbins[i][0:-1]), all_profiles[i],c=rm(i),linestyle=linelist[n],label='%s %04d'%(car.name,frame))
+                plt.plot( all_xbins[i], all_profiles[i],c=rm(i),linestyle=linelist[n],label='%s %04d'%(car.name,frame))
                 if frame not in all_frames:
                     all_frames.append(frame)
         plt.xlabel(car.profile_data['fields'][0])
@@ -214,6 +214,7 @@ class taxi:
         self.directory = '.'         #Directory where the simulation was run. (Where the DD* dirs are)
         self.ProfileDir= "./ProfileFiles/"
         self.ProfileName = None
+        self.set_log = {}
         self.subdir = True           #Are there DD0000 directories, or is it just data0000.grid*?
         self.operation = 'Full'      #The operation that will be done.  taxi.operations() for a list.
                                      #    or physically motivated ones.  Options are 'Code' or 'Physics'
@@ -263,7 +264,8 @@ class taxi:
         self.slice_zlim = {}
         self.proj_zlim = {}
         self.callbacks = []                #Which callbacks to use.  taxi.callbacks() for options
-        self.callback_args={'particles':{'args':1,'kwargs':{'col':'r'}},'dave_particles':{'args':1,'kwargs':{'col':'y'}}}
+        self.callback_args={'particles':{'args':[1],'kwargs':{'col':'r'}},'dave_particles':{'args':1,'kwargs':{'col':'y'}}}
+        self.callback_args['star_particles']={'args':[1],'kwargs':{'col':'g'}}
         #self.ExcludeFromWrite.append('callbacks')
         self.WriteSpecial['callbacks'] = self.write_callbacks
 
@@ -303,6 +305,14 @@ class taxi:
         self.ExcludeFromWrite.append('cg')
         self.ExcludeFromWrite.append('the_plot')
         self.hold_values={}
+
+        self.particle_filter_names=[]  #Filters get added directly to the ds, e.g.
+        #http://yt-project.org/doc/cookbook/calculating_information.html?highlight=formed_star
+
+        self.derived_fields={} #Derived fields can also be added to the ds directly.
+        #This is not fully developed, syntax should be sth like
+        #self.derived_fields['field_name'] = {'function':{dict of args}}
+        #which then gets called on ds as its loaded.
  
 
 
@@ -443,7 +453,10 @@ class taxi:
         debug = 0
         if not hasattr(self,'frame_dict') or self.frame_dict is None:
             self.frame_dict = {}
-            output_log = open("%s/%s"%(self.directory , self.OutputLog),'r')
+            output_name = "%s/%s"%(self.directory , self.OutputLog)
+            output_log = open(output_name, 'r')
+            print "OutputName", self.name, output_name
+
             if debug > 0:
                 print output_log
             lines = output_log.readlines()
@@ -496,8 +509,11 @@ class taxi:
         Possibly could be renamed 'load' """
         self.set_filename(frame)
         self.ds = yt.load(self.basename)
-        na_errors= np.seterr(all='ignore')
-        np.seterr(**na_errors)
+        for filter_name in self.particle_filter_names:
+            self.ds.add_particle_filter(filter_name)
+        #na_errors= np.seterr(all='ignore')
+        #np.seterr(**na_errors)
+
     def get_region(self, frame=None):
         if frame is not None or self.ds is None:
             self.fill(frame)
@@ -505,7 +521,7 @@ class taxi:
             reg = self.ds.sphere(self.center, self.radius)
         if self.region_type.lower() in ['rectangle','region']:
             self.center = 0.5*(self.left + self.right)
-            reg = self.region(self.center, self.left,self.right,field)
+            reg = self.ds.region(self.center, self.left,self.right)
         if self.region_type.lower() in ['all','all_data']:
             reg = self.ds.all_data()
         if self.region_type.lower() in ['disk']:
@@ -569,6 +585,9 @@ class taxi:
                 for axis in ensure_list(self.axis):
                     #if multiple plots are used, do_plot will return a figure object.
                     plot_or_fig = self.do_plots(field,axis,FirstOne)
+
+                    if self.set_log.has_key(field):
+                        plot_or_fig.set_log( field, self.set_log[field])
 
                     if hasattr(plot_or_fig,'savefig'):
                         
@@ -976,9 +995,12 @@ class taxi:
                     local_extrema = {fields[0]:self.extrema[fields[0]], fields[1]:self.extrema[fields[1]]}
                 else:
                     local_extrema = None
-            phase = yt.create_profile(reg,bin_fields=[fields[0],fields[1]], 
-                                      fields=[fields[2]],weight_field=weight_field,
-                                      extrema=local_extrema, n_bins=n_bins)
+            phase_args['bin_fields']=[fields[0],fields[1]]
+            phase_args['fields']=[fields[2]]
+            phase_args['weight_field']=weight_field
+            phase_args['extrema']=local_extrema
+            phase_args['n_bins']=n_bins
+            phase = yt.create_profile(reg,**phase_args)
             #self.phase = weakref.proxy(phase)
             pp = yt.PhasePlot.from_profile(phase)
             pp.set_xlabel(fields[0])
@@ -1078,6 +1100,16 @@ class taxi:
                         the_plot.annotate_text(myargs[0],myargs[1],**mykwargs)
                 elif callback == 'nparticles':
                         the_plot.annotate_text(myargs[0],r'$n_p=%d$'%self.count_particles(),**mykwargs)
+                elif callback == 'star_particles':
+                    nparticles = self.count_particles()
+                    if nparticles>0:
+                        reg = self.get_region()
+                        mykwargs['indices'] = reg['formed_star','particle_index']
+                        mykwargs['col'] = 'r'
+                        the_plot.annotate_dave_particles(myargs[0], **mykwargs)
+                        pargs = self.callback_args['nparticles']['args']
+                        pkwargs=self.callback_args['nparticles']['kwargs']
+                        the_plot.annotate_text(pargs[0],r'$n_{\rm{new}}=%d$'%these_indices.shape,**pkwargs)
                 elif callback == 'new_particles':
                     """This callback does not work with multiple plots for each frame.
                     This is due to the fact that the old particle list is updated each call
