@@ -18,7 +18,7 @@ import pdb
 import os
 import h5py
 import types, time,weakref,davetools
-#import dave_callbacks
+import dave_callbacks
 from davetools import dsave, no_trailing_comments, ensure_list
 import time, fPickle, glob
 if not_ported:
@@ -53,9 +53,21 @@ class fleet():
         for car in self.taxi_list:
             car.__dict__[item] = value
             
-    def plot(self,*args, **kwargs):
+    def outname(self,prefix):
+        """sets car.outname = prefix+car.name"""
         for car in self.taxi_list:
+            car.outname = prefix + car.name
+    def plot(self,*args, **kwargs):
+        #check for fixed colorbars.
+        prior_zlim=None
+        if kwargs.has_key('prefix'):
+            self.outname(kwargs.pop('prefix'))
+
+        for car in self.taxi_list:
+            if car.Colorbar is 'fixed' and prior_zlim is not None and car.zlim is not None:
+                car.zlim = prior_zlim
             car.plot(*args, **kwargs)
+            prior_zlim = car.zlim
     def __call__(self,string, frames=False):
         """Execute arbitrary code on the cars in the taxi fleet.
         output can be used to return values."""
@@ -88,16 +100,43 @@ class fleet():
         for car in self.taxi_list:
             car.profile(*args,**kwargs)
         plt.clf()
+        color_by = kwargs.pop('color_by','frame') #either color with sim or frame. The other gets line style
         ntotal = max([len(car.frames) for car in self.taxi_list])
-        rm = davetools.rainbow_map(ntotal)
+        simtotal = len(self.taxi_list)
+        if color_by=='frame':
+            rm = davetools.rainbow_map(ntotal)
+        elif color_by=='sim':
+            rm = davetools.rainbow_map(simtotal)
         plt.clf()
-        linelist = ['-','--']
+        linelist = ['-','--',':']
         all_frames=[]
+        plot_args={'linewidth':0.3}  #I can probably make this the same as kwargs
+        prior_y = None
         for n,car in enumerate(self.taxi_list):
             all_xbins = car.profile_data['all_xbins']
             all_profiles = car.profile_data['all_profiles']
             for i,frame in enumerate(car.frames):
-                plt.plot( all_xbins[i], all_profiles[i],c=rm(i),linestyle=linelist[n],label='%s %04d'%(car.name,frame))
+                thex= all_xbins[i]
+                they=all_profiles[i]
+                plot_args['label']='%s %04d'%(car.name,frame)
+                if prior_y is not None:
+                    l1norm = np.mean(np.abs( they - prior_y ))/np.mean(they)
+                    print l1norm
+                    prior_y = they
+                    if l1norm > 1e-8:
+                        they *= 1.1
+                        plot_args['label'] += "+off"
+                else:
+                    prior_y = they
+    
+                if color_by=='sim':
+                    plot_args['c']=rm(n)
+                    plot_args['linestyle']=linelist[i]
+                elif color_by=='frame':
+                    plot_args['c']=rm(i)
+                    plot_args['linestyle']=linelist[n]
+                plt.plot( thex, they,**plot_args)
+                #plt.plot( all_xbins[i], all_profiles[i],c=rm(i),linestyle=linelist[n],label='%s %04d'%(car.name,frame))
                 if frame not in all_frames:
                     all_frames.append(frame)
         plt.xlabel(car.profile_data['fields'][0])
@@ -264,8 +303,9 @@ class taxi:
         self.slice_zlim = {}
         self.proj_zlim = {}
         self.callbacks = []                #Which callbacks to use.  taxi.callbacks() for options
-        self.callback_args={'particles':{'args':[1],'kwargs':{'col':'r'}},'dave_particles':{'args':1,'kwargs':{'col':'y'}}}
+        self.callback_args={'particles':{'args':[1],'kwargs':{'col':'r'}},'select_particles':{'args':1,'kwargs':{'col':'y'}}}
         self.callback_args['star_particles']={'args':[1],'kwargs':{'col':'g'}}
+        self.callback_args['nparticles']= {'args': [[0.03, 0.03]], 'kwargs': {'coord_system': 'axis', 'text_args': {'color': 'red'}}}
         #self.ExcludeFromWrite.append('callbacks')
         self.WriteSpecial['callbacks'] = self.write_callbacks
 
@@ -1005,7 +1045,7 @@ class taxi:
             pp = yt.PhasePlot.from_profile(phase)
             pp.set_xlabel(fields[0])
             pp.set_ylabel(fields[1])
-            print pp.save('derp3.png')
+            #print pp.save('derp3.png')
             outname = "%s_%04d"%(self.outname,frame)
 
             if self.Colorbar in ['fixed','monotonic']:
@@ -1104,9 +1144,9 @@ class taxi:
                     nparticles = self.count_particles()
                     if nparticles>0:
                         reg = self.get_region()
-                        mykwargs['indices'] = reg['formed_star','particle_index']
-                        mykwargs['col'] = 'r'
-                        the_plot.annotate_dave_particles(myargs[0], **mykwargs)
+                        these_indices = reg['formed_star','particle_index']
+                        mykwargs['ptype']='formed_star'
+                        the_plot.annotate_select_particles(myargs[0], **mykwargs)
                         pargs = self.callback_args['nparticles']['args']
                         pkwargs=self.callback_args['nparticles']['kwargs']
                         the_plot.annotate_text(pargs[0],r'$n_{\rm{new}}=%d$'%these_indices.shape,**pkwargs)
@@ -1120,7 +1160,7 @@ class taxi:
                         these_indices = self.get_new_indices()
                         mykwargs['indices'] = these_indices
                         mykwargs['col'] = 'r'
-                        the_plot.annotate_dave_particles(myargs[0], **mykwargs)
+                        the_plot.annotate_select_particles(myargs[0], **mykwargs)
                         pargs = self.callback_args['nparticles']['args']
                         pkwargs=self.callback_args['nparticles']['kwargs']
                         the_plot.annotate_text(pargs[0],r'$n_{\rm{new}}=%d$'%these_indices.shape,**pkwargs)

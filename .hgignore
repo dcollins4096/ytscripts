@@ -19,6 +19,7 @@ taxi_stand/*
 *.pyc
 */*.pyc
 .*swp
+*pickle
 *~
 uber
 Paper8
@@ -27,4 +28,7 @@ STAGE
 # switch to regexp syntax.
 syntax: regexp
 ^\.pc/
-
+CollinsFilamentsSemiLagrangian*
+P33_P42_P48_stuff
+ScritpsForJohanna*
+clfind2d_git

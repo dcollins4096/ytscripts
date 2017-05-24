@@ -4,11 +4,52 @@ import uuid
 import glob
 import os
 import pdb
+import types
+nar = np.array
 def trans(array,dim):
     """returns the elements of array that aren't dim
     array must be a numpy array.
     trans([a,b,c],1) -> [a,c]"""
     return array[filter(lambda x: x != dim,range(len(array)) ) ]
+class series():
+    def __init__(self):
+        self.series = []
+        self.next_clump_index=0
+    def next(self):
+        this_clump_index = self.next_clump_index
+        self.next_clump_index+=1
+        if self.next_clump_index == len(self.series)+1: raise StopIteration
+        return self.set[this_clump_index]
+    def __iter__(self):
+        self.next_clump_index=0
+        return self
+    def __getitem__(self,item):
+        if isinstance(item,types.StringType):
+            out = []
+            use_clump_stuff_dict = None
+            if item in ['ke/be', 'ge/all', 'ge/ke+be', 'ge/(ke+te)', 'ge/ke', 'ge/te', 'ge/be','te/be','ge/re']:
+                use_clump_stuff_dict = 'Ratios'
+            if item in ['ge_mw/all', 'ge_mw/ke+be', 'ge_mw/(ke+te)', 'ge_mw/ke', 'ge_mw/te', 'ge_mw/be','ge_mw/re']:
+                use_clump_stuff_dict = 'Ratios_mw'
+            if item in ['Gravitational', 'Kinetic', 'Rotational', 'Magnetic', 'Thermal']:
+                use_clump_stuff_dict = 'Energies'
+            #pdb.set_trace()
+            for clump_prop in self.series:
+                #Master clumps don't have 'stuff'
+                try:
+                    if use_clump_stuff_dict:
+                        out.append(clump_prop.__dict__[use_clump_stuff_dict][item])
+                    else: 
+                        out.append(clump_prop.__dict__[item])
+                except:
+                    pass
+            return nar(out)
+        else:
+            return self.series[item]
+    def __len__(self):
+        return len(self.series)
+    def append(self,item):
+        self.series.append(item)
 class clump_stuff:
     """the clump_stuff object, sanitized to ensure code units for all quantities"""
     def __init__(self,clump,ds,Gsize_threshold=50000,clump_2d_id=-1,subclump_id=-1):
@@ -115,19 +156,20 @@ class clump_stuff:
         #angles
         
         #energetic properties
-        #ke = (data["cell_volume"]*data["RelKineticEnergy"]).sum()
-        ke = 0
+        ke = (data["cell_volume"]*data["rel_kinetic_energy"]).sum()
+        ke  = ke.in_units('code_velocity**2*code_mass')
+        ke=ke.v
         self.Energies["Kinetic"] = ke
         be = (data["cell_volume"]*data["magnetic_energy"]).sum()
         be  = be.in_units('code_velocity**2*code_mass')
         be=be.v
         self.Energies["Magnetic"] = be
         #pdb.set_trace()
-        if data["cell_volume"].size < Gsize_threshold or Gsize_threshold < 0:
-            ge = G*FindBindingEnergy(data["cell_mass"], data['x'],data['y'],data['z'],
-                                                        truncate, self.Energies["Kinetic"]/(G))
-        else:
-            ge = 0
+        #if data["cell_volume"].size < Gsize_threshold or Gsize_threshold < 0:
+        #    ge = G*FindBindingEnergy(data["cell_mass"], data['x'],data['y'],data['z'],
+        #                                                truncate, self.Energies["Kinetic"]/(G))
+        #else:
+        #    ge = 0
         mw_temp_name = "./MW_Grav_Temp_%s"%(uuid.uuid1())
         ge = -G*mw_stuff.run_mw_grav(mw_temp_name,data)
         
@@ -135,7 +177,7 @@ class clump_stuff:
 
         #3/2nkT for monatomic gas, PV=nkt, P=cs^2 rho.
         #Assumes cs = 1
-        thermal = 1.5*(data["cell_volume"]*data['Density']).sum().v
+        thermal = 1.5*(data["cell_volume"]*data['Density']).sum().in_units('code_mass').v
         self.Energies["Thermal"] = thermal
 
         #energy ratios
@@ -162,7 +204,7 @@ class clump_stuff:
             #    self.Ratios['ge/re'] = self.Energies['Gravitational']/self.Energies['Rotational']
             self.Alpha  = 5*(self.VelocityDispersion**2)/3.0*(self.R)/( self.Mass*G)
             self.Alpha2 = 5*(self.VelocityDispersion**2)/3.0*(self.R2)/( self.Mass*G)
-            self.MassToFlux = (data['MassToFluxNonCritical']*data['cell_volume']).sum()/data['cell_volume'].sum()*2*np.pi*G
+            #self.MassToFlux = (data['MassToFluxNonCritical']*data['cell_volume']).sum()/data['cell_volume'].sum()*2*np.pi*G
 
         self.bound = self.Ratios['ge/all'] > 0.5
         
@@ -243,12 +285,12 @@ def shift(clump,shiftRight = True):
         if break_index[0].size == 1:
             break_x = nique[break_index[0]]
             if shiftRight:
-                all_to_shift = np.where( clump[axis] <= break_x + clump[dx].min() )[0]
-                clump[axis][all_to_shift] += DomainWidth[i]
+                all_to_shift = np.where( clump[axis] <= clump.ds.quan(break_x,'code_length') + clump[dx].min() )[0]
+                clump[axis][all_to_shift] += clump.ds.arr(DomainWidth[i],'code_length')
                 shift[i] = DomainWidth[i]
             else:
-                all_to_shift = np.where( clump[axis] >= break_x - clump[dx].min() )[0]
-                clump[axis][all_to_shift] -= DomainWidth[i]
+                all_to_shift = np.where( clump[axis] >= clump.ds.quan(break_x,'code_length') - clump[dx].min() )[0]
+                clump[axis][all_to_shift] -= clump.ds.arr(DomainWidth[i],'code_length')
                 shift[i] = -DomainWidth[i]
                 
     try: 

@@ -3,7 +3,7 @@ matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 
 import yt
-yt.enable_plugins()
+#yt.enable_plugins()
 if 1:
     not_in_yt3 = False #a universal flag to indicate things that need to be ported.
     execfile('go_lite')
@@ -50,5 +50,8 @@ if 1:
     adiabatic_mhd = isothermal_mhd + ['TotalEnergy']
     all_fields = adiabatic_mhd+staggered
     alphabet='abcdefghijklmnopqrstuvwxyz'
+    MultiSpecies1=[ "Electron_Density", "HII_Density",\
+        "HI_Density", "HeIII_Density", "HeII_Density", "HeI_Density"]
+
 #ef('dave_callbacks.py')
 

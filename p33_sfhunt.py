@@ -2,29 +2,30 @@ if 'ef' not in dir():
     execfile('go')
 reload(taxi)
 
-def _ref_mass(field,data):
-    """
-  float ModifiedMinimumMassForRefinement =
-    MinimumMassForRefinement[method]*POW(RefineBy,
-            level*MinimumMassForRefinementLevelExponent[method]);
-	FlaggingField[i] = ((ffield[i] > ModifiedMinimumMassForRefinement)
-	(then some other stuff that I don't care about right now.)
-	"""
-    method = np.where(data.ds['CellFlaggingMethod'] == 2)[0][0]
-    exp = data.ds['MinimumMassForRefinementLevelExponent'][method]
-    ModifiedMinimumMassForRefinement=data.ds['MinimumMassForRefinement'][method]*2**(data.Level*exp)
-    output = np.zeros(data['cell_mass'].shape)
-    flag = data['cell_mass'].in_units('code_mass') > ModifiedMinimumMassForRefinement
-    output[flag] = 1
-    return output
-yt.add_field('ref_mass',function=_ref_mass,take_log=False,validators=[yt.ValidateGridType()])
+if 0:
+    def _ref_mass(field,data):
+        """
+      float ModifiedMinimumMassForRefinement =
+        MinimumMassForRefinement[method]*POW(RefineBy,
+                level*MinimumMassForRefinementLevelExponent[method]);
+        FlaggingField[i] = ((ffield[i] > ModifiedMinimumMassForRefinement)
+        (then some other stuff that I don't care about right now.)
+        """
+        method = np.where(data.ds['CellFlaggingMethod'] == 2)[0][0]
+        exp = data.ds['MinimumMassForRefinementLevelExponent'][method]
+        ModifiedMinimumMassForRefinement=data.ds['MinimumMassForRefinement'][method]*2**(data.Level*exp)
+        output = np.zeros(data['cell_mass'].shape)
+        flag = data['cell_mass'].in_units('code_mass') > ModifiedMinimumMassForRefinement
+        output[flag] = 1
+        return output
+    yt.add_field('ref_mass',function=_ref_mass,take_log=False,validators=[yt.ValidateGridType()])
 
-def _ref_metal(field,data):
-    output = np.zeros(data['Metal_Density'].shape)
-    flag = data['Metal_Density']/data['density'].in_units('code_density')/0.022 > data.ds['MetallicityRefinementMinMetallicity']
-    output[flag]=1
-    return output
-yt.add_field('ref_metal',function=_ref_metal,take_log=False,validators=[yt.ValidateGridType()])
+    def _ref_metal(field,data):
+        output = np.zeros(data['Metal_Density'].shape)
+        flag = data['Metal_Density']/data['density'].in_units('code_density')/0.022 > data.ds['MetallicityRefinementMinMetallicity']
+        output[flag]=1
+        return output
+    yt.add_field('ref_metal',function=_ref_metal,take_log=False,validators=[yt.ValidateGridType()])
 
     
 
@@ -43,10 +44,124 @@ yt.add_field('sf_divv',function=_sf_divv,take_log=False)
 
 def _sf_overdensity(field,data):
     output = np.zeros(data['density'].shape)
-    odthresh = data.ds['StarMakerOverDensityThreshold']
+    odthresh = data.ds.quan(data.ds['StarMakerOverDensityThreshold'], 'code_density')
     output[ data['density'] > odthresh ] = 1
     return output
 yt.add_field('sf_overdensity',function=_sf_overdensity,take_log=False)
+
+def _sf_bmass(field,data):
+    """
+               bmass = d(i,j,k)*dble(d1)*dble(x1*dx)**3 / msolar
+               isosndsp2 = sndspdC * temp(i,j,k)
+               jeanmass = pi/(6._RKIND*sqrt(d(i,j,k)*dble(d1))) *
+     &                    dble(pi * isosndsp2 / G)**1.5_RKIND / msolar
+
+               if (bmass .lt. jeanmass) goto 10z
+	"""
+    msolar = data.ds.quan(1.9891e33,'g')
+    G = data.ds.quan(6.67428e-8, 'cm**3/(g*s**2)')
+    d1 = data.ds['DensityUnits']
+    t1 = data.ds['TimeUnits']
+    L1 = data.ds['LengthUnits']
+    d = data['density'].in_units('g/cm**3') #data['density'].in_units('code_density')*d1 #might be round-about, but it ensures similarity
+#bmas=d*(data['dx'][0,0,0].in_units('code_length')*L1)**3/msolar
+    bmas=d*(data['dx'][0,0,0].in_units('cm'))**3/msolar
+    T = data[('enzo','Temperature')]
+    if hasattr(T,'units'):
+        k_over_m_units = 'cm**2/s**2/K'
+    else:
+        k_over_m_units = 'cm**2/s**2'
+    sndspdC=data.ds.quan(1.3095e8, k_over_m_units) #kB/(0.6 proton mass)
+    isosndsp2 = sndspdC*T
+    jeansmass = np.pi/(6*np.sqrt(d))*(np.pi*isosndsp2/G)**1.5/msolar
+    output = bmas
+    return output
+yt.add_field('sf_bmass',function=_sf_bmass,take_log=False,validators=[yt.ValidateGridType()])
+
+def _sf_jeans_mass(field,data):
+    """
+               bmass = d(i,j,k)*dble(d1)*dble(x1*dx)**3 / msolar
+               isosndsp2 = sndspdC * temp(i,j,k)
+               jeanmass = pi/(6._RKIND*sqrt(d(i,j,k)*dble(d1))) *
+     &                    dble(pi * isosndsp2 / G)**1.5_RKIND / msolar
+
+               if (bmass .lt. jeanmass) goto 10z
+	"""
+    msolar = data.ds.quan(1.9891e33,'g')
+    G = data.ds.quan(6.67428e-8, 'cm**3/(g*s**2)')
+    d1 = data.ds['DensityUnits']
+    t1 = data.ds['TimeUnits']
+    L1 = data.ds['LengthUnits']
+    d = data['density'].in_units('g/cm**3') #data['density'].in_units('code_density')*d1 #might be round-about, but it ensures similarity
+#bmas=d*(data['dx'][0,0,0].in_units('code_length')*L1)**3/msolar
+    bmas=d*(data['dx'][0,0,0].in_units('cm'))**3/msolar
+    T = data[('enzo','Temperature')]
+    if hasattr(T,'units'):
+        k_over_m_units = 'cm**2/s**2/K'
+    else:
+        k_over_m_units = 'cm**2/s**2'
+    sndspdC=data.ds.quan(1.3095e8, k_over_m_units) #kB/(0.6 proton mass)
+    isosndsp2 = sndspdC*T
+    jeansmass = np.pi/(6*np.sqrt(d))*(np.pi*isosndsp2/G)**1.5/msolar
+    output = jeansmass
+    return output
+yt.add_field('sf_jeans_mass',function=_sf_jeans_mass,take_log=False,validators=[yt.ValidateGridType()])
+
+def _sf_jeans_float(field,data):
+    """
+               bmass = d(i,j,k)*dble(d1)*dble(x1*dx)**3 / msolar
+               isosndsp2 = sndspdC * temp(i,j,k)
+               jeanmass = pi/(6._RKIND*sqrt(d(i,j,k)*dble(d1))) *
+     &                    dble(pi * isosndsp2 / G)**1.5_RKIND / msolar
+
+               if (bmass .lt. jeanmass) goto 10z
+	"""
+#   msolar = data.ds.quan(1.9891e33,'g')
+#   G = data.ds.quan(6.67428e-8, 'cm**3/(g*s**2)')
+#   d1 = data.ds['DensityUnits']
+#   t1 = data.ds['TimeUnits']
+#   L1 = data.ds['LengthUnits']
+#   d = data['density'].in_units('g/cm**3') #data['density'].in_units('code_density')*d1 #might be round-about, but it ensures similarity
+#bmas=d*(data['dx'][0,0,0].in_units('code_length')*L1)**3/msolar
+#   bmas=d*(data['dx'][0,0,0].in_units('cm'))**3/msolar
+#   T = data[('enzo','Temperature')]
+#   if hasattr(T,'units'):
+#       k_over_m_units = 'cm**2/s**2/K'
+#   else:
+#       k_over_m_units = 'cm**2/s**2'
+#   sndspdC=data.ds.quan(1.3095e8, k_over_m_units) #kB/(0.6 proton mass)
+#   isosndsp2 = sndspdC*T
+#   jeansmass = np.pi/(6*np.sqrt(d))*(np.pi*isosndsp2/G)**1.5/msolar
+    output =  data['sf_bmass']/data['sf_jeans_mass']
+    return output
+yt.add_field('sf_05_jeans_float',function=_sf_jeans_float,take_log=False,validators=[yt.ValidateGridType()])
+
+def _sf_overdensity_float (field,data):
+    output = np.zeros(data['density'].shape)
+    odthresh = data.ds.quan(data.ds['StarMakerOverDensityThreshold'], 'code_density')
+    output =  data['density'] / odthresh 
+    return output
+yt.add_field('sf_02_overdensity_float',function=_sf_overdensity_float,take_log=False)
+
+def _sf_tdyn(field,data):
+    G = data.ds.quan(6.67428e-8, 'cm**3/(g*s**2)')
+    d1 = data.ds['DensityUnits']
+    t1 = data.ds['TimeUnits']
+    d = data['density']#.in_units('code_density')#*d1 #might be round-about, but it ensures similarity
+    tdyn = np.sqrt(3*np.pi/(32*G*d))#/t1
+    output = tdyn 
+    return output
+yt.add_field('sf_tdyn',function=_sf_tdyn,take_log=False,units='s')
+
+def _sf_timescale_float(field,data):
+    G = data.ds.quan(6.67428e-8, 'cm**3/(g*s**2)')
+    d1 = data.ds['DensityUnits']
+    t1 = data.ds['TimeUnits']
+    d = data['density']#.in_units('code_density')#*d1 #might be round-about, but it ensures similarity
+    tdyn = np.sqrt(3*np.pi/(32*G*d))#/t1
+    output = tdyn.in_units('code_time') / data['enzo','Cooling_Time'].in_units('code_time')
+    return output
+yt.add_field('sf_04_timescale_float',function=_sf_timescale_float,take_log=False)
 
 def _sf_timescale(field,data):
     G = data.ds.quan(6.67428e-8, '1/(code_density*s**2)')
@@ -86,6 +201,7 @@ def _jeans_density(field,data):
     output=(np.pi/(6*(data['dx'][0,0,0].in_units('cm'))**3))**(2./3)*(np.pi*isosndsp2/G)
     return output
 yt.add_field('jeans_density',function=_jeans_density,validators=[yt.ValidateGridType()],units='g/cm**3')
+
 
 
 def _sf_jeans(field,data):

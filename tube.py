@@ -24,7 +24,7 @@ def tube(ds_list,fields=None,times=None, points=[(0.0,0.0,0.0),(1.0,0.0,0.0)],wi
          axis=0,coord=(0.505,0.505),
          debug=0,delta=False,
          labels=None, xlim = None): 
-    """Plots 1d profiles for each oober in *ooberlist*, for each field in *fields* and time in *times*.
+    """Plots 1d profiles for each ds in *ds_list*, for each field in *fields* and time in *times*.
     One plot per field, with oober and time overplotted in each field window.
     Uses the AMRRay from yt, with start and end points given by *points*.
     If *fields* is not given, the minimum set is taken from oober.fields for each oober in *ooberlist*.
@@ -115,8 +115,8 @@ def tube(ds_list,fields=None,times=None, points=[(0.0,0.0,0.0),(1.0,0.0,0.0)],wi
             #plot_args['color'] = dumb_map(counter, range=[0,len(time_set[o.name])])
             if first_ax is None:
                 plot_args['label'] =  '%s %0.2f'%(labels[n_ds],ds['InitialTime'])
-            plot_args['linewidth']=0.1
-            print this_y
+            #plot_args['linewidth']=0.1
+            #print this_y
             L = ax.plot(this_x,this_y,**plot_args)
             if this_y.min() > 0:
                 #ax.set_yscale('linear')
