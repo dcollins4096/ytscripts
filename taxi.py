@@ -32,6 +32,7 @@ import copy
 class fleet():
     def __init__(self,taxi_list=[]):
         self.taxi_list = []
+        self.next_taxi_index=0
         for car in taxi_list:
             if isinstance(car,types.StringType):
                 self.taxi_list.append(taxi(car))
@@ -40,6 +41,14 @@ class fleet():
         self.namelength = max([len(t.name) for t in self.taxi_list])
         self.nt = "%"+str(self.namelength+1)+"s "
 
+    def next(self):
+        this_taxi_index = self.next_taxi_index
+        self.next_taxi_index += 1
+        if self.next_taxi_index >= len(self.taxi_list) + 1:raise StopIteration
+        return self.taxi_list[this_taxi_index]
+    def __iter__(self):
+        self.next_taxi_index=0
+        return self
     def __getitem__(self,item):
         out = []
         if isinstance(item,types.IntType):
@@ -581,7 +590,16 @@ class taxi:
 
 
 
-    def plot(self,local_frames=None):
+    def arg_setter(self,kwargs):
+        for arg in kwargs.keys():
+            if arg.startswith("_"):
+                continue
+            if self.__dict__.has_key(arg):
+                self.__dict__[arg] = kwargs[arg]
+
+
+    def plot(self,local_frames=None, **kwargs):
+        self.arg_setter(kwargs)
         if 'new_particles' in self.callbacks:
             if len(self.axis) *len(self.fields) > 1:
                 print "WARNING: new_particles callbacks does not work with multiple axes or fields."
@@ -726,8 +744,9 @@ class taxi:
                 ok_zones = np.isnan(the_plot.data_source[field]) == False
                 if do_log:
                     ok_zones = np.logical_and(ok_zones, the_plot.data_source[field].min() != 0)
-                this_min = the_plot.data_source[field][ok_zones].min()
-                this_max = the_plot.data_source[field][ok_zones].max()
+                if ok_zones.sum() > 0:
+                    this_min = the_plot.data_source[field][ok_zones].min()
+                    this_max = the_plot.data_source[field][ok_zones].max()
                 if self.Colorbar in ['Monotone', 'monotonic']:
                     if FirstOne:
                         self.zlim[field] = [this_min,this_max]
@@ -1035,6 +1054,8 @@ class taxi:
                     local_extrema = {fields[0]:self.extrema[fields[0]], fields[1]:self.extrema[fields[1]]}
                 else:
                     local_extrema = None
+
+            print "LOCAL", local_extrema
             phase_args['bin_fields']=[fields[0],fields[1]]
             phase_args['fields']=[fields[2]]
             phase_args['weight_field']=weight_field
@@ -1056,14 +1077,15 @@ class taxi:
                 if self.extrema.has_key(fields[0]) and self.Colorbar == 'monotonic':
                     xmin=min([self.extrema[fields[0]][0], phase.x_bins[0]])
                     xmax=max([self.extrema[fields[0]][1], phase.x_bins[-1]])
+                if self.extrema.has_key(fields[1]) and self.Colorbar == 'monotonic':
                     ymin=min([self.extrema[fields[1]][0], phase.y_bins[0]])
                     ymax=max([self.extrema[fields[1]][1], phase.y_bins[-1]])
-                if self.Colorbar in ['fixed']:
+                if self.Colorbar in ['fixed', 'monotonic']:
                     if not self.extrema.has_key(fields[0]):
                         self.extrema[fields[0]] = [xmin,xmax]
                     if not self.extrema.has_key(fields[1]):
-                        self.extrema[fields[1]] = [xmin,xmax]
-                #print "extrema, post", self.extrema
+                        self.extrema[fields[1]] = [ymin,ymax]
+                print "extrema, post", self.extrema
                 pp.set_xlim( lim_down(self.extrema[fields[0]][0]), lim_up(self.extrema[fields[0]][1]))
                 pp.set_ylim( lim_down(self.extrema[fields[1]][0]), lim_up(self.extrema[fields[1]][1]))
 
@@ -1099,12 +1121,13 @@ class taxi:
                     phase.add_callback(call)
 
         return phase_list
-    def count_particles(self):
+    def count_particles(self, frame=None, ptype='all'):
         """Turns out Metadata.NumberOfParticles isn't always updated close to the output in Enzo."""
+        """Also, if ds is loaded already, just leave frame as None and it won't reload"""
         nparticles = 0
-        reg = self.get_region()
+        reg = self.get_region(frame)
         try: 
-            nparticles = reg['particle_index'].size
+            nparticles = reg[ptype,'particle_index'].size
         except:
             pass
         return nparticles

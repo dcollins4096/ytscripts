@@ -22,9 +22,11 @@ sims['s05'] = '%s/s05_h6_large_density'%basedir_35
 sims['s06'] = '%s/s06_h0_noncosmo'%basedir_35
 sims['s07'] = '%s/s07_h6_noncosmo'%basedir_35
 sims['s08'] = '%s/s08_h6_hancock'%basedir_35
+sims['s09'] = '%s/s09_h4_squre'%basedir_35
+sims['s10'] = '%s/s10_h4_square_shift'%basedir_35
+sims['s11'] = '%s/s11_h4_square_shift_test'%basedir_35
 
-
-sim = 's01'
+simlist = ['s11']
 axis=0
 coord=(0.505,0.505)
 counter=0
@@ -35,14 +37,14 @@ counter=0
 #fields +=['x-velocity','y-velocity','z-velocity']
 #fields += ['Ltension_x', 
 #fields += ['Badvection_x']
-fields = ['density', 'Metal_Density','Temperature', 'TotalEnergy']# , 'metallicity']
+fields = ['density', 'Metal_Density'] #'Temperature', 'TotalEnergy']# , 'metallicity']
 ray_set={}
-frames=range(0,10)
+frames=[0,1] #range(0,10)
 renorm={'density':1,'pressure':0.6,'TotalEnergy':0.9}
-for sim in ['s08']:
+for sim in simlist:
     ds_list = []
     ds_list += [yt.load("%s/DD%04d/data%04d"%(sims[sim], frame,frame)) for frame in frames]
-    fname = "Tube_%s_dve_%s.pdf"%(sim,"_%s"*len(fields)%tuple(fields))
+    fname = "Tube_%s_dev_%s.pdf"%(sim,"_%s"*len(fields)%tuple(fields))
     y=tube.tube(ds_list,   legend = True, delta=False, fields=fields,filename = fname,labels=[""]*100) #, xlim = [0.25,0.75])
 #, labels=fields, plot_args={'marker':'*'})
 

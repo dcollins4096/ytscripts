@@ -6,6 +6,10 @@ import glob
 import os.path
 import tarfile
 
+def lim_down(value):
+    return 10**(np.floor(np.log10(value)))
+def lim_up(value):
+    return 10**(np.ceil(np.log10(value)))
 
 def ensure_list(obj):
     """

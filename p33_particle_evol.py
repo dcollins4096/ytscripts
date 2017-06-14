@@ -9,8 +9,7 @@ def g(n):
         print "%s %d"%(car.name, car.ds['NumberOfParticles'])
 
 #taxi_list = [aj01,aj02]
-if 0:
-    pass
+if 'fleet' not in dir():
     #aj15=taxi.taxi('aj15')
     #aj16=taxi.taxi('aj16')
     #aj17=taxi.taxi('aj17')
@@ -30,6 +29,7 @@ if 0:
     #fleet = taxi.fleet(['aj31','aj41','aj43','aj46'])
     #fleet = taxi.fleet(['aj50','aj51','aj52'])
     #fleet['frames']=range(0,41,2)
+    fleet=taxi.fleet(['g15','g16'])
 
 #taxi_list = [aj15,aj16,aj17]
 
@@ -53,7 +53,7 @@ if 1:
             car.fill(n)
             ncycle[car.name].append(car.ds['InitialCycleNumber'])
             t1[car.name].append(car.ds['InitialTime'])
-            this_npart=car.count_particles() 
+            this_npart=car.count_particles()
             npart[car.name].append(this_npart)
             if this_npart > 0:
                 mass[car.name].append( (car.ds.all_data()['particle_mass'].in_units('msun')).sum() )
@@ -67,7 +67,9 @@ if 1:
     #fleet[1].outname = 'aj25_mhd_def'
     #fleet[2].outname = 'aj25_ppm_no_def'
     #fleet[3].outname = 'aj25_mhd_no_def'
-    carnames = "all_0_100_%s"%fleet.allnames()
+    min_frame = nar(fleet['frames']).min()
+    max_frame = nar(fleet['frames']).max()
+    carnames = "all_%04d_%04d_%s"%(min_frame,max_frame,fleet.allnames())
     plt.clf()
     for car in fleet.taxi_list:
         plt.plot(ncycle[car.name],npart[car.name],label=car.outname,marker='x')

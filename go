@@ -52,6 +52,9 @@ if 1:
     alphabet='abcdefghijklmnopqrstuvwxyz'
     MultiSpecies1=[ "Electron_Density", "HII_Density",\
         "HI_Density", "HeIII_Density", "HeII_Density", "HeI_Density"]
+    "Cooling_Time",
+    MultiSpecies2 = [ "Electron_Density", "H2II_Density", "H2I_Density", "HII_Density", "HI_Density",
+        "HM_Density", "HeIII_Density", "HeII_Density", "HeI_Density"]
 
 #ef('dave_callbacks.py')
 
