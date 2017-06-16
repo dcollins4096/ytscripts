@@ -978,8 +978,10 @@ class taxi:
     def profile(self,fields, callbacks=None, weight_field=None, accumulation=False, fractional=True, scales=['log','log'],n_bins=64,extrema=None, units=[None,None]):
         """needs to be generalized with bins."""
         frame_template = self.outname + "_%04i"
+        weight_name = ""
         if weight_field is not None:
-            frame_template += "_%s"%weight
+            weight_name = "%s_"%weight_field
+            frame_template += "_%s"%weight_field
         all_xbins = []
         all_profiles = []
         for frame in ensure_list(self.frames):
@@ -1031,7 +1033,7 @@ class taxi:
         plt.xlabel(r'%s $%s$'%(fields[0],x_units)); plt.ylabel(r'%s $%s$'%(fields[1],y_units))
         plt.legend(loc=0)
         allframes = "_%04d"*ntotal%tuple(self.frames)
-        profname = '%s_prof_%s_%s_n%s.pdf'%(self.outname, fields[0], fields[1], allframes)
+        profname = '%s_prof_%s_%s_%sn%s.pdf'%(self.outname, fields[0], fields[1],weight_name, allframes)
         print profname
         plt.savefig(profname)
         self.profile_data={'all_xbins':all_xbins,'all_profiles':all_profiles, 'scales':scales, 'fields':fields}
