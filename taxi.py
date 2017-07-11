@@ -18,7 +18,7 @@ import pdb
 import os
 import h5py
 import types, time,weakref,davetools
-import dave_callbacks
+#import dave_callbacks
 from davetools import dsave, no_trailing_comments, ensure_list
 import time, fPickle, glob
 if not_ported:
@@ -109,7 +109,7 @@ class fleet():
         for car in self.taxi_list:
             car.profile(*args,**kwargs)
         plt.clf()
-        color_by = kwargs.pop('color_by','frame') #either color with sim or frame. The other gets line style
+        color_by = kwargs.pop('color_by','sim') #either color with sim or frame. The other gets line style
         ntotal = max([len(car.frames) for car in self.taxi_list])
         simtotal = len(self.taxi_list)
         if color_by=='frame':
@@ -117,7 +117,7 @@ class fleet():
         elif color_by=='sim':
             rm = davetools.rainbow_map(simtotal)
         plt.clf()
-        linelist = ['-','--',':']
+        linelist = {0:'-',1:'--',2:':'}
         all_frames=[]
         plot_args={'linewidth':0.3}  #I can probably make this the same as kwargs
         prior_y = None
@@ -128,7 +128,7 @@ class fleet():
                 thex= all_xbins[i]
                 they=all_profiles[i]
                 plot_args['label']='%s %04d'%(car.name,frame)
-                if prior_y is not None:
+                if prior_y is not None and False:
                     l1norm = np.mean(np.abs( they - prior_y ))/np.mean(they)
                     print l1norm
                     prior_y = they
@@ -140,10 +140,10 @@ class fleet():
     
                 if color_by=='sim':
                     plot_args['c']=rm(n)
-                    plot_args['linestyle']=linelist[i]
+                    plot_args['linestyle']=linelist.get(i,'-')
                 elif color_by=='frame':
                     plot_args['c']=rm(i)
-                    plot_args['linestyle']=linelist[n]
+                    plot_args['linestyle']=linelist.get(n,'-')
                 plt.plot( thex, they,**plot_args)
                 #plt.plot( all_xbins[i], all_profiles[i],c=rm(i),linestyle=linelist[n],label='%s %04d'%(car.name,frame))
                 if frame not in all_frames:
@@ -152,20 +152,30 @@ class fleet():
         plt.ylabel(car.profile_data['fields'][1])
         plt.xscale(car.profile_data['scales'][0]); plt.yscale(car.profile_data['scales'][1])
         plt.legend(loc=0)
-        frame_name = "_%04d"*ntotal%tuple(all_frames)
+        frame_name = "_%04d"*len(all_frames)%tuple(all_frames)
         profname = '%s_prof_%s_%s_n%s.pdf'%(self.allnames(), car.profile_data['fields'][0], car.profile_data['fields'][1], frame_name)
         print profname
         plt.savefig(profname)
 
     def find_extrema(self,fields=None,frames=None, manual_positive=False):
+        all_fields = []
+        for car in self: #I feel like there's an easier way to do this.
+            for field in car.fields:
+                if field not in all_fields:
+                    all_fields.append(field)
+
+        extrema_store={}
         for n,car in enumerate(self.taxi_list):
             car.find_extrema(fields,frames, manual_positive=manual_positive)
-            if n==0:
-                extrema_store = car.extrema
-            else:
-                for field in car.extrema.keys():
-                    extrema_store[field][0] = min([extrema_store[field][0],car.extrema[field][0]])
-                    extrema_store[field][1] = max([extrema_store[field][1],car.extrema[field][1]])
+            for field in all_fields:
+                if car.extrema.has_key(field):
+                    if extrema_store.has_key(field):
+                        extrema_store[field][0] = min([extrema_store[field][0],car.extrema[field][0]])
+                        extrema_store[field][1] = max([extrema_store[field][1],car.extrema[field][1]])
+                    else:
+                        extrema_store[field]=np.zeros(2)
+                        extrema_store[field][0] = car.extrema[field][0]
+                        extrema_store[field][1] = car.extrema[field][1]
         for car in self.taxi_list:
             car.extrema = copy.copy(extrema_store)
 
@@ -458,7 +468,7 @@ class taxi:
 
     def set_filename_preset_syntax(self,frame=None):
         if frame == None:
-            frame = self.frames[-1]
+            frame = self.return_frames()[-1]
         #take 1: no subdirectory (very old style)
         self.basename_template = self.directory+'/'+self.name_files+'%04i'
         self.basename = self.basename_template %(frame)
@@ -491,7 +501,7 @@ class taxi:
         else:
             self.get_frames()
             if frame==None:
-                frame = self.frames[0]
+                frame = self.return_frames()[0]
             return self.frame_dict[frame]['SetNumber']
 
     def get_frames(self):
@@ -548,7 +558,7 @@ class taxi:
     def set_filename_from_outputlog(self,frame=None):
         self.get_frames()
         if frame == None:
-            frame = self.frames[-1]
+            frame = self.return_frames()[-1]
         self.basename = "%s/%s"%(self.directory,self.frame_dict[frame]['dsname'])
         if self.verbose == True:
             print "==== %s ===="%(self.basename)
@@ -598,6 +608,25 @@ class taxi:
                 self.__dict__[arg] = kwargs[arg]
 
 
+    def return_frames(self):
+        if not hasattr(self,'frame_dict') or self.frame_dict is None:
+            self.get_frames()
+        all_frames = sorted(self.frame_dict.keys())
+        if self.frames=='all':
+            return_frames = all_frames
+        elif self.frames.startswith('every'):
+            interval = int(self.frames.split(" ")[-1])
+            return_frames = all_frames[::10]
+            if return_frames[-1] != all_frames[-1]:
+                return_frames += all_frames[-1:]
+
+        elif self.frames == 'last':
+            return_frames = all_frames[-1]
+        else:
+            return_frames = self.frames
+
+        return return_frames
+
     def plot(self,local_frames=None, **kwargs):
         self.arg_setter(kwargs)
         if 'new_particles' in self.callbacks:
@@ -612,7 +641,7 @@ class taxi:
         FirstOne = True #For monotonic plots.
 
         if local_frames==None:
-            local_frames=self.frames
+            local_frames=self.return_frames()
 
         for frame in ensure_list(local_frames):
 
@@ -665,6 +694,7 @@ class taxi:
                         plot_or_fig.savefig(filename)
                         print filename
                     else:
+                        plot_or_fig.set_origin('domain')
                         if self.zoom_sequence is not None:
                             for nz,width in enumerate(self.zoom_sequence):
                                 plot_or_fig.set_width(width)
@@ -847,7 +877,7 @@ class taxi:
         *num_ghost_zones* is for fields that require derivatives, etc.
         Currently defaults to first frame, all fields"""
         if frame == None:
-            frame = self.frames[0]
+            frame = self.return_frames()[0]
         if field == None:
             field = self.fields[0]
         directory = self.product_dir(frame)
@@ -909,7 +939,7 @@ class taxi:
             print "Can't cast type ",dtype, "to a complex type."
             return None
         if frame == None:
-            frame = self.frames[0]
+            frame = self.return_frames()[0]
         if field == None:
             field = self.fields[0]
         directory = self.product_dir(frame) #"%s/%s%04d.products/"%(self.directory,self.name_dir,frame)
@@ -950,7 +980,7 @@ class taxi:
         if frames:
             local_frames = frames
         else:
-            local_frames = self.frames
+            local_frames = self.return_frames()
         for frame in local_frames:
             self.fill(frame)
             reg=self.get_region(frame)
@@ -971,7 +1001,7 @@ class taxi:
 
     def dumb_profile(self,fields,**kwargs):
         frame_template = self.outname + "_%04i"
-        for frame in self.frames:
+        for frame in self.return_frames():
             reg = self.get_region(frame)
             plot=yt.ProfilePlot(reg,fields[0],fields[1],**kwargs)
             plot.save(frame_template%frame)
@@ -984,7 +1014,7 @@ class taxi:
             frame_template += "_%s"%weight_field
         all_xbins = []
         all_profiles = []
-        for frame in ensure_list(self.frames):
+        for frame in self.return_frames():
             plt.clf()
             reg = self.get_region(frame)
             local_extrema = None
@@ -1024,15 +1054,15 @@ class taxi:
                 fptr.close()
                 if self.verbose:
                     print "wrote profile file ",filename
-        ntotal = len(self.frames)
+        ntotal = len(self.return_frames())
         rm = davetools.rainbow_map(ntotal)
         plt.clf()
-        for i,n in enumerate(self.frames):
+        for i,n in enumerate(self.return_frames()):
             plt.plot( all_xbins[i], all_profiles[i],c=rm(i),label="n%04d"%n)
         plt.xscale(scales[0]); plt.yscale(scales[1])
         plt.xlabel(r'%s $%s$'%(fields[0],x_units)); plt.ylabel(r'%s $%s$'%(fields[1],y_units))
         plt.legend(loc=0)
-        allframes = "_%04d"*ntotal%tuple(self.frames)
+        allframes = "_%04d"*ntotal%tuple(self.return_frames())
         profname = '%s_prof_%s_%s_%sn%s.pdf'%(self.outname, fields[0], fields[1],weight_name, allframes)
         print profname
         plt.savefig(profname)
@@ -1048,7 +1078,7 @@ class taxi:
             return
         frame_template = self.outname + "_%04i"
         phase_list = []
-        for frame in ensure_list(self.frames):
+        for frame in ensure_list(self.return_frames()):
             reg = self.get_region(frame)
             local_extrema = None
             if self.Colorbar in ['fixed', 'monotonic']:
@@ -1302,7 +1332,7 @@ class other_horsecrap():
         axis = ensure_list(self.axis)[0] 
         axis_text = {0:'x',1:'y',2:'z'}[axis]
         try:
-            for n in self.frames:
+            for n in self.return_frames():
                 for i,x in enumerate( np.arange(0.0,1.0, 1./n_slices) ):
                     self.center[axis] = x
                     self.outname = prefix + '_%04d'%i
@@ -1324,7 +1354,7 @@ class other_horsecrap():
         if kwargs.has_key('frames'):
             frames=kwargs.pop('frames')
         else:
-            frames = self.frames
+            frames = self.return_frames()
 
         for frame in frames:
             self.fill(frame)
@@ -1344,7 +1374,7 @@ class other_horsecrap():
             return
         frame_template = self.outname + "_%04i"
         frame_template += "_%s"%weight
-        for frame in ensure_list(self.frames):
+        for frame in ensure_list(self.return_frames()):
             if use_cg:
                 lazy_reader=False
                 self.make_cg(frame=frame,num_ghost_zones=num_ghost_zones)
@@ -1411,7 +1441,7 @@ class other_horsecrap():
         file = open('stuff_monitor.txt','w')
         file.close()
         t0 = time.time()
-        for i in self.frames:
+        for i in self.return_frames():
             if self.clumps.has_key(i):
                 print "Has Key %d"%i
                 continue
@@ -1445,7 +1475,7 @@ class other_horsecrap():
         file = open('stuff_monitor.txt','w')
         file.close()
         t0 = time.time()
-        for i in self.frames:
+        for i in self.return_frames():
             if self.clumps.has_key(i):
                 print "Has Key %d"%i
                 continue
@@ -1573,7 +1603,7 @@ class other_horsecrap():
     def save_set(self,set,frame=None,field=None,prefix="cube", num_ghost_zones=0, debug=0, dtype='float32'):
         """Saves *set* to disk using standard naming conventions."""
         if frame == None:
-            frame = self.frames[0]
+            frame = self.return_frames()[0]
         if field == None:
             field = self.fields[0]
         directory = self.product_dir(frame)
