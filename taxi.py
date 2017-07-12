@@ -204,6 +204,26 @@ class OperationException(Exception):
 #GET def callbacks():
     
 #GET def operations():
+class dummy_YTArray():
+    """YTarrays need to have datasets associated.  This is a container that assumes you know what you're doing.
+    Has a *value* and *units*, the latter stored as a string.
+    This is for easy caching of things to text."""
+    def __init__(self,value=0,units=None):
+        self.value=value
+        self.v = self.value
+        self.units=units
+#       self.next_index=0
+#   def __getitem__(self,index):
+#       return self.value[index]
+#   def next(self):
+#       this_index = self.next_index
+#       self.next_index += 1
+#       if self.next_index >= len(self.value) + 1:raise StopIteration
+#       return self.value[this_index]
+#   def __iter__(self):
+#       self.next_index=0
+#       return self
+
 
 def writefunction(thing):
     """
@@ -212,7 +232,33 @@ def writefunction(thing):
     Assumes all numpy nd arrays are 1d.  This can be fixed with recursion, but I'm lazy."""
 
     output = ""
-    if isinstance(thing, types.ListType):
+    if isinstance(thing, dummy_YTArray):
+        output += "dummy_YTArray("
+        output += writefunction(thing.v)
+        output += ",'%s')"%thing.units
+    elif isinstance(thing, yt.YTArray):
+        output += "dummy_YTArray("
+        if hasattr(thing,'size') and thing.size > 1:
+            output+="["+str(thing[0].v)
+            for L in thing[1:]:
+                output += ","+str(L.v)
+            output += "]"
+        else:
+            output += str(thing.v)
+
+        output += ", '%s')"%str(thing.units)
+
+    elif isinstance(thing, types.DictType):
+        output += "{"
+        keys = sorted(thing.keys()); 
+        if len(keys):
+            key=keys[0]
+            output += '"%s":%s'%(key,writefunction(thing[key]))
+            for key in keys[1:]:
+                output += ',"%s":%s'%(key,writefunction(thing[key]))
+        output += "}"
+
+    elif isinstance(thing, types.ListType):
         output += "["
         for L in thing:
             output += writefunction(L)
@@ -373,6 +419,9 @@ class taxi:
         #self.derived_fields['field_name'] = {'function':{dict of args}}
         #which then gets called on ds as its loaded.
  
+        #dummy YTArrays are just for easy disk writing.  They get promoted to YTArrays 
+        #once there's a ds, here we keep track of which ones need to be promoted.
+        self.dummy_YTArray_list=[] 
 
 
         if filename != None:
@@ -396,6 +445,9 @@ class taxi:
         file = open(filename,"r")
         for line in file:
             exec(line)
+        for key in self.__dict__:
+            if isinstance(self.__dict__[key],dummy_YTArray):
+                self.dummy_YTArray_list.append(key)
         file.close()
 
     def save(self,filename='DefaultFile'):
@@ -570,6 +622,10 @@ class taxi:
         self.ds = yt.load(self.basename)
         for filter_name in self.particle_filter_names:
             self.ds.add_particle_filter(filter_name)
+        for key in self.dummy_YTArray_list:
+            dya = self.__dict__[key] 
+            self.__dict__[key] = self.ds.arr(dya.v, dya.units)
+        self.dummy_YTArray_list = [] #only need to do this once.
         #na_errors= np.seterr(all='ignore')
         #np.seterr(**na_errors)
 
