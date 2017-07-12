@@ -1,6 +1,13 @@
 
 from volavg import *
 
+
+class ZeroField():
+    def __init__(self,  refine_by=1):
+        self.fields_to_replace = ['Bx','By','Bz','BxF','ByF','BzF','TotalEnergy']
+    def NewFunction(self,target_grid, field):
+        return target_grid[field][:]*0
+
 class FillerFunction():
   #kludge refine by, domain dimension
   def __init__(self,pf,refine_by=1):
@@ -48,22 +55,33 @@ class FillerFunction():
 
 def refile(pf,Filler):
     """For each grid in *pf*, use *Filler* to replace the data with whatever *Filler* returns"""
-    for g in pf.h.grids:
+    print Filler.fields_to_replace
+    print "NEW THING"
+    for g in pf.index.grids:
+        print g
         fptr = h5py.File(g.filename,'r+')
+        print g.filename
         grd = fptr['Grid%08d'%g.id]
         for field in grd.keys():
             if field in Filler.fields_to_replace:
-                output = Filler.NewFunction(g,field)
+                #output = Filler.NewFunction(g,field)
+                if field == 'TotalEnergy':
+                    output = grd[field][:] -  0.5*(1e-15)**2/grd['Density'][:]
+                else:
+                    output = grd[field][:]*0
                 if grd[field].shape != output.shape:
                     print "CLOWN falure"
-                else:
+                else:#
+                    print "i am so smart", field
                     del grd[field]
                     grd.create_dataset(field,data=output)
                 
         fptr.close()
 
-
-if 'SmallFive' not in dir():
+g19e_pf = yt.load('/mnt/c/scratch/sciteam/dcollins/Paper33_Galaxy/g19e_R128L4_h6_b0/DD0000/DD0000')
+filler=ZeroField() 
+refile(g19e_pf,filler)
+if 'SmallFive' not in dir() and False:
     #Filler Function takes pf_large and prepares the small grids.
     #refile takes the FillerFunction and refills pf_target
     pf_large = yt.load('/scratch1/dcollins/Paper08/B2/512/RS0000/restart0000')
