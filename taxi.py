@@ -150,8 +150,10 @@ class fleet():
                     all_frames.append(frame)
         plt.xlabel(car.profile_data['fields'][0])
         plt.ylabel(car.profile_data['fields'][1])
-        plt.xscale(car.profile_data['scales'][0]); plt.yscale(car.profile_data['scales'][1])
+        sd={True:'log',False:'linear'}
+        plt.xscale(sd[car.profile_data['scales'][0]]); plt.yscale(sd[car.profile_data['scales'][1]])
         plt.legend(loc=0)
+        ntotal = len(all_frames)
         frame_name = "_%04d"*ntotal%tuple(all_frames)
         profname = '%s_prof_%s_%s_n%s.pdf'%(self.allnames(), car.profile_data['fields'][0], car.profile_data['fields'][1], frame_name)
         print profname
@@ -194,15 +196,61 @@ class OperationException(Exception):
 #GET def callbacks():
     
 #GET def operations():
+class dummy_YTArray():
+    """YTarrays need to have datasets associated.  This is a container that assumes you know what you're doing.
+    Has a *value* and *units*, the latter stored as a string.
+    This is for easy caching of things to text."""
+    def __init__(self,value=0,units=None):
+        self.value=value
+        self.v = self.value
+        self.units=units
+#       self.next_index=0
+#   def __getitem__(self,index):
+#       return self.value[index]
+#   def next(self):
+#       this_index = self.next_index
+#       self.next_index += 1
+#       if self.next_index >= len(self.value) + 1:raise StopIteration
+#       return self.value[this_index]
+#   def __iter__(self):
+#       self.next_index=0
+#       return self
+
 
 def writefunction(thing):
     """
     taxi.read(file) populates itself from file by executing each line in the file.
-    writefunction(thing) returns a string that, when executed, repopulates uber.
+    writefunction(thing) returns a string that, when executed, repopulates taxi.
     Assumes all numpy nd arrays are 1d.  This can be fixed with recursion, but I'm lazy."""
 
     output = ""
-    if isinstance(thing, types.ListType):
+    if isinstance(thing, dummy_YTArray):
+        output += "dummy_YTArray("
+        output += writefunction(thing.v)
+        output += ",'%s')"%thing.units
+    elif isinstance(thing, yt.YTArray):
+        output += "dummy_YTArray("
+        if hasattr(thing,'size') and thing.size > 1:
+            output+="["+str(thing[0].v)
+            for L in thing[1:]:
+                output += ","+str(L.v)
+            output += "]"
+        else:
+            output += str(thing.v)
+
+        output += ", '%s')"%str(thing.units)
+
+    elif isinstance(thing, types.DictType):
+        output += "{"
+        keys = sorted(thing.keys()); 
+        if len(keys):
+            key=keys[0]
+            output += '"%s":%s'%(key,writefunction(thing[key]))
+            for key in keys[1:]:
+                output += ',"%s":%s'%(key,writefunction(thing[key]))
+        output += "}"
+
+    elif isinstance(thing, types.ListType):
         output += "["
         for L in thing:
             output += writefunction(L)
@@ -242,7 +290,7 @@ class taxi:
         #To make the file easier to use, some of the uber members are written first
         self.WriteMeFirst = ['name','directory','outname','operation','frames','fields','axis',
                             'name_syntax', 'name_files','name_dir','GlobalParameters',
-                             'ProfileDir','ProfileName']
+                             'ProfileDir','ProfileName','zlim']
         self.ExcludeFromWrite.append('WriteMeFirst')
         self.ExcludeFromWrite.append('profile_data')
         self.ExcludeFromWrite.append('last_prof')
@@ -363,6 +411,9 @@ class taxi:
         #self.derived_fields['field_name'] = {'function':{dict of args}}
         #which then gets called on ds as its loaded.
  
+        #dummy YTArrays are just for easy disk writing.  They get promoted to YTArrays 
+        #once there's a ds, here we keep track of which ones need to be promoted.
+        self.dummy_YTArray_list=[] 
 
 
         if filename != None:
@@ -386,6 +437,9 @@ class taxi:
         file = open(filename,"r")
         for line in file:
             exec(line)
+        for key in self.__dict__:
+            if isinstance(self.__dict__[key],dummy_YTArray):
+                self.dummy_YTArray_list.append(key)
         file.close()
 
     def save(self,filename='DefaultFile'):
@@ -560,6 +614,10 @@ class taxi:
         self.ds = yt.load(self.basename)
         for filter_name in self.particle_filter_names:
             self.ds.add_particle_filter(filter_name)
+        for key in self.dummy_YTArray_list:
+            dya = self.__dict__[key] 
+            self.__dict__[key] = self.ds.arr(dya.v, dya.units)
+        self.dummy_YTArray_list = [] #only need to do this once.
         #na_errors= np.seterr(all='ignore')
         #np.seterr(**na_errors)
 
@@ -740,7 +798,7 @@ class taxi:
             the_plot.set_cmap( field, self.cmap[field] )
             #the_plot.label_kws['size'] = 'x-large'
             if self.Colorbar:
-                do_log = True #please get this from the yt object.
+                do_log = self.set_log.get(field,True)
                 ok_zones = np.isnan(the_plot.data_source[field]) == False
                 if do_log:
                     ok_zones = np.logical_and(ok_zones, the_plot.data_source[field].min() != 0)
@@ -975,7 +1033,7 @@ class taxi:
             reg = self.get_region(frame)
             plot=yt.ProfilePlot(reg,fields[0],fields[1],**kwargs)
             plot.save(frame_template%frame)
-    def profile(self,fields, callbacks=None, weight_field=None, accumulation=False, fractional=True, scales=['log','log'],n_bins=64,extrema=None, units=[None,None]):
+    def profile(self,fields, callbacks=None, weight_field=None, accumulation=False, fractional=True, scales=[True,True],n_bins=64,extrema=None, units=[None,None]):
         """needs to be generalized with bins."""
         frame_template = self.outname + "_%04i"
         weight_name = ""
@@ -989,7 +1047,7 @@ class taxi:
             reg = self.get_region(frame)
             local_extrema = None
             prof = yt.create_profile(reg,fields[0],fields[1] ,weight_field=weight_field,accumulation=accumulation,
-                                    fractional=fractional, n_bins=n_bins, extrema=extrema)
+                                     fractional=fractional, n_bins=n_bins, extrema=extrema, logs={fields[0]:scales[0],fields[1]:scales[1]})
             self.last_prof=prof
             the_x = 0.5*(prof.x_bins[1:]+prof.x_bins[0:-1])
             the_y = prof[fields[1]]
@@ -1002,7 +1060,8 @@ class taxi:
             plt.plot(the_x,the_y,label="n%04d"%frame)
             all_xbins.append(the_x)
             all_profiles.append(the_y)
-            plt.xscale(scales[0]); plt.yscale(scales[1])
+            scaledict={True:'log',False:'linear'}
+            plt.xscale(scaledict[scales[0]]); plt.yscale(scaledict[scales[1]])
             plt.xlabel(r'%s $%s$'%(fields[0],x_units)); plt.ylabel(r'%s $%s$'%(fields[1],y_units))
             profname = '%s_prof_%s_%s_n%04d.pdf'%(self.outname, fields[0], fields[1], frame)
             plt.legend(loc=0)
@@ -1029,7 +1088,8 @@ class taxi:
         plt.clf()
         for i,n in enumerate(self.frames):
             plt.plot( all_xbins[i], all_profiles[i],c=rm(i),label="n%04d"%n)
-        plt.xscale(scales[0]); plt.yscale(scales[1])
+        scaledict={True:'log',False:'linear'}
+        plt.xscale(scaledict[scales[0]]); plt.yscale(scaledict[scales[1]])
         plt.xlabel(r'%s $%s$'%(fields[0],x_units)); plt.ylabel(r'%s $%s$'%(fields[1],y_units))
         plt.legend(loc=0)
         allframes = "_%04d"*ntotal%tuple(self.frames)
@@ -1038,7 +1098,7 @@ class taxi:
         plt.savefig(profname)
         self.profile_data={'all_xbins':all_xbins,'all_profiles':all_profiles, 'scales':scales, 'fields':fields}
 
-    def phase(self,fields, callbacks=None, weight_field=None, phase_args={},save=True, n_bins=[64,64]):
+    def phase(self,fields, callbacks=None, weight_field=None, phase_args={},save=True, n_bins=[64,64], phase_callbacks=[]):
         """Uber wrapper for phase objects.
         for all frames in self.frame, run a phase plot object on the region.
         Run all callbacks on the plot.
@@ -1091,13 +1151,14 @@ class taxi:
                 pp.set_xlim( lim_down(self.extrema[fields[0]][0]), lim_up(self.extrema[fields[0]][1]))
                 pp.set_ylim( lim_down(self.extrema[fields[1]][0]), lim_up(self.extrema[fields[1]][1]))
 
-            if 0:
-                key = pp.plots.keys()[0]
-                this_axes = pp.plots[key].axes
-                pp.save('horm.png')
-                #this_axes.plot([1e7,1e10],[1e7,1e10])
-                this_axes.plot([1e-25,1e-23],[1e-25,1e-23])
-                pp.save('derp.png')
+            for callback in phase_callbacks:
+                callback(pp)
+                #key = pp.plots.keys()[0]
+                #this_axes = pp.plots[key].axes
+                #pp.save('horm.png')
+                ##this_axes.plot([1e7,1e10],[1e7,1e10])
+                #this_axes.plot([1e-25,1e-23],[1e-25,1e-23])
+                #pp.save('derp.png')
 
             phase_list.append(pp)
             print pp.save(outname)
