@@ -83,7 +83,8 @@ def parse_hierarchy_for_particles(ds_name):
 
 def add_particles(ds, setname , outdir,outnumber=0, method=0):
     """adds a bunch of particles to ds.
-    method = 0: one particle at each zone center."""
+    method = 0: one particle at each zone center.
+    method > 0: initiate programming more methods."""
     fake_grid_list = parse_hierarchy_for_particles(setname)
     out_basename = outdir + "/DD%04d"%(outnumber)
     if glob.glob(out_basename) == []:

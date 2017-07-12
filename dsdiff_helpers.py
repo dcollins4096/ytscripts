@@ -48,6 +48,7 @@ class fake_grid():
         self.GridLeftEdge = None
         self.GridDimension = None
         self.GridEndIndex  = None
+        self.GridRank = None
         for line in hptr:
             match = grid_re.match(line)
             if match:
@@ -57,25 +58,30 @@ class fake_grid():
                 else:
                     use_this_grid=False
             if use_this_grid:
+                if line.startswith('GridRank'):
+                    useful_line = line[:-1].split(" ")
+                    self.GridRank = int(useful_line[-1])
+                    continue
+
                 if line.startswith('GridLeftEdge'):
                     useful_line = line[:-1].split(" ")
-                    self.GridLeftEdge = nar(map(float,useful_line[-4:-1]))
+                    self.GridLeftEdge = nar(map(float,useful_line[-(self.GridRank+1):-1]))
                     continue
                 if line.startswith('GridRightEdge'):
                     useful_line = line[:-1].split(" ")
-                    self.GridRightEdge = nar(map(float,useful_line[-4:-1]))
+                    self.GridRightEdge = nar(map(float,useful_line[-(self.GridRank+1):-1]))
                     continue
                 if line.startswith('GridStartIndex'):
                     useful_line = line[:-1].split(" ")
-                    self.GridStartIndex = nar(map(int,useful_line[-4:-1]))
+                    self.GridStartIndex = nar(map(int,useful_line[-(self.GridRank+1):-1]))
                     continue
                 if line.startswith('GridEndIndex'):
                     useful_line = line[:-1].split(" ")
-                    self.GridEndIndex = nar(map(int,useful_line[-4:-1]))
+                    self.GridEndIndex = nar(map(int,useful_line[-(self.GridRank+1):-1]))
                     continue
                 if line.startswith('GridDimension'):
                     useful_line = line[:-1].split(" ")
-                    self.GridDimension = nar(map(int,useful_line[-4:-1]))
+                    self.GridDimension = nar(map(int,useful_line[-(self.GridRank+1):-1]))
                     continue
         self.CellWidth = (self.GridRightEdge-self.GridLeftEdge)/(self.GridDimension-2*self.GridStartIndex)
         

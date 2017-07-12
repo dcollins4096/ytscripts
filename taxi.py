@@ -1034,7 +1034,8 @@ class taxi:
             plt.plot(the_x,the_y,label="n%04d"%frame)
             all_xbins.append(the_x)
             all_profiles.append(the_y)
-            plt.xscale(scales[0]); plt.yscale(scales[1])
+            scaledict={True:'log',False:'linear'}
+            plt.xscale(scaledict[scales[0]]); plt.yscale(scaledict[scales[1]])
             plt.xlabel(r'%s $%s$'%(fields[0],x_units)); plt.ylabel(r'%s $%s$'%(fields[1],y_units))
             profname = '%s_prof_%s_%s_n%04d.pdf'%(self.outname, fields[0], fields[1], frame)
             plt.legend(loc=0)
@@ -1061,7 +1062,8 @@ class taxi:
         plt.clf()
         for i,n in enumerate(self.return_frames()):
             plt.plot( all_xbins[i], all_profiles[i],c=rm(i),label="n%04d"%n)
-        plt.xscale(scales[0]); plt.yscale(scales[1])
+        scaledict={True:'log',False:'linear'}
+        plt.xscale(scaledict[scales[0]]); plt.yscale(scaledict[scales[1]])
         plt.xlabel(r'%s $%s$'%(fields[0],x_units)); plt.ylabel(r'%s $%s$'%(fields[1],y_units))
         plt.legend(loc=0)
         allframes = "_%04d"*ntotal%tuple(self.return_frames())
@@ -1070,7 +1072,7 @@ class taxi:
         plt.savefig(profname)
         self.profile_data={'all_xbins':all_xbins,'all_profiles':all_profiles, 'scales':scales, 'fields':fields}
 
-    def phase(self,fields, callbacks=None, weight_field=None, phase_args={},save=True, n_bins=[64,64]):
+    def phase(self,fields, callbacks=None, weight_field=None, phase_args={},save=True, n_bins=[64,64], phase_callbacks=[]):
         """Uber wrapper for phase objects.
         for all frames in self.frame, run a phase plot object on the region.
         Run all callbacks on the plot.
@@ -1123,13 +1125,14 @@ class taxi:
                 pp.set_xlim( lim_down(self.extrema[fields[0]][0]), lim_up(self.extrema[fields[0]][1]))
                 pp.set_ylim( lim_down(self.extrema[fields[1]][0]), lim_up(self.extrema[fields[1]][1]))
 
-            if 0:
-                key = pp.plots.keys()[0]
-                this_axes = pp.plots[key].axes
-                pp.save('horm.png')
-                #this_axes.plot([1e7,1e10],[1e7,1e10])
-                this_axes.plot([1e-25,1e-23],[1e-25,1e-23])
-                pp.save('derp.png')
+            for callback in phase_callbacks:
+                callback(pp)
+                #key = pp.plots.keys()[0]
+                #this_axes = pp.plots[key].axes
+                #pp.save('horm.png')
+                ##this_axes.plot([1e7,1e10],[1e7,1e10])
+                #this_axes.plot([1e-25,1e-23],[1e-25,1e-23])
+                #pp.save('derp.png')
 
             phase_list.append(pp)
             print pp.save(outname)
