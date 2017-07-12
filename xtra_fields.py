@@ -2,6 +2,15 @@ from xtra_operators import *
 eng_units = 'g/(cm*s**2)'
 
 ef('xtra_fields_always.py')
+if 'add_field' not in dir():
+    from yt import add_particle_filter, add_field, ValidateGridType
+
+def formed_star(pfilter, data):
+    filter = data["all", "creation_time"] > 0
+    return filter
+
+add_particle_filter("formed_star", function=formed_star, filtered_type='all',
+                    requires=["creation_time"])
 
 ef('xtra_fields_particles.py')
 
