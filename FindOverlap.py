@@ -9,7 +9,7 @@ class OverlapException(Exception):
 def  nint(x):
     return (x+0.5).astype('int')
     
-def FindOverlap(dir1,dir2,n1,n2,grid1,grid2,field,shift=nar([0.0]*3),grid_direct=False,
+def FindOverlap(dir1,dir2,n1,n2,grid1,grid2,field,shift=None,grid_direct=False,
                ds1=None,ds2=None, nGhostSkip=0):
     """Given two grids, return two slices that will index the overlap regions.
     *field* determines if overlap is considered for faces only.
@@ -22,6 +22,8 @@ def FindOverlap(dir1,dir2,n1,n2,grid1,grid2,field,shift=nar([0.0]*3),grid_direct
     debug=-7
 
     
+    if shift is None:
+        shift = nar([0.0]*fake_grid_1.GridRank)
     left1  = fake_grid_1.GridLeftEdge+ shift
     right1 = fake_grid_1.GridRightEdge+ shift
     width1 = fake_grid_1.CellWidth
