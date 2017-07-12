@@ -622,6 +622,8 @@ class taxi:
 
         elif self.frames == 'last':
             return_frames = all_frames[-1]
+        elif self.frames == 'all_reverse':
+            return_frames = all_frames[::-1]
         else:
             return_frames = self.frames
 
@@ -773,7 +775,7 @@ class taxi:
                 do_log = True #please get this from the yt object.
                 ok_zones = np.isnan(the_plot.data_source[field]) == False
                 if do_log:
-                    ok_zones = np.logical_and(ok_zones, the_plot.data_source[field].min() != 0)
+                    ok_zones = np.logical_and(ok_zones, the_plot.data_source[field] != 0)
                 if ok_zones.sum() > 0:
                     this_min = the_plot.data_source[field][ok_zones].min()
                     this_max = the_plot.data_source[field][ok_zones].max()
@@ -1180,8 +1182,8 @@ class taxi:
     def add_callbacks(self,the_plot,axis=None):
         for i,callback in enumerate(self.callbacks):
             args = self.callback_args.get(callback,{'args':[],'kwargs':{}})
-            myargs=args['args']
-            mykwargs=args['kwargs']
+            myargs=args.get('args',[])
+            mykwargs=args.get('kwargs',{})
             if isinstance(callback,types.StringType):
                 if callback == 'velocity':
                     the_plot.annotate_velocity()
@@ -1205,6 +1207,14 @@ class taxi:
                         pargs = self.callback_args['nparticles']['args']
                         pkwargs=self.callback_args['nparticles']['kwargs']
                         the_plot.annotate_text(pargs[0],r'$n_{\rm{new}}=%d$'%these_indices.shape,**pkwargs)
+                elif callback == 'time_title':
+                    units  = self.callback_args.get('time_title',{'units':'Myr'}).get('units','Myr')
+                    format = self.callback_args.get('time_title',{'format':'%0.2f'}).get('format','%0.2f')
+                    output = r"$"
+                    time = self.ds.current_time.in_units(units)
+                    output += format%time
+                    output += "\ %s$"%time.units
+                    the_plot.annotate_title(output)
                 elif callback == 'new_particles':
                     """This callback does not work with multiple plots for each frame.
                     This is due to the fact that the old particle list is updated each call
