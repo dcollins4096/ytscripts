@@ -209,9 +209,22 @@ class dummy_YTArray():
     Has a *value* and *units*, the latter stored as a string.
     This is for easy caching of things to text."""
     def __init__(self,value=0,units=None):
-        self.value=value
+        if hasattr(value,'units'):
+            self.value=value.v
+            self.units=value.units
+        elif isinstance(value,types.TupleType) or isinstance(value,types.listType):
+            self.value = value[0]
+            self.units= value[1]
+        else:
+            self.value=value
+            self.units=units
         self.v = self.value
-        self.units=units
+    def smarten(self,ds):
+        verb = ds.quan
+        if hasattr(self.value,'size'):
+            if self.value.size > 1:
+                verb = ds.arr
+        return verb(self.v,self.units)
 #       self.next_index=0
 #   def __getitem__(self,index):
 #       return self.value[index]
@@ -624,7 +637,11 @@ class taxi:
             self.ds.add_particle_filter(filter_name)
         for key in self.dummy_YTArray_list:
             dya = self.__dict__[key] 
-            self.__dict__[key] = self.ds.arr(dya.v, dya.units)
+            if dya.v.size == 1:
+                verb = self.ds.quan
+            else:
+                verb = self.ds.arr
+            self.__dict__[key] = verb(dya.v, dya.units)
         self.dummy_YTArray_list = [] #only need to do this once.
         #na_errors= np.seterr(all='ignore')
         #np.seterr(**na_errors)
@@ -668,18 +685,20 @@ class taxi:
         if not hasattr(self,'frame_dict') or self.frame_dict is None:
             self.get_frames()
         all_frames = sorted(self.frame_dict.keys())
-        if self.frames=='all':
-            return_frames = all_frames
-        elif self.frames.startswith('every'):
-            interval = int(self.frames.split(" ")[-1])
-            return_frames = all_frames[::10]
-            if return_frames[-1] != all_frames[-1]:
-                return_frames += all_frames[-1:]
+        return_frames = 'type error'
+        if isinstance(self.frames,types.StringType):
+            if self.frames=='all':
+                return_frames = all_frames
+            elif self.frames.startswith('every'):
+                interval = int(self.frames.split(" ")[-1])
+                return_frames = all_frames[::interval]
+                if return_frames[-1] != all_frames[-1]:
+                    return_frames += all_frames[-1:]
 
-        elif self.frames == 'last':
-            return_frames = all_frames[-1]
-        elif self.frames == 'all_reverse':
-            return_frames = all_frames[::-1]
+            elif self.frames == 'last':
+                return_frames = all_frames[-1]
+            elif self.frames == 'all_reverse':
+                return_frames = all_frames[::-1]
         else:
             return_frames = self.frames
 
@@ -1256,6 +1275,20 @@ class taxi:
                         the_plot.annotate_text(myargs[0],myargs[1],**mykwargs)
                 elif callback == 'nparticles':
                         the_plot.annotate_text(myargs[0],r'$n_p=%d$'%self.count_particles(),**mykwargs)
+                elif callback == 'spheres':
+                    centers = self.callback_args['spheres']['centers']
+                    radii = self.callback_args['spheres']['radii']
+                    ids = self.callback_args['spheres']['ids']
+                    #xax = the_plot.data.ds.coordinates.x_axis[the_plot.data.axis]
+                    #yax = the_plot.data.ds.coordinates.y_axis[the_plot.data.axis]
+                    kwargs = self.callback_args['spheres'].get('kwargs',{})
+                    for n in range(len(ids)):
+                        c = dummy_YTArray(centers[n]).smarten(self.ds)
+                        r = dummy_YTArray(radii[n]).smarten(self.ds)
+                        the_plot.annotate_sphere(c.in_units('code_length'),radius=r.in_units('code_length'),**kwargs)
+
+
+
                 elif callback == 'star_particles':
                     nparticles = self.count_particles()
                     if nparticles>0:
