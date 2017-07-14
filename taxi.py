@@ -216,6 +216,10 @@ class dummy_YTArray():
         elif isinstance(value,types.TupleType) or isinstance(value,types.ListType):
             if isinstance(value[-1], types.StringType):
                 self.value = value[:-1]
+                if len(self.value) == 1:
+                    self.value=self.value[0]
+                    
+
                 self.units= value[-1]
             else:
                 self.value = value
@@ -317,6 +321,10 @@ class taxi:
     and defaults.  The won't be repeated here because there are several, and that's asking
     for a documentation inconsistency."""
     
+    def smarten(self,value, units=None, frame=None):
+        if self.ds is None or frame is not None:
+            self.fill(frame)
+        return dummy_YTArray(value,units).smarten(self.ds)
     def __init__(self, filename=None,dir=None, name=None,**kwargs):
         """
         Either reads in taxifile *fileame* or just sets some defaults."""
@@ -1296,19 +1304,21 @@ class taxi:
                 elif callback == 'nparticles':
                         the_plot.annotate_text(myargs[0],r'$n_p=%d$'%self.count_particles(),**mykwargs)
                 elif callback == 'spheres':
+                    print "WTF"
                     centers = self.callback_args['spheres']['centers']
                     radii = self.callback_args['spheres']['radii']
                     ids = self.callback_args['spheres']['ids']
                     #xax = the_plot.data.ds.coordinates.x_axis[the_plot.data.axis]
                     #yax = the_plot.data.ds.coordinates.y_axis[the_plot.data.axis]
                     circle_args = self.callback_args['spheres'].get('circle_args',{})
-                    for n in range(len(ids)):
+                    for n in range(len(centers)):
                         c = dummy_YTArray(centers[n]).smarten(self.ds)
                         r = dummy_YTArray(radii[n]).smarten(self.ds)
-                        the_plot.annotate_sphere(c.in_units('code_length'),radius=r.in_units('code_length'),circle_args=circle_args)
-
-
-
+                        r = (r.v, r.units)
+                        print "xxxx", r
+                        print "xxxx", c
+                        the_plot.annotate_sphere(c,r,circle_args=circle_args)
+                        print "plot"
                 elif callback == 'star_particles':
                     nparticles = self.count_particles()
                     if nparticles>0:
@@ -1326,6 +1336,11 @@ class taxi:
                     time = self.ds.current_time.in_units(units)
                     output += format%time
                     output += "\ %s$"%time.units
+                    the_plot.annotate_title(output)
+                elif callback == 'z_title':
+                    output = r"$z = "
+                    z = self.ds['CosmologyCurrentRedshift']
+                    output += "%0.2f$"%z
                     the_plot.annotate_title(output)
                 elif callback == 'new_particles':
                     """This callback does not work with multiple plots for each frame.
