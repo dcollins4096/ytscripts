@@ -1281,11 +1281,11 @@ class taxi:
                     ids = self.callback_args['spheres']['ids']
                     #xax = the_plot.data.ds.coordinates.x_axis[the_plot.data.axis]
                     #yax = the_plot.data.ds.coordinates.y_axis[the_plot.data.axis]
-                    kwargs = self.callback_args['spheres'].get('kwargs',{})
+                    circle_args = self.callback_args['spheres'].get('circle_args',{})
                     for n in range(len(ids)):
                         c = dummy_YTArray(centers[n]).smarten(self.ds)
                         r = dummy_YTArray(radii[n]).smarten(self.ds)
-                        the_plot.annotate_sphere(c.in_units('code_length'),radius=r.in_units('code_length'),**kwargs)
+                        the_plot.annotate_sphere(c.in_units('code_length'),radius=r.in_units('code_length'),circle_args=circle_args)
 
 
 
