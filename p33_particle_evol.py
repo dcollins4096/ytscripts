@@ -26,14 +26,10 @@ if 'fleet' not in dir():
     #fleet = taxi.fleet(['g17','g18','g17c','g18c'])
     fleet = taxi.fleet(['g17e','g18e','g19e','g20e'])
     #fleet['frames']=range(0,250,10)
-    fleet['frames'] = range(250,520,10)
-    for car in fleet:
-        max_frame = max(car.frame_dict.keys())
-        car.frames=range(520,max_frame +10, 10)+[max_frame]
-    fleet[0].frames=[518]
+    fleet['frames'] = 'every 10'
 #taxi_list = [aj15,aj16,aj17]
 
-if 0:
+if 1:
     if 1:
         if 'all_the_stuff' not in dir():
             all_the_stuff=fPickle.load("gXXe_particles.pickle")
@@ -57,7 +53,7 @@ if 0:
         frames[car.name] = frames.get(car.name,[])
         #frames[car.name] = range(0,250,10)
         car.fill(0)
-        for n in car.frames:
+        for n in car.return_frames():
             if n in frames[car.name]:
                 continue
             car.fill(n)
@@ -71,7 +67,7 @@ if 0:
             else:
                 mass[car.name].append(0)
 
-if 0:
+if 1:
 	all_the_stuff={'t1':t1,'npart':npart,'ncycle':ncycle,'mass':mass,'frames':frames}
 	all_the_stuff=fPickle.dump(all_the_stuff,"gXXe_particles.pickle")
 
@@ -82,8 +78,8 @@ if 1:
     #fleet[2].outname = 'aj25_ppm_no_def'
     #fleet[3].outname = 'aj25_mhd_no_def'
     format = 'png'
-    max_frame = max([max(car.frames) for car in fleet])
-    min_frame = min([min(car.frames) for car in fleet])
+    max_frame = max([max(car.return_frames()) for car in fleet])
+    min_frame = min([min(car.return_frames()) for car in fleet])
     carnames = ("all_%04d_%04d_%s"%(min_frame,max_frame,fleet.allnames()), format)
 
     if 0:
