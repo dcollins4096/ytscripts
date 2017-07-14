@@ -209,22 +209,36 @@ class dummy_YTArray():
     Has a *value* and *units*, the latter stored as a string.
     This is for easy caching of things to text."""
     def __init__(self,value=0,units=None):
+        self.units = units
         if hasattr(value,'units'):
             self.value=value.v
             self.units=value.units
-        elif isinstance(value,types.TupleType) or isinstance(value,types.listType):
-            self.value = value[0]
-            self.units= value[1]
+        elif isinstance(value,types.TupleType) or isinstance(value,types.ListType):
+            if isinstance(value[-1], types.StringType):
+                self.value = value[:-1]
+                self.units= value[-1]
+            else:
+                self.value = value
+                
         else:
             self.value=value
             self.units=units
         self.v = self.value
     def smarten(self,ds):
         verb = ds.quan
-        if hasattr(self.value,'size'):
-            if self.value.size > 1:
+        try:
+            if len(self.value) > 1:
                 verb = ds.arr
+        except:
+            pass
+#        if hasattr(self.value,'size') or isinstance(value,types.TupleType) or isinstance(value,types.ListType)
+#           if self.value.size > 1:
+#               verb = ds.arr
         return verb(self.v,self.units)
+    def __str__(self):
+        return str(self.value) + " " + str(self.units)
+    def __repr__(self):
+        return repr(self.value) + " " + repr(self.units)
 #       self.next_index=0
 #   def __getitem__(self,index):
 #       return self.value[index]
@@ -284,11 +298,14 @@ def writefunction(thing):
     elif isinstance(thing, types.StringType):
         output += "'"+thing+"'"
     elif isinstance(thing, np.ndarray):
-        tmp = "np.array(["
-        for L in thing:
-            tmp += str(L)
-            tmp += ", "
-        output += tmp[0:-2] + "])"
+        output += "np.array("
+        if thing.size > 1:
+            output += "[%s"%str(thing[0])
+            for L in thing[1:]:
+                output += ",%s"%str(L)
+            output += "])"
+        else:
+            output += "%s"%str(thing)
     else:
         output += str(thing)
     return output
@@ -637,11 +654,14 @@ class taxi:
             self.ds.add_particle_filter(filter_name)
         for key in self.dummy_YTArray_list:
             dya = self.__dict__[key] 
-            if dya.v.size == 1:
-                verb = self.ds.quan
-            else:
-                verb = self.ds.arr
-            self.__dict__[key] = verb(dya.v, dya.units)
+            #if it's a dummy array, or even it it's suggest that it should be,
+            #make it a smarter YTArray.
+            self.__dict__[key] = dummy_YTArray(dya).smarten(self.ds)
+#           if dya.v.size == 1:
+#               verb = self.ds.quan
+#           else:
+#               verb = self.ds.arr
+#           self.__dict__[key] = verb(dya.v, dya.units)
         self.dummy_YTArray_list = [] #only need to do this once.
         #na_errors= np.seterr(all='ignore')
         #np.seterr(**na_errors)
