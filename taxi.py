@@ -866,7 +866,6 @@ class taxi:
             the_plot.set_cmap( field, self.cmap[field] )
             #the_plot.label_kws['size'] = 'x-large'
 
-            print "WTF MAN"
             if self.Colorbar:
                 field_with_weight = field
                 if self.weight_field is not None:
