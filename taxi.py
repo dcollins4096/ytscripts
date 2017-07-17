@@ -844,15 +844,6 @@ class taxi:
                 #                            **extra_args)
                 self.zlim = self.proj_zlim
 
-            elif self.operation == 'RegionProjection_kill_this':
-                """Might be broken"""
-                #setup a projection
-                self.center = 0.5*(self.left + self.right)
-                reg = self.region(self.center, self.left,self.right,field)
-                self.reg = weakref.proxy(reg)
-                self.proj = self.ds.proj(axis,field,center=self.center,source=self.reg,periodic=self.periodic,weight_field=self.weight_field)
-                the_plot = self.proj.to_pw()
-                self.zlim = self.proj_zlim
             elif self.operation == 'RegionProjection':
                 #setup a projection
                 reg = self.get_region()
@@ -874,7 +865,12 @@ class taxi:
 
             the_plot.set_cmap( field, self.cmap[field] )
             #the_plot.label_kws['size'] = 'x-large'
+
+            print "WTF MAN"
             if self.Colorbar:
+                field_with_weight = field
+                if self.weight_field is not None:
+                    field_with_weight += "_%s"%self.weight_field
                 do_log = True #please get this from the yt object.
                 ok_zones = np.isnan(the_plot.data_source[field]) == False
                 if do_log:
@@ -884,21 +880,20 @@ class taxi:
                     this_max = the_plot.data_source[field][ok_zones].max()
                 if self.Colorbar in ['Monotone', 'monotonic']:
                     if FirstOne:
-                        self.zlim[field] = [this_min,this_max]
+                        self.zlim[field_with_weight] = [this_min,this_max]
                     else:
-                        self.zlim[field][0] = min([self.zlim[field][0],this_min])
-                        self.zlim[field][1] = max([self.zlim[field][1],this_max])
+                        self.zlim[field_with_weight][0] = min([self.zlim[field_with_weight][0],this_min])
+                        self.zlim[field_with_weight][1] = max([self.zlim[field_with_weight][1],this_max])
                     if self.verbose:
-                        print "set lim", self.zlim[field]
+                        print "set lim", self.zlim[field_with_weight]
                 elif self.Colorbar in  ['Fixed', 'fixed'] :
-                    if not self.zlim.has_key(field):
+                    if not self.zlim.has_key(field_with_weight):
                         do_log = True #please get this from the yt object.
-                        self.zlim[field] = [this_min,this_max]
+                        self.zlim[field_with_weight] = [this_min,this_max]
                     if self.verbose:
-                        print "set lim", self.zlim[field]
+                        print "set lim", self.zlim[field_with_weight]
 
-                the_plot.set_zlim(field, self.zlim[field][0], self.zlim[field][1])
-
+                the_plot.set_zlim(field, self.zlim[field_with_weight][0].v, self.zlim[field_with_weight][1].v)
                 if self.operation in ['Full','RegionProjection']:
                     self.proj_zlim = self.zlim
                 elif self.operation in ['MinSlice','PeakSlice','DensityPeakSlice','CenterSlice']:
