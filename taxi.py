@@ -727,6 +727,8 @@ class taxi:
                 return_frames = all_frames[-1]
             elif self.frames == 'all_reverse':
                 return_frames = all_frames[::-1]
+        elif isinstance(self.frames, types.SliceType):
+            return_frames = all_frames[self.frames]
         else:
             return_frames = self.frames
 
