@@ -27,12 +27,13 @@ if 'fleet' not in dir():
     fleet = taxi.fleet(['g17e','g18e','g19e','g20e'])
     #fleet['frames']=range(0,250,10)
     fleet['frames'] = 'every 10'
+    particle_pickle_name = "gXXe_particles.pickle"
 #taxi_list = [aj15,aj16,aj17]
 
 if 1:
     if 1:
         if 'all_the_stuff' not in dir():
-            all_the_stuff=fPickle.load("gXXe_particles.pickle")
+            all_the_stuff=fPickle.load(particle_pickle_name)
             t1    =all_the_stuff['t1']
             npart =all_the_stuff['npart']
             ncycle=all_the_stuff['ncycle']
@@ -69,7 +70,7 @@ if 1:
 
 if 1:
 	all_the_stuff={'t1':t1,'npart':npart,'ncycle':ncycle,'mass':mass,'frames':frames}
-	all_the_stuff=fPickle.dump(all_the_stuff,"gXXe_particles.pickle")
+	all_the_stuff=fPickle.dump(all_the_stuff,particle_pickle_name)
 
 
 if 1:
