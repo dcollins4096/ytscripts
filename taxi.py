@@ -710,6 +710,11 @@ class taxi:
 
 
     def return_frames(self):
+        if self.name_syntax == 'preset':
+            if not isinstance(self.frames, types.ListType):
+                print "With preset name syntax, frames must be a list of integers."
+                raise
+            return self.frames
         if not hasattr(self,'frame_dict') or self.frame_dict is None:
             self.get_frames()
         all_frames = sorted(self.frame_dict.keys())
