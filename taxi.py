@@ -1304,17 +1304,24 @@ class taxi:
                         the_plot.annotate_text(myargs[0],myargs[1],**mykwargs)
                 elif callback == 'nparticles':
                         the_plot.annotate_text(myargs[0],r'$n_p=%d$'%self.count_particles(),**mykwargs)
-                elif callback == 'spheres':
-                    halos = self.callback_args['spheres']['halos']
-                    circle_args = self.callback_args['spheres'].get('circle_args',{})
+                elif callback == 'halos':
+                    halos = self.callback_args['halos']['halos']
+                    circle_args = self.callback_args['halos'].get('circle_args',{})
+                    text_args = self.callback_args['halos'].get('text_args',{})
+                    id_offset = self.callback_args['halos'].get('id_offset',0)
+                    if not text_args.has_key('color') and circle_args.has_key('color'):
+                        text_args['color']=circle_args['color']
+
                     for halo in halos:
                         halo_position = self.ds.arr([halo['position'][0].in_units('unitary').d,
                             halo['position'][1].in_units('unitary').d,
                             halo['position'][2].in_units('unitary').d], "unitary")
                         halo_radius = self.ds.quan(halo['rvir'].in_units('unitary').d, "unitary")
+                        text = int(halo['tree_id'] - id_offset)
                         #halo_sphere = self.ds.sphere(halo_position,
                         #    halo_radius)
-                        the_plot.annotate_sphere(halo_position,halo_radius,circle_args=circle_args)
+                        the_plot.annotate_sphere(halo_position,halo_radius,text=text,circle_args=circle_args,
+                                                text_args=text_args)
                 elif callback == 'star_particles':
                     nparticles = self.count_particles()
                     if nparticles>0:
