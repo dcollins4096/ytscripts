@@ -1300,21 +1300,16 @@ class taxi:
                 elif callback == 'nparticles':
                         the_plot.annotate_text(myargs[0],r'$n_p=%d$'%self.count_particles(),**mykwargs)
                 elif callback == 'spheres':
-                    print "WTF"
-                    centers = self.callback_args['spheres']['centers']
-                    radii = self.callback_args['spheres']['radii']
-                    ids = self.callback_args['spheres']['ids']
-                    #xax = the_plot.data.ds.coordinates.x_axis[the_plot.data.axis]
-                    #yax = the_plot.data.ds.coordinates.y_axis[the_plot.data.axis]
+                    halos = self.callback_args['spheres']['halos']
                     circle_args = self.callback_args['spheres'].get('circle_args',{})
-                    for n in range(len(centers)):
-                        c = dummy_YTArray(centers[n]).smarten(self.ds)
-                        r = dummy_YTArray(radii[n]).smarten(self.ds)
-                        r = (r.v, r.units)
-                        print "xxxx", r
-                        print "xxxx", c
-                        the_plot.annotate_sphere(c,r,circle_args=circle_args)
-                        print "plot"
+                    for halo in halos:
+                        halo_position = self.ds.arr([halo['position'][0].in_units('unitary').d,
+                            halo['position'][1].in_units('unitary').d,
+                            halo['position'][2].in_units('unitary').d], "unitary")
+                        halo_radius = self.ds.quan(halo['rvir'].in_units('unitary').d, "unitary")
+                        #halo_sphere = self.ds.sphere(halo_position,
+                        #    halo_radius)
+                        the_plot.annotate_sphere(halo_position,halo_radius,circle_args=circle_args)
                 elif callback == 'star_particles':
                     nparticles = self.count_particles()
                     if nparticles>0:
