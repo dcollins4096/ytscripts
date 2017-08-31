@@ -62,6 +62,29 @@ class fleet():
         for car in self.taxi_list:
             car.__dict__[item] = value
             
+    def __call__(self,string, frames=None):
+        """Execute arbitrary code on the cars in the taxi fleet.
+        output can be used to return values."""
+        output = []
+        for car in self.taxi_list:
+            if frames is None:
+                exec(string)
+            else:
+                for frame in frames:
+                    car.fill(frame)
+                    exec(string)
+        return output
+    def output(self,command, frames=None):
+        """Call *command* on all cars, return the output as a list."""
+        output = []
+        for car in self.taxi_list:
+            if frames is None:
+                output.append(eval(command))
+            else:
+                for frame in frames:
+                    car.fill(frame)
+                    output.append(eval(command))
+        return output
     def outname(self,prefix):
         """sets car.outname = prefix+car.name"""
         for car in self.taxi_list:
@@ -77,18 +100,6 @@ class fleet():
                 car.zlim = prior_zlim
             car.plot(*args, **kwargs)
             prior_zlim = car.zlim
-    def __call__(self,string, frames=False):
-        """Execute arbitrary code on the cars in the taxi fleet.
-        output can be used to return values."""
-        output = []
-        for car in self.taxi_list:
-            if frames is False:
-                exec(string)
-            else:
-                for frame in frames:
-                    car.fill(frame)
-                    exec(string)
-        return output
     def save(self,suffix=""):
         for car in self.taxi_list:
             thisname = car.name+suffix
@@ -469,7 +480,7 @@ class taxi:
                 actual_filename = filename
             except:
                 actual_filename = "taxi_stand/%s"%filename
-            self.load(actual_filename)
+            self.read(actual_filename)
         if dir != None:
             self.directory=dir
         if name != None:
@@ -477,7 +488,7 @@ class taxi:
             self.outname = name
         self.__dict__.update(**kwargs)
 
-    def load(self,filename='DefaultFile'):
+    def read(self,filename='DefaultFile'):
         """Simply executes each line in the file *filename* in the namespace of this uber."""
 
         file = open(filename,"r")
@@ -743,7 +754,7 @@ class taxi:
         self.arg_setter(kwargs)
         if 'new_particles' in self.callbacks:
             if len(self.axis) *len(self.fields) > 1:
-                print "WARNING: new_particles callbacks does not work with multiple axes or fields."
+                print "WARNING: new__particles callbacks does not work with multiple axes or fields."
         print self.zlim
         """Makes the uber plot.  Options for plot can be found in the uber description,
         plot operations can be found by typing uber.operations()"""
