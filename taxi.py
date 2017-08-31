@@ -71,7 +71,7 @@ class fleet():
                 exec(string)
             else:
                 for frame in frames:
-                    car.fill(frame)
+                    car.load(frame)
                     exec(string)
         return output
     def output(self,command, frames=None):
@@ -82,7 +82,7 @@ class fleet():
                 output.append(eval(command))
             else:
                 for frame in frames:
-                    car.fill(frame)
+                    car.load(frame)
                     output.append(eval(command))
         return output
     def outname(self,prefix):
@@ -334,7 +334,7 @@ class taxi:
     
     def smarten(self,value, units=None, frame=None):
         if self.ds is None or frame is not None:
-            self.fill(frame)
+            self.load(frame)
         return dummy_YTArray(value,units).smarten(self.ds)
     def __init__(self, filename=None,dir=None, name=None,**kwargs):
         """
@@ -664,7 +664,10 @@ class taxi:
         if self.verbose == True:
             print "==== %s ===="%(self.basename)
 
-    def fill(self, frame = None):
+    def fill(self, frame=None):
+        print "FILL IS DEPRECATED"
+        self.load(frame)
+    def load(self, frame = None):
         """populate parameter file, plot collection, hierarchy, region if desired.
         Possibly could be renamed 'load' """
         self.set_filename(frame)
@@ -684,10 +687,11 @@ class taxi:
         self.dummy_YTArray_list = [] #only need to do this once.
         #na_errors= np.seterr(all='ignore')
         #np.seterr(**na_errors)
+        return self.ds
 
     def get_region(self, frame=None):
         if frame is not None or self.ds is None:
-            self.fill(frame)
+            self.load(frame)
         if self.region_type.lower()=='sphere':
             reg = self.ds.sphere(self.center, self.radius)
         if self.region_type.lower() in ['rectangle','region']:
@@ -768,7 +772,7 @@ class taxi:
 
         for frame in ensure_list(local_frames):
 
-            self.fill(frame=frame)
+            self.load(frame=frame)
 
             print "==== %s ===="%(self.basename)
             print "== %i time elapsed %f =="%(frame, time.time()-start_time)
@@ -827,7 +831,7 @@ class taxi:
                             print plot_or_fig.save(frame_template%frame)
     def set_center_max(self,field='density', frame=None):
         if self.ds is None or frame is not None:
-            self.fill(frame)
+            self.load(frame)
         value,center = self.ds.find_max(field)
         self.center = np.array(center)
     def do_plots(self,sub_field,axis,FirstOne):
@@ -983,7 +987,7 @@ class taxi:
         """Makes a covering grid for the root grid."""
         if field == None:
             field = self.fields[0]
-        self.fill(frame)
+        self.load(frame)
         left=[0.0]*3
         resolution = self.ds['TopGridDimensions'] + 2*num_ghost_zones
         self.cg=self.ds.covering_grid(0,left,resolution,num_ghost_zones=num_ghost_zones)#,fields=fields)
@@ -1099,7 +1103,7 @@ class taxi:
         else:
             local_frames = self.return_frames()
         for frame in local_frames:
-            self.fill(frame)
+            self.load(frame)
             reg=self.get_region(frame)
             for field in local_fields:
                 if manual_positive:
@@ -1508,7 +1512,7 @@ class other_horsecrap():
             frames = self.return_frames()
 
         for frame in frames:
-            self.fill(frame)
+            self.load(frame)
             output[frame] = self.region.quantities[quantity](*args,**kwargs)
         return output
 
@@ -1532,7 +1536,7 @@ class other_horsecrap():
                 obj=self.cg
                 obj_string='_cg'
             else:
-                self.fill(frame)
+                self.load(frame)
                 obj=self.region
                 obj_string=''
 
@@ -1597,7 +1601,7 @@ class other_horsecrap():
                 print "Has Key %d"%i
                 continue
             self.clumps[i] = {}
-            self.fill(i,get_region=False)
+            self.load(i,get_region=False)
             file = open('stuff_monitor.txt','a')
             file.write('%d reading\n %f'%(i,time.time()-t0))
             file.close()
@@ -1630,10 +1634,9 @@ class other_horsecrap():
             if self.clumps.has_key(i):
                 print "Has Key %d"%i
                 continue
-            self.fill(i,get_region=False)
+            ds = self.load(i,get_region=False)
             #basename = "%s/DD%04d/data%04d"%(self.directory,i,i)
             #exec("ds = %s('%s')"%(self.OutputName,basename))
-            ds=self.ds
             print "CURRENT HASH:",ds._hash()
             file = open('stuff_monitor.txt','a')
             file.write('%d reading\n %f'%(i,time.time()-t0))
@@ -1667,7 +1670,7 @@ class other_horsecrap():
         #self.set_filename_preset_syntax(n)
         #self.set_filename(n)
         #gridname= self.basename + ".grid%04d"%g
-        self.fill(n)
+        self.load(n)
         fname = self.h.grids[g].filename
         fptr = h5py.File(fname,'r')
         try:
@@ -1705,7 +1708,7 @@ class other_horsecrap():
 
     def stat(self,field,frame=None):
         """print min and max of *field*"""
-        self.fill(frame)
+        self.load(frame)
         minTuple = self.h.find_min(field)
         maxTuple = self.h.find_max(field)
         return {'min':minTuple,'max':maxTuple}
@@ -1718,7 +1721,7 @@ class other_horsecrap():
         for frame in frames:
             if fields is None:
                 fields = self.fields
-            self.fill(frame)
+            self.load(frame)
             out = self.region.quantities['Extrema'](fields)
             if Norm is True:
                 for n, field in enumerate(fields):
@@ -1737,7 +1740,7 @@ class other_horsecrap():
 
     def vstat(self,field,frame=None, grid_list=None):
         """Prints stats on each grid.  For the impatient."""
-        self.fill(frame)
+        self.load(frame)
         if grid_list is None:
             grid_list = slice(None)
         for i,g in enumerate(self.h.grids[grid_list]):
