@@ -35,35 +35,42 @@ def symmetric(v):
     s2[Nx:Nx/2:-1] = v[1:Nx/2].conj()
     s2[0]=v[0]
     return s2
-Nx=30
-k=np.arange(Nx*1.0)
-k_power=np.arange(Nx*1.0)
-n = np.zeros((Nx,), dtype=complex)
-plt.clf()
+def make_random_power(Nx,k_min,k_max,slope):
+    k=np.arange(Nx*1.0)
+    k_power=np.arange(Nx*1.0)
+    n = np.zeros((Nx,), dtype=complex)
+    plt.clf()
 #  0 for 1d, 0.5 for 2d, 1 for 3d.  (target_slope - (D-1))/2
-slope=1.
-k_min = 2
-k_max= Nx
-dk=1
-k_filter =  np.logical_and( k >= k_min, k<k_max)
-k_power[k_filter] =  (np.arange(k_min,k_max))**(-slope*0.5)
-if 'all_phasesc' not in dir():
-    all_phasesc = np.exp(1j*np.random.uniform(0, 2*np.pi, (Nx),))
-    all_phases3 = np.exp(1j*np.random.uniform(0, 2*np.pi, (3),))
+    dk=1
+    k_filter =  np.logical_and( k >= k_min, k<k_max)
+    k_power[k_filter] =  (np.arange(k_min,k_max))**(-slope*0.5)
+    if 'all_phasesc' not in dir():
+        all_phasesc = np.exp(1j*np.random.uniform(0, 2*np.pi, (Nx),))
+        all_phases3 = np.exp(1j*np.random.uniform(0, 2*np.pi, (3),))
 #all_phases=np.ones(Nx)
-all_phases=all_phasesc
-n[k_filter] = k_power[k_filter]*all_phases[k_filter]
-ns = symmetric(n) #needs to be self-adjoint in the right way.
-for i in range(Nx/2,Nx):
-    print ns[i] == ns[i-Nx].conj()
-s = np.fft.ifft(ns)
-#this is the right fft and spectra to take.
-#Since s is now real, only half the values matter.
-shat = np.fft.fft(s)  
-sl_s=spectral_slope(np.abs(shat[:Nx/2]),k[:Nx/2],'slope s') 
-plt.clf()
-plt.plot(s)
-plt.savefig('math_tmp2.pdf')
+    all_phases=all_phasesc
+    n[k_filter] = k_power[k_filter]*all_phases[k_filter]
+    ns = symmetric(n) #needs to be self-adjoint in the right way.
+    #for i in range(Nx/2,Nx):
+    #    print ns[i] == ns[-i].conj()
+    s = np.fft.ifft(ns)
+    return s
+
+if 0:
+    Nx=30
+    target_slope=1.
+    k_min = 2
+    k_max= Nx
+    print "butts"
+    n,s = make_random_power(Nx,k_min,k_max,target_slope)
+    #this is the right fft and spectra to take.
+    #Since s is now real, only half the values matter.
+    k=np.arange(Nx*1.0)
+    shat = np.fft.fft(s)  
+    sl_s=spectral_slope(np.abs(shat[:Nx/2]),k[:Nx/2],'slope s') 
+    plt.clf()
+    plt.plot(s)
+    plt.savefig('math_tmp2.pdf')
 
 """
 ratios(n,"N should be complex now")
