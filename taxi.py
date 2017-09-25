@@ -138,8 +138,15 @@ class fleet():
             for i,frame in enumerate(car.frames):
                 thex= all_xbins[i]
                 they=all_profiles[i]
+                if kwargs.has_key('units'):
+                    units=kwargs['units']
+                    fractional=kwargs.get('fractional',True)
+                    if units[0] is not None:
+                        thex = thex.in_units(units[0])
+                    if units[1] is not None and fractional is not True:
+                        they = they.in_units(units[1])
                 plot_args['label']='%s %04d'%(car.name,frame)
-                if prior_y is not None and False:
+                if prior_y is not None:
                     l1norm = np.mean(np.abs( they - prior_y ))/np.mean(they)
                     print l1norm
                     prior_y = they

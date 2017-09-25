@@ -2,13 +2,13 @@ import yt
 import numpy as np
 import pdb
 import pylab
-import fPickle
 import matplotlib.pyplot as plt
 import matplotlib
-import h5py
 import copy
-from davetools import stat
 nar = np.array
+def stat(array,strin='', format='%0.16e'):
+    template = '['+format+','+format+'] %s %s'
+    print template%(array.min(),array.max(),array.shape,strin)
 
 def dumb_map(V,cmap = 'jet',range=[0,1]):
     """Does all the crap that matplot lib needs to map V, assumed to be in [0,1] to the colormap"""
@@ -33,6 +33,15 @@ def tube(ds_list,fields=None,times=None, points=[(0.0,0.0,0.0),(1.0,0.0,0.0)],wi
     *offsets*, if not None, should be a list of multiplicitive offsets for each oober
     *axis*,*coord* gives the arguments to ortho_ray
     *delta* = True takes the difference of oober[0] with oober[1:]
+
+
+    usage:
+    frame_list = [0,1,2,3]
+    sim_5="/whereIputit"
+    ds_list = [yt.load('%s/DD%04d/data%04d'%(sim_5,n1,n1)) for n1 in frame_list]
+    fields = ['density','pressure']
+    renorm={'density':1,'pressure':0.6,'TotalEnergy':0.9}
+    y=tube.tube(ds_list,  delta=True, fields=fields, renorm=renorm,filename = "thing.png")
     """
     #global plt
     #ds_list = ensure_list(ds_list)
