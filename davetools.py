@@ -10,6 +10,31 @@ def lim_down(value):
     return 10**(np.floor(np.log10(value)))
 def lim_up(value):
     return 10**(np.ceil(np.log10(value)))
+def dumb_plt(plot,X,Y,xlabel,ylabel,outname,scale=('linear','linear'), clobber=False,**kwargs):
+    if clobber:
+        plot.clf()
+        print "butts"
+
+    if X is None:
+        X = np.arange(Y.size)
+    if hasattr(plot,'savefig'):
+        plot.plot(X,Y,**kwargs)
+        plot.xscale(scale[0])
+        plot.yscale(scale[1])
+        plot.xlabel(xlabel)
+        plot.ylabel(ylabel)
+        plot.savefig(outname)
+    else:
+        print "wtf"
+        plot.plot(X,Y,**kwargs)
+        plot.set_xscale(scale[0])
+        plot.set_yscale(scale[1])
+        plot.set_xlabel(xlabel)
+        plot.set_ylabel(ylabel)
+        plot.figure.savefig(outname)
+    print outname
+    #return line
+
 
 def ensure_list(obj):
     """
