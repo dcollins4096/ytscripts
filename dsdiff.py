@@ -52,7 +52,7 @@ class udiff():
         self.p['fields']=kwargs['fields']
         self.p['GhostInImage']=True
         self.p['nGhostSkip']=0
-        self.p['shift']=nar([0.0, 0.0, 0.0])
+        self.p['shift']=None
         self.p['output']=None
         self.p['raster']=None
         self.p['output_range']=[]
