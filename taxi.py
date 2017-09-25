@@ -216,9 +216,40 @@ class dummy_YTArray():
     Has a *value* and *units*, the latter stored as a string.
     This is for easy caching of things to text."""
     def __init__(self,value=0,units=None):
-        self.value=value
+        self.units = units
+        if hasattr(value,'units'):
+            self.value=value.v
+            self.units=value.units
+        elif isinstance(value,types.TupleType) or isinstance(value,types.ListType):
+            if isinstance(value[-1], types.StringType):
+                self.value = value[:-1]
+                if len(self.value) == 1:
+                    self.value=self.value[0]
+                    
+
+                self.units= value[-1]
+            else:
+                self.value = value
+                
+        else:
+            self.value=value
+            self.units=units
         self.v = self.value
-        self.units=units
+    def smarten(self,ds):
+        verb = ds.quan
+        try:
+            if len(self.value) > 1:
+                verb = ds.arr
+        except:
+            pass
+#        if hasattr(self.value,'size') or isinstance(value,types.TupleType) or isinstance(value,types.ListType)
+#           if self.value.size > 1:
+#               verb = ds.arr
+        return verb(self.v,self.units)
+    def __str__(self):
+        return str(self.value) + " " + str(self.units)
+    def __repr__(self):
+        return repr(self.value) + " " + repr(self.units)
 #       self.next_index=0
 #   def __getitem__(self,index):
 #       return self.value[index]
@@ -278,11 +309,14 @@ def writefunction(thing):
     elif isinstance(thing, types.StringType):
         output += "'"+thing+"'"
     elif isinstance(thing, np.ndarray):
-        tmp = "np.array(["
-        for L in thing:
-            tmp += str(L)
-            tmp += ", "
-        output += tmp[0:-2] + "])"
+        output += "np.array("
+        if thing.size > 1:
+            output += "[%s"%str(thing[0])
+            for L in thing[1:]:
+                output += ",%s"%str(L)
+            output += "])"
+        else:
+            output += "%s"%str(thing)
     else:
         output += str(thing)
     return output
@@ -294,6 +328,10 @@ class taxi:
     and defaults.  The won't be repeated here because there are several, and that's asking
     for a documentation inconsistency."""
     
+    def smarten(self,value, units=None, frame=None):
+        if self.ds is None or frame is not None:
+            self.fill(frame)
+        return dummy_YTArray(value,units).smarten(self.ds)
     def __init__(self, filename=None,dir=None, name=None,**kwargs):
         """
         Either reads in taxifile *fileame* or just sets some defaults."""
@@ -631,7 +669,14 @@ class taxi:
             self.ds.add_particle_filter(filter_name)
         for key in self.dummy_YTArray_list:
             dya = self.__dict__[key] 
-            self.__dict__[key] = self.ds.arr(dya.v, dya.units)
+            #if it's a dummy array, or even it it's suggest that it should be,
+            #make it a smarter YTArray.
+            self.__dict__[key] = dummy_YTArray(dya).smarten(self.ds)
+#           if dya.v.size == 1:
+#               verb = self.ds.quan
+#           else:
+#               verb = self.ds.arr
+#           self.__dict__[key] = verb(dya.v, dya.units)
         self.dummy_YTArray_list = [] #only need to do this once.
         #na_errors= np.seterr(all='ignore')
         #np.seterr(**na_errors)
@@ -672,21 +717,30 @@ class taxi:
 
 
     def return_frames(self):
+        if self.name_syntax == 'preset':
+            if not isinstance(self.frames, types.ListType):
+                print "With preset name syntax, frames must be a list of integers."
+                raise
+            return self.frames
         if not hasattr(self,'frame_dict') or self.frame_dict is None:
             self.get_frames()
         all_frames = sorted(self.frame_dict.keys())
-        if self.frames=='all':
-            return_frames = all_frames
-        elif self.frames.startswith('every'):
-            interval = int(self.frames.split(" ")[-1])
-            return_frames = all_frames[::10]
-            if return_frames[-1] != all_frames[-1]:
-                return_frames += all_frames[-1:]
+        return_frames = 'type error'
+        if isinstance(self.frames,types.StringType):
+            if self.frames=='all':
+                return_frames = all_frames
+            elif self.frames.startswith('every'):
+                interval = int(self.frames.split(" ")[-1])
+                return_frames = all_frames[::interval]
+                if return_frames[-1] != all_frames[-1]:
+                    return_frames += all_frames[-1:]
 
-        elif self.frames == 'last':
-            return_frames = all_frames[-1]
-        elif self.frames == 'all_reverse':
-            return_frames = all_frames[::-1]
+            elif self.frames == 'last':
+                return_frames = all_frames[-1]
+            elif self.frames == 'all_reverse':
+                return_frames = all_frames[::-1]
+        elif isinstance(self.frames, types.SliceType):
+            return_frames = all_frames[self.frames]
         else:
             return_frames = self.frames
 
@@ -804,15 +858,6 @@ class taxi:
                 #                            **extra_args)
                 self.zlim = self.proj_zlim
 
-            elif self.operation == 'RegionProjection_kill_this':
-                """Might be broken"""
-                #setup a projection
-                self.center = 0.5*(self.left + self.right)
-                reg = self.region(self.center, self.left,self.right,field)
-                self.reg = weakref.proxy(reg)
-                self.proj = self.ds.proj(axis,field,center=self.center,source=self.reg,periodic=self.periodic,weight_field=self.weight_field)
-                the_plot = self.proj.to_pw()
-                self.zlim = self.proj_zlim
             elif self.operation == 'RegionProjection':
                 #setup a projection
                 reg = self.get_region()
@@ -834,7 +879,11 @@ class taxi:
 
             the_plot.set_cmap( field, self.cmap[field] )
             #the_plot.label_kws['size'] = 'x-large'
+
             if self.Colorbar:
+                field_with_weight = field
+                if self.weight_field is not None:
+                    field_with_weight += "_%s"%self.weight_field
                 do_log = True #please get this from the yt object.
                 ok_zones = np.isnan(the_plot.data_source[field]) == False
                 if do_log:
@@ -844,21 +893,20 @@ class taxi:
                     this_max = the_plot.data_source[field][ok_zones].max()
                 if self.Colorbar in ['Monotone', 'monotonic']:
                     if FirstOne:
-                        self.zlim[field] = [this_min,this_max]
+                        self.zlim[field_with_weight] = [this_min,this_max]
                     else:
-                        self.zlim[field][0] = min([self.zlim[field][0],this_min])
-                        self.zlim[field][1] = max([self.zlim[field][1],this_max])
+                        self.zlim[field_with_weight][0] = min([self.zlim[field_with_weight][0],this_min])
+                        self.zlim[field_with_weight][1] = max([self.zlim[field_with_weight][1],this_max])
                     if self.verbose:
-                        print "set lim", self.zlim[field]
+                        print "set lim", self.zlim[field_with_weight]
                 elif self.Colorbar in  ['Fixed', 'fixed'] :
-                    if not self.zlim.has_key(field):
+                    if not self.zlim.has_key(field_with_weight):
                         do_log = True #please get this from the yt object.
-                        self.zlim[field] = [this_min,this_max]
+                        self.zlim[field_with_weight] = [this_min,this_max]
                     if self.verbose:
-                        print "set lim", self.zlim[field]
+                        print "set lim", self.zlim[field_with_weight]
 
-                the_plot.set_zlim(field, self.zlim[field][0], self.zlim[field][1])
-
+                the_plot.set_zlim(field, self.zlim[field_with_weight][0].v, self.zlim[field_with_weight][1].v)
                 if self.operation in ['Full','RegionProjection']:
                     self.proj_zlim = self.zlim
                 elif self.operation in ['MinSlice','PeakSlice','DensityPeakSlice','CenterSlice']:
@@ -1263,6 +1311,24 @@ class taxi:
                         the_plot.annotate_text(myargs[0],myargs[1],**mykwargs)
                 elif callback == 'nparticles':
                         the_plot.annotate_text(myargs[0],r'$n_p=%d$'%self.count_particles(),**mykwargs)
+                elif callback == 'halos':
+                    halos = self.callback_args['halos']['halos']
+                    circle_args = self.callback_args['halos'].get('circle_args',{})
+                    text_args = self.callback_args['halos'].get('text_args',{})
+                    id_offset = self.callback_args['halos'].get('id_offset',0)
+                    if not text_args.has_key('color') and circle_args.has_key('color'):
+                        text_args['color']=circle_args['color']
+
+                    for halo in halos:
+                        halo_position = self.ds.arr([halo['position'][0].in_units('unitary').d,
+                            halo['position'][1].in_units('unitary').d,
+                            halo['position'][2].in_units('unitary').d], "unitary")
+                        halo_radius = self.ds.quan(halo['rvir'].in_units('unitary').d, "unitary")
+                        text = int(halo['tree_id'] - id_offset)
+                        #halo_sphere = self.ds.sphere(halo_position,
+                        #    halo_radius)
+                        the_plot.annotate_sphere(halo_position,halo_radius,text=text,circle_args=circle_args,
+                                                text_args=text_args)
                 elif callback == 'star_particles':
                     nparticles = self.count_particles()
                     if nparticles>0:
@@ -1280,6 +1346,11 @@ class taxi:
                     time = self.ds.current_time.in_units(units)
                     output += format%time
                     output += "\ %s$"%time.units
+                    the_plot.annotate_title(output)
+                elif callback == 'z_title':
+                    output = r"$z = "
+                    z = self.ds['CosmologyCurrentRedshift']
+                    output += "%0.2f$"%z
                     the_plot.annotate_title(output)
                 elif callback == 'new_particles':
                     """This callback does not work with multiple plots for each frame.
