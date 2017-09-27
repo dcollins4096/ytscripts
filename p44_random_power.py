@@ -11,8 +11,9 @@ class spectral_slope():
         #pdb.set_trace()
         self.name=name
         self.k=k
-        self.mask = np.logical_and( k > 0, field>0)
-        self.mask = np.logical_and( self.mask, np.log(k) != 0.0)
+        mask = np.logical_and( k > 0, field>0)
+        self.mask = mask
+        self.mask[mask] = np.logical_and( self.mask[mask], np.log(k[mask]) != 0.0)
         self.mask = np.logical_and( self.mask, np.log10(self.absfield/self.absfield.max()) > -9)
         self.slope = np.zeros_like(field)
         self.slope[self.mask] = np.log(self.field[self.mask])/np.log(self.k[self.mask])
@@ -43,7 +44,7 @@ def make_random_power(Nx,k_min,k_max,slope):
 #  0 for 1d, 0.5 for 2d, 1 for 3d.  (target_slope - (D-1))/2
     dk=1
     k_filter =  np.logical_and( k >= k_min, k<k_max)
-    k_power[k_filter] =  (np.arange(k_min,k_max))**(-slope*0.5)
+    k_power[k_filter] =  (np.arange(k_min,k_max))**(slope*0.5)
     if 'all_phasesc' not in dir():
         all_phasesc = np.exp(1j*np.random.uniform(0, 2*np.pi, (Nx),))
         all_phases3 = np.exp(1j*np.random.uniform(0, 2*np.pi, (3),))
@@ -56,21 +57,24 @@ def make_random_power(Nx,k_min,k_max,slope):
     s = np.fft.ifft(ns)
     return s
 
-if 0:
-    Nx=30
-    target_slope=1.
-    k_min = 2
-    k_max= Nx
-    print "butts"
-    n,s = make_random_power(Nx,k_min,k_max,target_slope)
-    #this is the right fft and spectra to take.
-    #Since s is now real, only half the values matter.
-    k=np.arange(Nx*1.0)
-    shat = np.fft.fft(s)  
-    sl_s=spectral_slope(np.abs(shat[:Nx/2]),k[:Nx/2],'slope s') 
-    plt.clf()
-    plt.plot(s)
-    plt.savefig('math_tmp2.pdf')
+class test1():
+    def __init__(self,Nx=30,target_slope=-1.0, k_min=2,k_max=None):
+        self.Nx=Nx
+        self.target_slope=target_slope
+        self.k_min = k_min
+        self.k_max= k_max
+        if self.k_max is None:
+            self.k_max=self.Nx
+        self.s = make_random_power(self.Nx,self.k_min,self.k_max,self.target_slope)
+        #this is the right fft and spectra to take.
+        #Since s is now real, only half the values matter.
+        self.k=np.arange(self.Nx*1.0)
+        self.shat = np.fft.fft(self.s)  
+        self.abs_slope=spectral_slope(np.abs(self.shat[:self.Nx/2]),self.k[:self.Nx/2],'slope s') 
+        self.power=spectral_slope(np.abs(self.shat[:self.Nx/2])**2,self.k[:self.Nx/2],'slope s') 
+        plt.clf()
+        plt.plot(self.s)
+        plt.savefig('math_tmp2.pdf')
 
 """
 ratios(n,"N should be complex now")
