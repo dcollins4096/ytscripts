@@ -72,9 +72,9 @@ class test1():
         self.shat = np.fft.fft(self.s)  
         self.abs_slope=spectral_slope(np.abs(self.shat[:self.Nx/2]),self.k[:self.Nx/2],'slope s') 
         self.power=spectral_slope(np.abs(self.shat[:self.Nx/2])**2,self.k[:self.Nx/2],'slope s') 
-        plt.clf()
-        plt.plot(self.s)
-        plt.savefig('math_tmp2.pdf')
+        #plt.clf()
+        #plt.plot(self.s)
+        #plt.savefig('math_tmp2.pdf')
 
 """
 ratios(n,"N should be complex now")
