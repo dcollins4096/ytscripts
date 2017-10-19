@@ -176,6 +176,37 @@ class fleet():
         print profname
         plt.savefig(profname)
 
+    def stat(self,field,frame=None):
+        """print min and max of *field*"""
+        ds = self.load(frame)
+        minTuple = ds.find_min(field)
+        maxTuple = ds.find_max(field)
+        return {'min':minTuple,'max':maxTuple}
+
+    def mstat(self,fields=None,frames=None, format = "%9.2e",Norm=False):
+        """Min and max for all fields in self.fields.
+        Field list overridden by *fields*.
+        *Norm* subtracts off the volume-weighted mean."""
+        print fields
+        for frame in frames:
+            if fields is None:
+                fields = self.fields
+            self.load(frame)
+            out = self.region.quantities['Extrema'](fields)
+            if Norm is True:
+                for n, field in enumerate(fields):
+                    avg = self.region.quantities['WeightedAverageQuantity'](field,'CellVolume')
+                    out[n] = out[n][0]-avg, out[n][1]-avg
+            if hasattr(Norm,'has_key'):
+                for n, field in enumerate(fields):
+                    avg =  0
+                    if Norm.has_key(field):
+                        avg = Norm[field]
+                        print field,avg
+                    out[n] = out[n][0]-avg, out[n][1]-avg
+            format_string = "%s %s %s"%(format,format,"%s")
+            for n, field in enumerate(fields):
+                print format_string%(out[n][0], out[n][1], field)
 
     def find_extrema(self,fields=None,frames=None, manual_positive=False):
         all_fields = []
@@ -1106,11 +1137,7 @@ class taxi:
             fptr.create_dataset(field,fft.shape, data=fft, dtype=fft_dtype)
             fptr.close()
         return fft
-    def stat(self,field,frame=None):
-        ds = self.load(frame)
-        minTuple = ds.find_min(field)
-        maxTuple = ds.find_max(field)
-        return {'min':minTuple,'max':maxTuple}
+
     def find_extrema(self,fields=None,frames=None,manual_positive=False):
         if fields is not None:
             local_fields = fields
@@ -1404,6 +1431,7 @@ class taxi:
                     raise PortError("Callback %s not supported"%callback)
             else:
                 print "Where the heck did you get that callback at?"
+
 class other_horsecrap():
 ######################### stuff not ported
     def set_region(self,frame=None):
