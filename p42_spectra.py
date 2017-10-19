@@ -14,8 +14,10 @@ import fourier_tools.fourier_filter as Filter
 
 #fields = ['%s-velocity'%s for s in 'xyz']
 #fields = ['DrivingField%s'%s for s in '123']
-def all_the_spectra(car,fields):
-    for frame in car.frames:
+def all_the_spectra(car,fields, frames=None):
+    if frames is None:
+        frames = car.frames
+    for frame in frames:
         car.fill(frame)
         cube = car.ds.covering_grid(0, left_edge=car.ds.domain_left_edge,
                                 dims=car.ds.domain_dimensions,
