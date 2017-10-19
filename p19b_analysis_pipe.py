@@ -33,16 +33,15 @@ def clump_finder(ds, loc = None, width = None):
     find_clumps(master_clump, c_min, c_max, step)
     return sphere, master_clump, loc
 
-if 'u05' not in dir():
-    u05 = taxi.taxi('u05')
-    car = u05
-
+#if 'u05' not in dir():
+#    u05 = taxi.taxi('u05')
+#    car = u05
+car = taxi.taxi('s06')
 #
 # Get clumps.
 #
 if 0:
-    car.fill(125)
-    ds = car.ds
+    ds = car.load(157)
     sphere, master_clump, loc = clump_finder(ds,width=(0.05,'code_length'), loc = ds.arr([ 0.03613281,  0.79589844,  0.03027344], 'code_length'))
     proj = ds.proj('density',2,data_source=sphere,center=loc)
     leaf_clumps = get_lowest_clumps(master_clump) #if both min_cells and grav_bound are used, this is empty.
@@ -50,14 +49,13 @@ if 0:
     pw.annotate_clumps(clump_list_sort(leaf_clumps))
     pw.save('clump_testx')
 elif 0:
-    car.fill(125)
-    ds = car.ds
+    ds=car.load(125)
     value, loc = ds.find_max('density')
     min_dx = ds.index.get_smallest_dx()
     region = ds.region(center=loc,left_edge = loc-1.5*min_dx, right_edge = loc+1.5*min_dx)
     indices = region['particle_index'].astype('int64')
     leaf_indices=[indices]
-elif 1:
+elif 0:
     car.fill(125)
     ds = car.ds
     keepers = [0,1,8,10,11,12,67,64,61, 201, 125, 306]
@@ -79,25 +77,23 @@ elif 1:
 # cherry pick for debugging.
 #
 
-frames_to_plot = [0,10,20 ,30,40,50,60,70,80,90, 100 ,110,120,125] #[120] # [0,10,20 ,30,40,50,60,70,80,90,100,110,120,125][::2] #[10, 20, 30]:
-cores_to_plot = keepers
-cores_to_plot = [10]
+frames_to_plot = range(0,155,20)+[155]# [0,10,20 ,30,40,50,60,70,80,90, 100 ,110,120,125] #[120] # [0,10,20 ,30,40,50,60,70,80,90,100,110,120,125][::2] #[10, 20, 30]:
+#cores_to_plot = keepers
+cores_to_plot = [0]
 
 #
 # pre-images
 #
 if 1:
     for frame in frames_to_plot:
-        car.fill(frame)
-        ds  = car.ds
+        ds = car.load(frame)
         proj_full = ds.proj('density',0,center='c')
         pw_full = proj_full.to_pw(center = 'c',width=(1.0,'code_length'))
         pw_full.set_cmap('density','gray')
-
         for nc,ic in enumerate(cores_to_plot):
             indices = leaf_indices[ic]
             pw_full.annotate_select_particles(1.0, col=colors[nc], indices=indices)
-        print pw_full.save('u05_peak_thing_core_10_%04d'%frame)
+        print pw_full.save('%s_peak_thing_core_%s_%04d'%(car.name,ic))
 
 #
 # long version.
@@ -217,7 +213,7 @@ if 0:
                                                             truncate, 1.0)
             if False and tdep.has_key(core_ind):
                 del tdep[core_ind]
-ef('p19b_plot_pipe.py')
+#ef('p19b_plot_pipe.py')
 #
 # early values, short version
 #
