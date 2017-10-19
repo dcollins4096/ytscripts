@@ -28,6 +28,7 @@ if not_ported:
 import matplotlib.colorbar as cb
 import re
 import copy
+import turb_quan
 
 class fleet():
     def __init__(self,taxi_list=[]):
@@ -174,6 +175,7 @@ class fleet():
         profname = '%s_prof_%s_%s_n%s.pdf'%(self.allnames(), car.profile_data['fields'][0], car.profile_data['fields'][1], frame_name)
         print profname
         plt.savefig(profname)
+
 
     def find_extrema(self,fields=None,frames=None, manual_positive=False):
         all_fields = []
@@ -460,6 +462,10 @@ class taxi:
         #for storing global parameters
         #Updates each parameter file on read.
         self.GlobalParameters = {}
+
+        #quan box keeps track of a wide array of quantities.
+        self.ExcludeFromWrite.append('qb')
+        self.qb=None
 
         #Covering grid.
         self.cg = None
@@ -751,7 +757,7 @@ class taxi:
                     return_frames += all_frames[-1:]
 
             elif self.frames == 'last':
-                return_frames = all_frames[-1]
+                return_frames = all_frames[-1:]
             elif self.frames == 'all_reverse':
                 return_frames = all_frames[::-1]
         elif isinstance(self.frames, types.SliceType):
@@ -1100,6 +1106,11 @@ class taxi:
             fptr.create_dataset(field,fft.shape, data=fft, dtype=fft_dtype)
             fptr.close()
         return fft
+    def stat(self,field,frame=None):
+        ds = self.load(frame)
+        minTuple = ds.find_min(field)
+        maxTuple = ds.find_max(field)
+        return {'min':minTuple,'max':maxTuple}
     def find_extrema(self,fields=None,frames=None,manual_positive=False):
         if fields is not None:
             local_fields = fields
@@ -1160,7 +1171,7 @@ class taxi:
             plt.plot(the_x,the_y,label="n%04d"%frame)
             all_xbins.append(the_x)
             all_profiles.append(the_y)
-            scaledict={True:'log',False:'linear'}
+            scaledict={True:'log',False:'linear','log':'log','linear':'linear'}
             plt.xscale(scaledict[scales[0]]); plt.yscale(scaledict[scales[1]])
             plt.xlabel(r'%s $%s$'%(fields[0],x_units)); plt.ylabel(r'%s $%s$'%(fields[1],y_units))
             profname = '%s_prof_%s_%s_n%04d.pdf'%(self.outname, fields[0], fields[1], frame)
@@ -1188,7 +1199,7 @@ class taxi:
         plt.clf()
         for i,n in enumerate(self.return_frames()):
             plt.plot( all_xbins[i], all_profiles[i],c=rm(i),label="n%04d"%n)
-        scaledict={True:'log',False:'linear'}
+        scaledict={True:'log',False:'linear','log':'log','linear':'linear'}
         plt.xscale(scaledict[scales[0]]); plt.yscale(scaledict[scales[1]])
         plt.xlabel(r'%s $%s$'%(fields[0],x_units)); plt.ylabel(r'%s $%s$'%(fields[1],y_units))
         plt.legend(loc=0)
@@ -1198,6 +1209,11 @@ class taxi:
         plt.savefig(profname)
         self.profile_data={'all_xbins':all_xbins,'all_profiles':all_profiles, 'scales':scales, 'fields':fields}
 
+    def qb_load(self,plot_format='png'):
+        reload(turb_quan)
+        self.qb=turb_quan.quan_box(self)
+        self.qb.load()
+        self.qb.plot_format = plot_format
     def phase(self,fields, callbacks=None, weight_field=None, phase_args={},save=True, n_bins=[64,64], phase_callbacks=[]):
         """Uber wrapper for phase objects.
         for all frames in self.frame, run a phase plot object on the region.

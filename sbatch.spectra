@@ -31,8 +31,8 @@
 #Application 1
 #python p42_plot2.py
 set ok = 0
-set car = 'aw06'
-set frames = car
+set car = 'ax21'
+set frames = last
 while ( $ok == 0 )
     python turb_spectra_batch.py   $car $frames
     set ok = $status

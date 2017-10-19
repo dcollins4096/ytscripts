@@ -10,7 +10,11 @@ def lim_down(value):
     return 10**(np.floor(np.log10(value)))
 def lim_up(value):
     return 10**(np.ceil(np.log10(value)))
-def dumb_plt(plot,X,Y,xlabel,ylabel,outname,scale=('linear','linear'), clobber=False,**kwargs):
+def dumb_plt(plot,X,Y,xlabel,ylabel,outname,scale=('linear','linear'), clobber=False, scatter=False,**kwargs):
+    if scatter:
+        verb = plot.scatter
+    else:
+        verb= plot.plot
     if clobber:
         plot.clf()
         print "butts"
@@ -18,7 +22,7 @@ def dumb_plt(plot,X,Y,xlabel,ylabel,outname,scale=('linear','linear'), clobber=F
     if X is None:
         X = np.arange(Y.size)
     if hasattr(plot,'savefig'):
-        plot.plot(X,Y,**kwargs)
+        output=verb(X,Y,**kwargs)
         plot.xscale(scale[0])
         plot.yscale(scale[1])
         plot.xlabel(xlabel)
@@ -26,14 +30,22 @@ def dumb_plt(plot,X,Y,xlabel,ylabel,outname,scale=('linear','linear'), clobber=F
         plot.savefig(outname)
     else:
         print "wtf"
-        plot.plot(X,Y,**kwargs)
+        output=verb(X,Y,**kwargs)
         plot.set_xscale(scale[0])
         plot.set_yscale(scale[1])
         plot.set_xlabel(xlabel)
         plot.set_ylabel(ylabel)
         plot.figure.savefig(outname)
     print outname
+    return output
     #return line
+def collect_extrema(a,b=None):
+    """b collects the extrema of a"""
+    if b is None:
+        b=np.array([min(a),max(a)])
+    b[0] = min([min(a),min(b)])
+    b[1] = max([max(a),max(b)])
+    return b
 
 
 def ensure_list(obj):

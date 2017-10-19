@@ -7,10 +7,10 @@
 #SBATCH -J yt_harry_plotter_a     # Job name
 #SBATCH -o yt_harry_plotter_a.o%j # Name of stdout output file(%j expands to jobId)
 #SBATCH -e yt_harry_plotter_a.o%j # Name of stderr output file(%j expands to jobId)
-#SBATCH -p normal          # Submit to the 'normal' or 'development' queue
+#SBATCH -p development          # Submit to the 'normal' or 'development' queue
 #SBATCH -N 1                    # Total number of nodes requested (16 cores/node)
 #SBATCH -n 16                   # Total number of mpi tasks requested
-#SBATCH -t 24:00:00             # Run time (hh:m) - 1.5 hours
+#SBATCH -t 2:00:00             # Run time (hh:m) - 1.5 hours
 #SBATCH --tasks-per-node 16
 #SBATCH --mail-user=dcollins4096@gmail.com
 #SBATCH --mail-type=begin  # email me when the job starts
@@ -31,22 +31,15 @@
 #Application 1
 set echo
 
-set indicator = 'yt_turb_plot_finished'
-set car_list = "aw19"
+set car_list = "ax19 ax20 ax21 ax22"
 foreach i ($car_list) 
-    set thisfile = "$indicator"_$i
-    rm $thisfile
-    (python harry_plotter.py $i ; touch $thisfile) &
+    python harry_plotter.py $i &
 end
-foreach i ($car_list) 
-while (1 )
-    set thisfile = "$indicator"_$i
-    echo "check for " $thisfile
-    if (  -e $thisfile) then
-        echo Found it!
-        break
+set keep_going = 1
+while ( $keep_going )
+    if ( `ps | grep python |wc -l` != 0 ) then
+        sleep 30
+    else
+        set keep_going = 0
     endif
-    sleep 10
 end
-end
-#

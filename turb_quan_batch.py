@@ -5,30 +5,32 @@ car = taxi.taxi(sys.argv[1])
 frames=None
 if len(sys.argv) > 2:
     if sys.argv[2] == 'car':
-        frames = car.frames
+        pass #just leave the frames as they are on disk.
     else:
-        frames = [int(a) for a in sys.argv[2:]]
-    
+        try:
+            #I don't really care for using try-except for this, but 
+            #I can't think of a better way...
+            car.frames = [int(a) for a in sys.argv[2:]]
+        except:
+            L = len(sys.argv[2:])
+            car.frames="%s "*L%tuple(sys.argv[2:])
+            car.frames=car.frames[:-1]
+print "FRAMES", car.frames
+print "FRAMES", car.return_frames()
 #car.plot(0)
 if 1:
-    pickle_name = 'quan_box_%s.pickle'%car.name
-    extant_quan=None
-    if len(glob.glob(pickle_name)):
-        print "LOAD", pickle_name
-        extant_quan = fPickle.load(pickle_name)
-    if frames is None:
-        car.fill(0)
-        all_frames = car.frame_dict.keys()
-        car.frames = all_frames[::10]
-        if all_frames[-1] not in car.frames:
-            car.frames += [all_frames[-1]]
-    else:
-        car.frames=frames
-
+    ef('turb_quan.py')
+    qb = quan_box(car)
+    qb.plot_format='png'
+    qb.load()
+    #qb()
+    #qb.plot()
+    qb.EBall()
+    #pickle_name = 'quan_box_%s.pickle'%car.name
+    #extant_quan=None
+    #if len(glob.glob(pickle_name)):
+    #    print "LOAD", pickle_name
+    #    extant_quan = fPickle.load(pickle_name)
     #car.axis=['x','y','z']
     #car.fields=['density']
     #car.plot()
-    qb = quan_box(car)
-    qb(car,extant_quan=extant_quan)
-    print "SAVE", pickle_name
-    fPickle.dump(qb,pickle_name)
