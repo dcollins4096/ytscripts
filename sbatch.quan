@@ -3,10 +3,10 @@
 # Example SLURM job script to run multiple mpi
 # applications within one batch job on TACC's
 # Stampede system.
-#-------------------1--------------------------------
-#SBATCH -J yt_quan_21     # Job name
-#SBATCH -o yt_quan_21.o%j # Name of stdout output file(%j expands to jobId)
-#SBATCH -e yt_quan_21.o%j # Name of stderr output file(%j expands to jobId)
+#-------------------2--------------------------------
+#SBATCH -J yt_quan_22     # Job name
+#SBATCH -o yt_quan_22.o%j # Name of stdout output file(%j expands to jobId)
+#SBATCH -e yt_quan_22.o%j # Name of stderr output file(%j expands to jobId)
 #SBATCH -p normal          # Submit to the 'normal' or 'development' queue
 #SBATCH -N 1                    # Total number of nodes requested (16 cores/node)
 #SBATCH -n 16                   # Total number of mpi tasks requested
@@ -32,7 +32,7 @@
 
 set echo
 
-set car_list = "ax21" # ax20 ax21 ax22"
+set car_list = "axb22" # ax20 ax21 ax22"
 #frames can be blank (every 10th), a list, or 'car' to use what's in the taxi
 set frames = "every 10"
 

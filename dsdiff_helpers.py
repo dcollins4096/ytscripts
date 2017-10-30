@@ -1,5 +1,5 @@
 import re
-import h5py
+#import h5py
 import numpy as na
 nar = na.array
 def get_ds_name(directory, frame):

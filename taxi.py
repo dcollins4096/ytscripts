@@ -16,7 +16,7 @@ nar = np.array
 array=np.array
 import pdb
 import os
-import h5py
+#import h5py
 import types, time,weakref,davetools
 #import dave_callbacks
 from davetools import dsave, no_trailing_comments, ensure_list

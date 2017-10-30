@@ -10,7 +10,7 @@
 #SBATCH -p development          # Submit to the 'normal' or 'development' queue
 #SBATCH -N 1                    # Total number of nodes requested (16 cores/node)
 #SBATCH -n 16                   # Total number of mpi tasks requested
-#SBATCH -t 2:00:00             # Run time (hh:m) - 1.5 hours
+#SBATCH -t 12:00:00             # Run time (hh:m) - 1.5 hours
 #SBATCH --tasks-per-node 16
 #SBATCH --mail-user=dcollins4096@gmail.com
 #SBATCH --mail-type=begin  # email me when the job starts
@@ -31,9 +31,10 @@
 #Application 1
 set echo
 
-set car_list = "ax19 ax20 ax21 ax22"
+set car_list = "axb19 axb20 axb21 axb22"
 foreach i ($car_list) 
-    python harry_plotter.py $i &
+    set frames = "final_5"
+    python harry_plotter.py $i $frames &
 end
 set keep_going = 1
 while ( $keep_going )
