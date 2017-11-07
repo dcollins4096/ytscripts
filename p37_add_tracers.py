@@ -351,6 +351,13 @@ copy_all_fields(ds1,ds2,fields = ['BxF', 'ByF', 'BzF','Density', 'x-velocity','y
 #outdir = '/Users/dcollins/scratch/Paper36_TracerTests/AddPost/b03_slab_add_particles'
 #outdir = '/Users/dcollins/scratch/Paper36_TracerTests/AddPost/b04_slab_fast'
 #frame = 60;setname = '%s/RS%04d/restart%04d'%(dirname,frame,frame) 
+if 1:
+    """works."""
+    dirname = '/scratch/00369/tg456484/Paper48/Bred8mhd'
+    outdir = '/scratch/00369/tg456484/Paper48/Bred8mhd/DD0002'
+    frame = 1;setname = '%s/DD%04d/data%04d'%(dirname,frame,frame)
+    ds = yt.load(setname)
+    add_particles(ds,setname,outdir)
 
 if 0:
     """works."""

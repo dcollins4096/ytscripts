@@ -4,13 +4,13 @@
 # applications within one batch job on TACC's
 # Stampede system.
 #----------------------------------------------------
-#SBATCH -J yt_spectra_a     # Job name
-#SBATCH -o yt_spectra_a.o%j # Name of stdout output file(%j expands to jobId)
-#SBATCH -e yt_spectra_a.o%j # Name of stderr output file(%j expands to jobId)
-#SBATCH -p normal          # Submit to the 'normal' or 'development' queue
+#SBATCH -J p49_proj     # Job name
+#SBATCH -o p49_proj.o%j # Name of stdout output file(%j expands to jobId)
+#SBATCH -e p49_proj.o%j # Name of stderr output file(%j expands to jobId)
+#SBATCH -p development          # Submit to the 'normal' or 'development' queue
 #SBATCH -N 1                    # Total number of nodes requested (16 cores/node)
 #SBATCH -n 16                   # Total number of mpi tasks requested
-#SBATCH -t 24:00:00             # Run time (hh:m) - 1.5 hours
+#SBATCH -t 2:00:00             # Run time (hh:m) - 1.5 hours
 #SBATCH --tasks-per-node 16
 #SBATCH --mail-user=dcollins4096@gmail.com
 #SBATCH --mail-type=begin  # email me when the job starts
@@ -29,13 +29,18 @@
 # Launch each MPI application using the "-o" and "-n" flags
 # in the background
 #Application 1
-#python p42_plot2.py
-set ok = 0
-set car = 'ax21'
-set frames = last
-while ( $ok == 0 )
-    python turb_spectra_batch.py   $car $frames
-    set ok = $status
-end
+set echo
 
+set car_list = "ax21"
+foreach i ($car_list) 
+    python p49_project.py $i &
+end
+set keep_going = 1
+while ( $keep_going )
+    if ( `ps | grep python |wc -l` != 0 ) then
+        sleep 30
+    else
+        set keep_going = 0
+    endif
+end
 

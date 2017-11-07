@@ -322,6 +322,8 @@ def boundary(ds1,ds2):
 
 if 1:
     """Usage."""
+    #dirname = '/scratch1/dcollins/Paper19/SphereTest/s05b_uni_repeat'
+    #outdir = '/scratch1/dcollins/Paper19/SphereTest/s05b_uni_repeat/tracers'
     dirname = '/scratch1/dcollins/Paper06_Multiphase/fd03_add_tracer_amr'
     outdir = '/scratch1/dcollins/Paper06_Multiphase/fd03_add_tracer_amr/DD0001t'
     frame = 1;setname = '%s/DD%04d/data%04d'%(dirname,frame,frame)

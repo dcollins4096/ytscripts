@@ -16,7 +16,7 @@ nar = np.array
 array=np.array
 import pdb
 import os
-import h5py
+#import h5py
 import types, time,weakref,davetools
 #import dave_callbacks
 from davetools import dsave, no_trailing_comments, ensure_list
@@ -28,6 +28,7 @@ if not_ported:
 import matplotlib.colorbar as cb
 import re
 import copy
+import turb_quan
 
 class fleet():
     def __init__(self,taxi_list=[]):
@@ -461,6 +462,10 @@ class taxi:
         #Updates each parameter file on read.
         self.GlobalParameters = {}
 
+        #quan box keeps track of a wide array of quantities.
+        self.ExcludeFromWrite.append('qb')
+        self.qb=None
+
         #Covering grid.
         self.cg = None
         self.ExcludeFromWrite.append('cg')
@@ -751,7 +756,7 @@ class taxi:
                     return_frames += all_frames[-1:]
 
             elif self.frames == 'last':
-                return_frames = all_frames[-1]
+                return_frames = all_frames[-1:]
             elif self.frames == 'all_reverse':
                 return_frames = all_frames[::-1]
         elif isinstance(self.frames, types.SliceType):
@@ -1100,6 +1105,7 @@ class taxi:
             fptr.create_dataset(field,fft.shape, data=fft, dtype=fft_dtype)
             fptr.close()
         return fft
+
     def find_extrema(self,fields=None,frames=None,manual_positive=False):
         if fields is not None:
             local_fields = fields
@@ -1160,7 +1166,7 @@ class taxi:
             plt.plot(the_x,the_y,label="n%04d"%frame)
             all_xbins.append(the_x)
             all_profiles.append(the_y)
-            scaledict={True:'log',False:'linear'}
+            scaledict={True:'log',False:'linear','log':'log','linear':'linear'}
             plt.xscale(scaledict[scales[0]]); plt.yscale(scaledict[scales[1]])
             plt.xlabel(r'%s $%s$'%(fields[0],x_units)); plt.ylabel(r'%s $%s$'%(fields[1],y_units))
             profname = '%s_prof_%s_%s_n%04d.pdf'%(self.outname, fields[0], fields[1], frame)
@@ -1188,7 +1194,7 @@ class taxi:
         plt.clf()
         for i,n in enumerate(self.return_frames()):
             plt.plot( all_xbins[i], all_profiles[i],c=rm(i),label="n%04d"%n)
-        scaledict={True:'log',False:'linear'}
+        scaledict={True:'log',False:'linear','log':'log','linear':'linear'}
         plt.xscale(scaledict[scales[0]]); plt.yscale(scaledict[scales[1]])
         plt.xlabel(r'%s $%s$'%(fields[0],x_units)); plt.ylabel(r'%s $%s$'%(fields[1],y_units))
         plt.legend(loc=0)
@@ -1198,6 +1204,11 @@ class taxi:
         plt.savefig(profname)
         self.profile_data={'all_xbins':all_xbins,'all_profiles':all_profiles, 'scales':scales, 'fields':fields}
 
+    def qb_load(self,plot_format='png'):
+        reload(turb_quan)
+        self.qb=turb_quan.quan_box(self)
+        self.qb.load()
+        self.qb.plot_format = plot_format
     def phase(self,fields, callbacks=None, weight_field=None, phase_args={},save=True, n_bins=[64,64], phase_callbacks=[]):
         """Uber wrapper for phase objects.
         for all frames in self.frame, run a phase plot object on the region.
@@ -1388,6 +1399,39 @@ class taxi:
                     raise PortError("Callback %s not supported"%callback)
             else:
                 print "Where the heck did you get that callback at?"
+
+    def stat(self,field,frame=None):
+        """print min and max of *field*"""
+        ds = self.load(frame)
+        minTuple = ds.find_min(field)
+        maxTuple = ds.find_max(field)
+        return {'min':minTuple,'max':maxTuple}
+
+    def mstat(self,fields=None,frames=None, format = "%9.2e",Norm=False):
+        """Min and max for all fields in self.fields.
+        Field list overridden by *fields*.
+        *Norm* subtracts off the volume-weighted mean."""
+        print fields
+        for frame in frames:
+            if fields is None:
+                fields = self.fields
+            self.load(frame)
+            out = self.region.quantities['Extrema'](fields)
+            if Norm is True:
+                for n, field in enumerate(fields):
+                    avg = self.region.quantities['WeightedAverageQuantity'](field,'CellVolume')
+                    out[n] = out[n][0]-avg, out[n][1]-avg
+            if hasattr(Norm,'has_key'):
+                for n, field in enumerate(fields):
+                    avg =  0
+                    if Norm.has_key(field):
+                        avg = Norm[field]
+                        print field,avg
+                    out[n] = out[n][0]-avg, out[n][1]-avg
+            format_string = "%s %s %s"%(format,format,"%s")
+            for n, field in enumerate(fields):
+                print format_string%(out[n][0], out[n][1], field)
+
 class other_horsecrap():
 ######################### stuff not ported
     def set_region(self,frame=None):
