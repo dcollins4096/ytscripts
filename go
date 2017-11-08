@@ -12,13 +12,14 @@ if 1:
 #import davecallback
     import dsdiff_helpers
     import fPickle
-    execfile('xtra_fields.py')
+    #execfile('xtra_fields.py')
+    #execfile('xtra_energy_fields.py')
     execfile('davetools.py') #as needed, no more execfile.  
     import taxi
     if  not_in_yt3:
       import better_cbar
       #GET from img_region import * 
-      execfile('xtra_fields.py')
+      #execfile('xtra_fields.py')
       execfile('scatter_fit.py')
       from uber import *
       #import stalker

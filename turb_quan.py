@@ -1,9 +1,15 @@
+execfile('go_lite')
 import taxi
 import p49_fields
+import xtra_energy_fields
 import astropy.io.fits as pyfits
 import glob
 import fPickle
 import os
+import numpy as np
+nar = np.array
+
+
 
 #fleet = [aw11]
 class quan_box():
@@ -57,9 +63,10 @@ class quan_box():
         if frames is None:
             frames = self.car.return_frames()
         for frame in frames:
-            self.make_frbs(frame)
-            self.QUEB(frame)
-            self.EBslopes(frame)
+            if frame not in self.stuff['EB']:
+                self.make_frbs(frame)
+                self.QUEB(frame)
+                self.EBslopes(frame)
         self.dump()
     def EBslopes(self,frame):
         import p49_slopes_powers
@@ -71,7 +78,7 @@ class quan_box():
     def QUEB(self, frame):
         import p49_QU2EB
         reload (p49_QU2EB)
-        ds = self.car.load(frame)
+        #ds = self.car.load(frame)
         frb_dir = "%s/FRBs/"%self.car.directory
         p49_QU2EB.QU2EB(frb_dir,frame)
 #        if frames is None:
@@ -86,14 +93,17 @@ class quan_box():
           n0=1; p=1 #n0 in [19,39,1945] and p=0
           fields.append( (axis,'Q%s_n0-%04d_p-%d'%(axis,n0,p))   )
           fields.append( (axis,'U%s_n0-%04d_p-%d'%(axis,n0,p))   )
-        ds = self.car.load(frame)
-        res = ds.parameters['TopGridDimensions'][2 + ord('x') - ord(axis)] # zyx order
 
+        ds = None  #this is somewhat awkward, but useful for avoiding sets
+                   #  that has only products, not datasest
         for axis, field in fields :
             outputdir = "%s/FRBs/"%self.car.directory
             if not os.access(outputdir, os.F_OK):
                 os.mkdir(outputdir)
             outfile = outputdir+"/DD%.4d_%s.fits" %(frame,field)
+            if ds is None:
+                ds = self.car.load(frame)
+                res = ds.parameters['TopGridDimensions'][2 + ord('x') - ord(axis)] # zyx order
             if os.access(outfile, os.F_OK) and not self.clobber:
                 print "FRB exists: %s"%outfile
             else:
@@ -122,6 +132,8 @@ class quan_box():
             if not self.stuff.has_key(field):
                 self.stuff[field] = []
 
+        if frame in self.stuff['frames'] and self.clobber == False:
+            return
         if self.stuff.has_key('tdyn'):
             self.tdyn = self.stuff['tdyn']
         else:
@@ -137,14 +149,13 @@ class quan_box():
             car.ds.create_field_info()
             self.potential_written = 'PotentialField' in [k[1] for k in car.ds.field_info.keys()]
 
-        if frame in self.stuff['frames'] and self.clobber == False:
-            return
         print "QUAN ON ", car.name, frame
         self.stuff['frames'].append(frame)
         self.stuff['t'].append(car.ds['InitialTime']/(tdyn) )
         reg = car.get_region(frame)
         total_volume = reg['cell_volume'].sum()
         volume = reg['cell_volume']
+        #self.stuff['mass'].append( (reg.quantities['WeightedAverageQuantity']('density', 'cell_volume')*total_volume).in_units('code_mass'))
         self.stuff['mach'].append( np.sqrt(reg.quantities['WeightedAverageQuantity']('mean_square_velocity','cell_volume').in_units('code_velocity**2').v ) )
         self.stuff['vx'].append(reg.quantities['WeightedAverageQuantity']('velocity_x','cell_volume').in_units('code_velocity').v)
         self.stuff['vy'].append(reg.quantities['WeightedAverageQuantity']('velocity_y','cell_volume').in_units('code_velocity').v)
@@ -186,33 +197,73 @@ class quan_box():
 
 
 
+
+
     def plot(self):
+        def nom_string(val):
+            if val > 10 or val < 0.1:
+                return "%0.1e"%val
+            else:
+                return "%0.1f"%val
         print "here's the thing"
+
+        nominal = dict(zip(['ax19','ax20','ax21','ax22'],[{},{},{},{}]))
+        nominal['ax19']= dict(zip(['mach','AlfMach','logbeta','field_cgs'],[1.0, 0.3,np.log10(2*(0.3/1.0)**2),11.82]))
+        nominal['ax20']= dict(zip(['mach','AlfMach','logbeta','field_cgs'],[3.0, 1.0,np.log10(2*(1.0/3.0)**2),10.6347]))
+        nominal['ax21']= dict(zip(['mach','AlfMach','logbeta','field_cgs'],[0.6, 0.3,np.log10(2*(0.3/0.6)**2),7.089815 ]))
+        nominal['ax22']= dict(zip(['mach','AlfMach','logbeta','field_cgs'],[3.0, 0.3,np.log10(2*(0.3/3.0)**2),35.4]))
         car = self.car
         ds=car.load()
+        tn = nominal.get(car.name,None)
+        times = self.stuff['t']
+        time_label  =r'$t [\rm{code}]$'
+        if tn:
+            time_label += r' $(t_{\rm{cross}}= %s)$'% nom_string(0.5/tn['mach'])
+
+        sqrtfourpi=np.sqrt(4*np.pi)
+
         if car.ds['HydroMethod'] in [4,6]:
             plt.clf()
-            plt.plot(self.stuff['t'],self.stuff['Bx'],label='Bx')
-            plt.plot(self.stuff['t'],self.stuff['By'],label='By')
-            plt.plot(self.stuff['t'],self.stuff['Bz'],label='Bz')
-            plt.plot(self.stuff['t'],self.stuff['bx'],label='bx')
-            plt.plot(self.stuff['t'],self.stuff['by'],label='by')
-            plt.plot(self.stuff['t'],self.stuff['bz'],label='bz')
-            plt.plot(self.stuff['t'],self.stuff['bx2'],label='bx rms')
-            plt.plot(self.stuff['t'],self.stuff['by2'],label='by rms')
-            plt.plot(self.stuff['t'],self.stuff['bz2'],label='bz rms')
+            n_points = len(times)
+            my_ones = np.ones(n_points)
+            
+            if tn is not None:
+                nom_val = tn['field_cgs']/sqrtfourpi
+                st = "nominal "+ (nom_string(nom_val))
+                plt.plot(times, my_ones*nom_val,label=st,c=[0.5]*4)
+            plt.plot(times,self.stuff['Bx'],label='Bx')
+            plt.plot(times,self.stuff['By'],label='By')
+            plt.plot(times,self.stuff['Bz'],label='Bz')
+            plt.plot(times,self.stuff['bx'],label='bx')
+            plt.plot(times,self.stuff['by'],label='by')
+            plt.plot(times,self.stuff['bz'],label='bz')
+            plt.plot(times,self.stuff['bx2'],label='bx rms')
+            plt.plot(times,self.stuff['by2'],label='by rms')
+            plt.plot(times,self.stuff['bz2'],label='bz rms')
             plt.legend(loc=0)
-            plt.xlabel('t/tcode')
+            plt.ylabel('MagneticField'); plt.xlabel(time_label)
             outname = '%s_quan_field_strength.%s'%(car.name,self.plot_format)
             plt.savefig(outname)
             print outname
 
             plt.clf()
-            plt.plot(self.stuff['t'], self.stuff['AlfMach'], label='MA')
-            plt.plot(self.stuff['t'], self.stuff['mach'], label="M")
-            plt.plot(self.stuff['t'], self.stuff['AlfvenSpeed'],label='Va')
-            plt.plot(self.stuff['t'], self.stuff['beta'], label='beta')
-            plt.xlabel('t/tcode')
+            c='r'
+            if tn is not None:
+                plt.plot(times, my_ones*tn['AlfMach'],label='nominal',c=c,linestyle='--')
+            plt.plot(times, self.stuff['AlfMach'], label='MA',c=c )
+            c='g'
+            if tn is not None:
+                plt.plot(times, my_ones*tn['mach'],c=c,linestyle='--')
+            plt.plot(times, self.stuff['mach'], label="M", c='g')
+            c='c'
+            if tn is not None:
+                plt.plot(times, my_ones*(tn['mach']/tn['AlfMach']),c=c,linestyle='--')
+            plt.plot(times, self.stuff['AlfvenSpeed'],label='Va',c=c)
+            c='b'
+            if tn is not None:
+                plt.plot(times, my_ones*(10**tn['logbeta']),c=c,linestyle='--')
+            plt.plot(times, self.stuff['beta'], label='beta',c=c)
+            plt.ylabel('Dimensionless'); plt.xlabel(time_label)
             plt.legend(loc=0)
             outname = '%s_quan_MaM.%s'%(car.name,self.plot_format)
             plt.savefig(outname)
@@ -222,43 +273,47 @@ class quan_box():
             plt.savefig(outname)
             print outname
 
-
-
-
         plt.clf()
-        plt.plot(self.stuff['t'],self.stuff['ex'],label='ex')
-        plt.plot(self.stuff['t'],self.stuff['ey'],label='ey')
-        plt.plot(self.stuff['t'],self.stuff['ez'],label='ez')
+        plt.plot(times,self.stuff['ex'],label='ex')
+        plt.plot(times,self.stuff['ey'],label='ey')
+        plt.plot(times,self.stuff['ez'],label='ez')
+        plt.ylabel('Partial Energies'); plt.xlabel(time_label)
         plt.legend(loc=0)
         outname = '%s_quan_eng.%s'%(car.name,self.plot_format)
         plt.savefig(outname)
         print outname
 
         plt.clf()
-        plt.plot(self.stuff['t'],self.stuff['px'],label='px')
-        plt.plot(self.stuff['t'],self.stuff['py'],label='py')
-        plt.plot(self.stuff['t'],self.stuff['pz'],label='pz')
+        plt.plot(times,self.stuff['px'],label='px')
+        plt.plot(times,self.stuff['py'],label='py')
+        plt.plot(times,self.stuff['pz'],label='pz')
         plt.legend(loc=0)
         outname = '%s_quan_mom.%s'%(car.name,self.plot_format)
+        plt.ylabel('Momentum'); plt.xlabel(time_label)
         plt.savefig(outname)
         print outname
 
         plt.clf()
-        plt.plot(self.stuff['t'],self.stuff['vx'],label='vx')
-        plt.plot(self.stuff['t'],self.stuff['vy'],label='vy')
-        plt.plot(self.stuff['t'],self.stuff['vz'],label='vz')
-        plt.plot(self.stuff['t'],self.stuff['mach'],label='mach')
+        plt.plot(times,self.stuff['vx'],label='vx',c='r')
+        plt.plot(times,self.stuff['vy'],label='vy',c='g')
+        plt.plot(times,self.stuff['vz'],label='vz',c='b')
+        c='k'
+        if tn is not None:
+            plt.plot(times, my_ones*tn['mach'],c=c,linestyle='--')
+        plt.plot(times,self.stuff['mach'],label='mach',c=c)
+        plt.ylabel('velocities'); plt.xlabel(time_label)
         plt.legend(loc=0)
         outname = '%s_quan_vel.%s'%(car.name,self.plot_format)
         plt.savefig(outname)
         print outname
 
         plt.clf()
-        plt.plot(self.stuff['t'],self.stuff['ke_tot'],label='ke_tot')
-        plt.plot(self.stuff['t'],self.stuff['ke_rel'],label='ke_rel')
+        plt.plot(times,self.stuff['ke_tot'],label='ke_tot')
+        plt.plot(times,self.stuff['ke_rel'],label='ke_rel')
         if self.potential_written: 
-            plt.plot(self.stuff['t'],self.stuff['grav_pot'],label='grav_pot')
-        plt.plot(self.stuff['t'],self.stuff['gas_work'],label='gas_work')
+            plt.plot(times,self.stuff['grav_pot'],label='grav_pot')
+        plt.plot(times,self.stuff['gas_work'],label='gas_work')
+        plt.ylabel('Energies'); plt.xlabel(time_label)
         plt.legend(loc=0)
         outname = '%s_quan_energy.%s'%(car.name,self.plot_format)
         plt.savefig(outname)
