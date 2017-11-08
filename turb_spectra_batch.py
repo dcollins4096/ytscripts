@@ -17,27 +17,28 @@ import taxi
 carname=sys.argv[1] #['aw05', 'aw06', 'aw07', 'aw08', 'aw09', 'aw10',  'aw15', 'aw16', 'aw17', 'aw18']
 fields = ['%s-velocity'%s for s in 'xyz']
 car = taxi.taxi(carname)
-frames=None
-if len(sys.argv) > 2:
-    if sys.argv[2] == 'car':
-        frames = car.frames
-    else:
-        frames = [int(a) for a in sys.argv[2:]]
-
-if frames is None:
-    all_frames = car.frame_dict.keys()
-    car.frames = all_frames[10::10]
-    if all_frames[-1] not in car.frames:
-        car.frames += [all_frames[-1]]
-else:
-    car.frames=frames
-car.frames = car.frames[::-1]
-for frame in car.frames:
+car.frames='last'
+#frames=None
+#if len(sys.argv) > 2:
+#    if sys.argv[2] == 'car':
+#        frames = car.frames
+#    else:
+#        frames = [int(a) for a in sys.argv[2:]]
+#
+#if frames is None:
+#    all_frames = car.frame_dict.keys()
+#    car.frames = all_frames[10::10]
+#    if all_frames[-1] not in car.frames:
+#        car.frames += [all_frames[-1]]
+#else:
+#    car.frames=frames
+#car.frames = car.frames[::-1]
+for frame in car.return_frames()[::-1]:
     outname = 'p42_power_%s_%04d.pdf'%(car.name, frame)
     if len(glob.glob(outname) ) > 0:
         print "PUNT ON", outname
         continue
     print "GOING TO DO", outname
-    all_the_spectra(car,fields)
+    all_the_spectra(car,fields, frames=[frame])
     sys.exit(0)
 sys.exit(1)

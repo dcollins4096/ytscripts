@@ -2,6 +2,7 @@ execfile('go_lite')
 import taxi
 import p49_fields
 import xtra_energy_fields
+#import p49_fields
 import astropy.io.fits as pyfits
 import glob
 import fPickle

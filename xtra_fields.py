@@ -1,4 +1,7 @@
 from xtra_operators import *    
+#yt.add_field('scaled_div_b',  function=_scaled_div_b, validators=[yt.ValidateGridType()])
+all_fields=["Cooling_Time", "DebugField","Temperature","Metal_Density"]
+MultiSpecies1=["Electron_Density", "HI_Density", "HII_Density", "HeIII_Density", "HeII_Density", "HeI_Density"]
 eng_units = 'g/(cm*s**2)'
 
 ef('xtra_fields_always.py')
@@ -13,7 +16,7 @@ add_particle_filter("formed_star", function=formed_star, filtered_type='all',
                     requires=["creation_time"])
 
 ef('xtra_fields_particles.py')
-
+ef('xtra_energy_fields.py')
 
 
 

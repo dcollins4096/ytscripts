@@ -89,32 +89,35 @@ def add_stokes(axis, n0, p):
         Makes use of the depolarization factor "epsilon" using a power exponent.
         """
         
-        epsilon = np.ones(data['density'].shape)
         n = data['density']
         B_sq = data['Bx']**2.0 + data['By']**2.0 + data['Bz']**2.0
 
-        epsilon[ n <= n0 ] = (n.v)[ n <= n0 ]  
-        epsilon[ n > n0 ]  = (n0**(1-p) * n.v**p)[ n > n0 ]   
+        #epsilon = np.ones(data['density'].shape)
+        #epsilon[ n <= n0 ] = (n.v)[ n <= n0 ]  
+        #epsilon[ n > n0 ]  = (n0**(1-p) * n.v**p)[ n > n0 ]   
+        epsilon = n
   
         return ( epsilon * (((data[field_horizontal])**2.0) - ((data[field_vertical])**2.0))/B_sq )
     
-    print 'adding yt field Q%s_n0-%04d_p-%d'%(axis,n0,p)
-    yt.add_field('Q%s_n0-%04d_p-%d'%(axis,n0,p), units='dimensionless', function=_Q_local, force_override=True)
+    fname= 'Q%s_n0-%04d_p-%d'%(axis,n0,p)
+    print 'adding yt field %s'%fname
+    yt.add_field(fname, units='code_density', function=_Q_local, force_override=True)
 
     def _U_local(field,data):
         """Makes stokes U."""
         
-        epsilon = np.ones(data['density'].shape)
         n = data['density']
         B_sq = data['Bx']**2.0 + data['By']**2.0 + data['Bz']**2.0    
 
-        epsilon[ n <= n0 ] = (n.v)[ n <= n0 ]  
-        epsilon[ n > n0 ]  = (n0**(1-p) * n.v**p)[ n > n0 ] 
+        #epsilon = np.ones(data['density'].shape)
+        #epsilon[ n <= n0 ] = (n.v)[ n <= n0 ]  
+        #epsilon[ n > n0 ]  = n #(n0**(1-p) * n.v**p)[ n > n0 ] 
+        epsilon = n
         
         return  (2.0 * epsilon * ((data[field_horizontal]) * (data[field_vertical]))/B_sq)
 
     print 'adding yt field U%s_n0-%04d_p-%d'%(axis,n0,p)
-    yt.add_field('U%s_n0-%04d_p-%d'%(axis,n0,p), units='dimensionless', function=_U_local, force_override=True)
+    yt.add_field('U%s_n0-%04d_p-%d'%(axis,n0,p), units='g/cm**3', function=_U_local, force_override=True)
 
 
 def add_unweighted_stokes(axis):
@@ -164,23 +167,30 @@ def add_N2(axis, n0, p):
         B_sq = data['Bx']**2.0 + data['By']**2.0 + data['Bz']**2.0
         cos_gamma_sq = (data[field_horizontal]**2.0 + data[field_vertical]**2.0)/B_sq
 
-        epsilon = np.ones(data['density'].shape)
-        n = data['density']
+        n = data['density'].in_units('code_density')
 
-        epsilon[ n <= n0 ] = (n.v)[ n <= n0 ]  
-        epsilon[ n > n0 ]  = (n0**(1-p) * n.v**p)[ n > n0 ]  
+        if 0:
+            n0 = 1.0
+            p=1.0
+            if hasattr(n0,'units'):
+                n0=data.ds.quan(n0,'gram/cm**3')
+            epsilon = np.ones_like(data['density'])
+            epsilon[ n <= n0 ] = (n)[ n <= n0 ]  
+            epsilon[ n > n0 ]  = (n0**(p) * n**p)[ n > n0 ]  
+        else:
+            epsilon = n #data.ds.quan(1.0,'gram/cm**3')
         return epsilon * (0.5*cos_gamma_sq - 1/3) 
        
     fieldname = 'N2%s_n0-%04d_p-%d'%(axis,n0,p)
-    yt.add_field(fieldname, units='dimensionless', function=_N2_local)    
+    yt.add_field(fieldname, units='code_density', function=_N2_local)    
     print "Added", fieldname
 
 # Add yt fields for stokes and n2 along each axis with 
 # different cutoff density n0 and powerlaw index p
 for axis in ['x', 'y', 'z']:
-    for n0 in [19,39,1945]:
-        add_stokes(axis, n0, p=0)
-        add_N2(axis, n0, p=0)
+#   for n0 in [19,39,1945]:
+#       add_stokes(axis, n0, p=0)
+#       add_N2(axis, n0, p=0)
     add_stokes(axis, n0=1, p=1)
     add_N2(axis, n0=1, p=1)
     #add_unweighted_stokes(axis)
