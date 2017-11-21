@@ -226,7 +226,15 @@ class quan_box():
         car = self.car
         ds=car.load()
         tn = nominal.get(car.name,None)
-        times = self.stuff['t']
+        times = nar(self.stuff['t'])
+        ar = np.argsort(times)
+        times=times[ar]
+        for thing in self.stuff:
+            if thing in ['tdyn', 'EB']:
+                continue
+            if len(self.stuff[thing]) == 0:
+                continue
+            self.stuff[thing] = nar(self.stuff[thing])[ar]
         time_label  =r'$t [\rm{code}]$'
         if tn:
             time_label += r' $(t_{\rm{cross}}= %s)$'% nom_string(0.5/tn['mach'])
