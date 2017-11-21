@@ -412,6 +412,7 @@ class taxi:
         self.ProfileDir= "./ProfileFiles/"
         self.ProfileName = None
         self.set_log = {}
+        self.clobber_plot = True     #check plots against plot_log_<outname>.txt
         self.subdir = True           #Are there DD0000 directories, or is it just data0000.grid*?
         self.operation = 'Full'      #The operation that will be done.  taxi.operations() for a list.
                                      #    or physically motivated ones.  Options are 'Code' or 'Physics'
@@ -802,6 +803,42 @@ class taxi:
 
         return return_frames
 
+    def skip_this_plot(self,check_frame_i, check_field, check_axis_i, check_operation, store_plot=True):
+        check_frame = str(check_frame_i)
+        check_axis  = str(check_axis_i)
+        fptr = open("plot_log_%s.txt"%self.outname,"a+")
+        try:
+            plotted_dict = self.plotted_dict
+        except:
+            plotted_dict = {}
+        plot_exists = False
+        for line in fptr:
+            frame, field, axis, operation = line[:-1].split(" ")
+            plotted_dict[frame] = plotted_dict.get(frame,{})
+            plotted_dict[frame][field] = plotted_dict[frame].get(field,{})
+            plotted_dict[frame][field][axis] = plotted_dict[frame][field].get(axis,{})
+            plotted_dict[frame][field][axis][operation] = plotted_dict[frame][field][axis].get(operation,{})
+        if check_frame in plotted_dict:
+            if check_field in plotted_dict[check_frame]:
+                if check_axis in plotted_dict[check_frame][check_field]:
+                    if check_operation in plotted_dict[check_frame][check_field][check_axis]:
+                        plot_exists = True
+                        
+        self.plotted_dict = plotted_dict
+        if not plot_exists:
+            print "NEW PLOT", check_frame, check_field, check_axis, check_operation, self.outname
+            if store_plot:
+                fptr.write("%s %s %s %s\n"%(check_frame,check_field,check_axis,check_operation))
+        else:
+            print "PLOT EXISTS", check_frame, check_field, check_axis, check_operation, self.outname, "CLOBBER", self.clobber_plot
+            
+        if not self.clobber_plot and plot_exists:
+            print "PLOT EXISTS, SKIPPING", check_frame, check_field, check_axis, check_operation, self.outname
+            return True
+        return False
+               
+
+
     def plot(self,local_frames=None, **kwargs):
         self.arg_setter(kwargs)
         if 'new_particles' in self.callbacks:
@@ -846,6 +883,8 @@ class taxi:
                 #start axing
                 for axis in ensure_list(self.axis):
                     #if multiple plots are used, do_plot will return a figure object.
+                    if self.skip_this_plot(frame, field, axis, self.operation):
+                        continue
                     plot_or_fig = self.do_plots(field,axis,FirstOne)
 
                     if self.set_log.has_key(field):
