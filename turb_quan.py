@@ -96,20 +96,30 @@ class quan_box():
           n0=1; p=1 #n0 in [19,39,1945] and p=0
           fields.append( (axis,'Q%s_n0-%04d_p-%d'%(axis,n0,p))   )
           fields.append( (axis,'U%s_n0-%04d_p-%d'%(axis,n0,p))   )
+          fields.append( (axis,'density') )
 
-        ds = None  #this is somewhat awkward, but useful for avoiding sets
-                   #  that has only products, not datasest
+        ds = None  #this is somewhat awkward, but useful for avoiding simulations
+                   #  that have only products, not datasest
         for axis, field in fields :
             outputdir = "%s/FRBs/"%self.car.directory
             if not os.access(outputdir, os.F_OK):
                 os.mkdir(outputdir)
-            outfile = outputdir+"/DD%.4d_%s.fits" %(frame,field)
-            if ds is None:
-                ds = self.car.load(frame)
-                res = ds.parameters['TopGridDimensions'][2 + ord('x') - ord(axis)] # zyx order
+            #Hm.  Q and U have the name in the field, but others don't.
+            if field[0] in 'QU' and field[1] in 'xyz':
+                field_name = field
+            else:
+                field_name = field + "_"+axis
+            outfile = outputdir+"/DD%.4d_%s.fits" %(frame,field_name)
+            #move this in the 'make' conditional?
+            #if ds is None:
+            #    ds = self.car.load(frame)
+            #    res = ds.parameters['TopGridDimensions'][2 + ord('x') - ord(axis)] # zyx order
             if os.access(outfile, os.F_OK) and not self.clobber:
                 print "FRB exists: %s"%outfile
             else:
+                if ds is None:
+                    ds = self.car.load(frame)
+                    res = ds.parameters['TopGridDimensions'][2 + ord('x') - ord(axis)] # zyx order
                 print "FRB being produced: %s"%outfile
                 res = ds.parameters['TopGridDimensions'][2 + ord('x') - ord(axis)]
                 proj = ds.proj(field,axis)
