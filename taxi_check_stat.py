@@ -29,9 +29,6 @@ import matplotlib.colorbar as cb
 import re
 import copy
 import turb_quan
-import QU_callback
-reload(QU_callback)
-import p49_fields
 
 class fleet():
     def __init__(self,taxi_list=[]):
@@ -179,38 +176,6 @@ class fleet():
         print profname
         plt.savefig(profname)
 
-    def stat(self,field,frame=None):
-        """print min and max of *field*"""
-        ds = self.load(frame)
-        minTuple = ds.find_min(field)
-        maxTuple = ds.find_max(field)
-        return {'min':minTuple,'max':maxTuple}
-
-
-    def mstat(self,fields=None,frames=None, format = "%9.2e",Norm=False):
-        """Min and max for all fields in self.fields.
-        Field list overridden by *fields*.
-        *Norm* subtracts off the volume-weighted mean."""
-        print fields
-        for frame in frames:
-            if fields is None:
-                fields = self.fields
-            self.load(frame)
-            out = self.region.quantities['Extrema'](fields)
-            if Norm is True:
-                for n, field in enumerate(fields):
-                    avg = self.region.quantities['WeightedAverageQuantity'](field,'CellVolume')
-                    out[n] = out[n][0]-avg, out[n][1]-avg
-            if hasattr(Norm,'has_key'):
-                for n, field in enumerate(fields):
-                    avg =  0
-                    if Norm.has_key(field):
-                        avg = Norm[field]
-                        print field,avg
-                    out[n] = out[n][0]-avg, out[n][1]-avg
-            format_string = "%s %s %s"%(format,format,"%s")
-            for n, field in enumerate(fields):
-                print format_string%(out[n][0], out[n][1], field)
 
     def find_extrema(self,fields=None,frames=None, manual_positive=False):
         all_fields = []
@@ -412,7 +377,6 @@ class taxi:
         self.ProfileDir= "./ProfileFiles/"
         self.ProfileName = None
         self.set_log = {}
-        self.clobber_plot = True     #check plots against plot_log_<outname>.txt
         self.subdir = True           #Are there DD0000 directories, or is it just data0000.grid*?
         self.operation = 'Full'      #The operation that will be done.  taxi.operations() for a list.
                                      #    or physically motivated ones.  Options are 'Code' or 'Physics'
@@ -713,9 +677,9 @@ class taxi:
         if self.verbose == True:
             print "==== %s ===="%(self.basename)
 
-    #def fill(self, frame=None):
-    #    print "FILL IS DEPRECATED"
-    #    self.load(frame)
+    def fill(self, frame=None):
+        print "FILL IS DEPRECATED"
+        self.load(frame)
     def load(self, frame = None):
         """populate parameter file, plot collection, hierarchy, region if desired.
         Possibly could be renamed 'load' """
@@ -803,42 +767,6 @@ class taxi:
 
         return return_frames
 
-    def skip_this_plot(self,check_frame_i, check_field, check_axis_i, check_operation, store_plot=True):
-        check_frame = str(check_frame_i)
-        check_axis  = str(check_axis_i)
-        fptr = open("plot_log_%s.txt"%self.outname,"a+")
-        try:
-            plotted_dict = self.plotted_dict
-        except:
-            plotted_dict = {}
-        plot_exists = False
-        for line in fptr:
-            frame, field, axis, operation = line[:-1].split(" ")
-            plotted_dict[frame] = plotted_dict.get(frame,{})
-            plotted_dict[frame][field] = plotted_dict[frame].get(field,{})
-            plotted_dict[frame][field][axis] = plotted_dict[frame][field].get(axis,{})
-            plotted_dict[frame][field][axis][operation] = plotted_dict[frame][field][axis].get(operation,{})
-        if check_frame in plotted_dict:
-            if check_field in plotted_dict[check_frame]:
-                if check_axis in plotted_dict[check_frame][check_field]:
-                    if check_operation in plotted_dict[check_frame][check_field][check_axis]:
-                        plot_exists = True
-                        
-        self.plotted_dict = plotted_dict
-        if not plot_exists:
-            print "NEW PLOT", check_frame, check_field, check_axis, check_operation, self.outname
-            if store_plot:
-                fptr.write("%s %s %s %s\n"%(check_frame,check_field,check_axis,check_operation))
-        else:
-            print "PLOT EXISTS", check_frame, check_field, check_axis, check_operation, self.outname, "CLOBBER", self.clobber_plot
-            
-        if not self.clobber_plot and plot_exists:
-            print "PLOT EXISTS, SKIPPING", check_frame, check_field, check_axis, check_operation, self.outname
-            return True
-        return False
-               
-
-
     def plot(self,local_frames=None, **kwargs):
         self.arg_setter(kwargs)
         if 'new_particles' in self.callbacks:
@@ -883,8 +811,6 @@ class taxi:
                 #start axing
                 for axis in ensure_list(self.axis):
                     #if multiple plots are used, do_plot will return a figure object.
-                    if self.skip_this_plot(frame, field, axis, self.operation):
-                        continue
                     plot_or_fig = self.do_plots(field,axis,FirstOne)
 
                     if self.set_log.has_key(field):
@@ -1180,7 +1106,11 @@ class taxi:
             fptr.create_dataset(field,fft.shape, data=fft, dtype=fft_dtype)
             fptr.close()
         return fft
-
+    def stat(self,field,frame=None):
+        ds = self.load(frame)
+        minTuple = ds.find_min(field)
+        maxTuple = ds.find_max(field)
+        return {'min':minTuple,'max':maxTuple}
     def find_extrema(self,fields=None,frames=None,manual_positive=False):
         if fields is not None:
             local_fields = fields
@@ -1400,15 +1330,7 @@ class taxi:
             myargs=args.get('args',[])
             mykwargs=args.get('kwargs',{})
             if isinstance(callback,types.StringType):
-                if callback == 'stokes_angles':
-                    self.kludge_my_package={}
-                    the_plot.annotate_stokes_angles(kludge_my_package=self.kludge_my_package)
-                    #the_plot.annotate_stokes_angle(myargs, **mykwargs)
-                elif callback == 'pol_frac':
-                    the_plot.annotate_polarized_angles()
-                elif callback == 'magnetic_angles':
-                    the_plot.annotate_magnetic_angles()
-                elif callback == 'velocity':
+                if callback == 'velocity':
                     the_plot.annotate_velocity()
                 elif callback == 'grids':
                     the_plot.annotate_grids()
@@ -1482,59 +1404,6 @@ class taxi:
                     raise PortError("Callback %s not supported"%callback)
             else:
                 print "Where the heck did you get that callback at?"
-
-    def stat(self,field,frame=None):
-        """print min and max of *field*"""
-        ds = self.load(frame)
-        minTuple = ds.find_min(field)
-        maxTuple = ds.find_max(field)
-        return {'min':minTuple,'max':maxTuple}
-
-    def mstat(self,fields=None,frames=None, format = "%9.2e",Norm=False):
-        """Min and max for all fields in self.fields.
-        Field list overridden by *fields*.
-        *Norm* subtracts off the volume-weighted mean."""
-        print fields
-        for frame in frames:
-            if fields is None:
-                fields = self.fields
-            self.load(frame)
-            out = self.region.quantities['Extrema'](fields)
-            if Norm is True:
-                for n, field in enumerate(fields):
-                    avg = self.region.quantities['WeightedAverageQuantity'](field,'CellVolume')
-                    out[n] = out[n][0]-avg, out[n][1]-avg
-            if hasattr(Norm,'has_key'):
-                for n, field in enumerate(fields):
-                    avg =  0
-                    if Norm.has_key(field):
-                        avg = Norm[field]
-                        print field,avg
-                    out[n] = out[n][0]-avg, out[n][1]-avg
-            format_string = "%s %s %s"%(format,format,"%s")
-            for n, field in enumerate(fields):
-                print format_string%(out[n][0], out[n][1], field)
-
-    def mass_conservation(self, frames=None):
-        """This should be done in a more general manner, later."""
-        if frames is None:
-            frames = self.return_frames()
-        mass = []
-        mass_delta = []
-        time = []
-        volume = []
-        for nf, frame in enumerate(frames):
-            ad = self.load(frame).all_data()
-            total_volume = ad.quantities['TotalQuantity']('cell_volume')
-            total_mass=(ad.quantities['WeightedAverageQuantity']('density', 'cell_volume')*total_volume).in_units('code_mass')
-            time.append(self.ds.current_time)
-            volume.append(total_volume)
-            mass.append(total_mass)
-            mass_delta.append( (total_mass - mass[0])/mass[0] )
-
-        mass=nar(mass); mass_delta=nar(mass_delta); time=nar(time); volume=nar(volume)
-        print "total mass deviation = sum(|delta|)", np.abs(mass_delta).sum()
-        return {'time':time,'mass':mass,'volume':volume, 'mass_delta':mass_delta}
 class other_horsecrap():
 ######################### stuff not ported
     def set_region(self,frame=None):

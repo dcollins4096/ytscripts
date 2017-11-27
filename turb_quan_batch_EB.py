@@ -23,9 +23,9 @@ if 1:
     qb = quan_box(car)
     qb.plot_format='png'
     qb.load()
-    #qb.EBall()
-    qb()
-    qb.plot()
+    qb.EBall()
+    #qb()
+    #qb.plot()
     #pickle_name = 'quan_box_%s.pickle'%car.name
     #extant_quan=None
     #if len(glob.glob(pickle_name)):

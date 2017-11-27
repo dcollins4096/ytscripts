@@ -1,7 +1,9 @@
 execfile('go_lite')
 import taxi
 import p49_fields
+import p49_stuff
 import xtra_energy_fields
+#import p49_fields
 import astropy.io.fits as pyfits
 import glob
 import fPickle
@@ -60,6 +62,8 @@ class quan_box():
 
 
     def EBall(self,frames=None):
+        if not self.stuff.has_key('EB'):
+            self.stuff['EB']={}
         if frames is None:
             frames = self.car.return_frames()
         for frame in frames:
@@ -93,20 +97,30 @@ class quan_box():
           n0=1; p=1 #n0 in [19,39,1945] and p=0
           fields.append( (axis,'Q%s_n0-%04d_p-%d'%(axis,n0,p))   )
           fields.append( (axis,'U%s_n0-%04d_p-%d'%(axis,n0,p))   )
+          fields.append( (axis,'density') )
 
-        ds = None  #this is somewhat awkward, but useful for avoiding sets
-                   #  that has only products, not datasest
+        ds = None  #this is somewhat awkward, but useful for avoiding simulations
+                   #  that have only products, not datasest
         for axis, field in fields :
             outputdir = "%s/FRBs/"%self.car.directory
             if not os.access(outputdir, os.F_OK):
                 os.mkdir(outputdir)
-            outfile = outputdir+"/DD%.4d_%s.fits" %(frame,field)
-            if ds is None:
-                ds = self.car.load(frame)
-                res = ds.parameters['TopGridDimensions'][2 + ord('x') - ord(axis)] # zyx order
+            #Hm.  Q and U have the name in the field, but others don't.
+            if field[0] in 'QU' and field[1] in 'xyz':
+                field_name = field
+            else:
+                field_name = field + "_"+axis
+            outfile = outputdir+"/DD%.4d_%s.fits" %(frame,field_name)
+            #move this in the 'make' conditional?
+            #if ds is None:
+            #    ds = self.car.load(frame)
+            #    res = ds.parameters['TopGridDimensions'][2 + ord('x') - ord(axis)] # zyx order
             if os.access(outfile, os.F_OK) and not self.clobber:
                 print "FRB exists: %s"%outfile
             else:
+                if ds is None:
+                    ds = self.car.load(frame)
+                    res = ds.parameters['TopGridDimensions'][2 + ord('x') - ord(axis)] # zyx order
                 print "FRB being produced: %s"%outfile
                 res = ds.parameters['TopGridDimensions'][2 + ord('x') - ord(axis)]
                 proj = ds.proj(field,axis)
@@ -199,7 +213,8 @@ class quan_box():
 
 
 
-    def plot(self):
+    def plot(self, HydroMethod = None):
+        print "Hydro Method", HydroMethod
         def nom_string(val):
             if val > 10 or val < 0.1:
                 return "%0.1e"%val
@@ -207,22 +222,27 @@ class quan_box():
                 return "%0.1f"%val
         print "here's the thing"
 
-        nominal = dict(zip(['ax19','ax20','ax21','ax22'],[{},{},{},{}]))
-        nominal['ax19']= dict(zip(['mach','AlfMach','logbeta','field_cgs'],[1.0, 0.3,np.log10(2*(0.3/1.0)**2),11.82]))
-        nominal['ax20']= dict(zip(['mach','AlfMach','logbeta','field_cgs'],[3.0, 1.0,np.log10(2*(1.0/3.0)**2),10.6347]))
-        nominal['ax21']= dict(zip(['mach','AlfMach','logbeta','field_cgs'],[0.6, 0.3,np.log10(2*(0.3/0.6)**2),7.089815 ]))
-        nominal['ax22']= dict(zip(['mach','AlfMach','logbeta','field_cgs'],[3.0, 0.3,np.log10(2*(0.3/3.0)**2),35.4]))
         car = self.car
-        ds=car.load()
-        tn = nominal.get(car.name,None)
-        times = self.stuff['t']
+        if HydroMethod is None:
+            ds=car.load()
+            HydroMethod = car.ds['HydroMethod']
+        tn = p49_stuff.nominal.get(car.name,None)
+        times = nar(self.stuff['t'])
+        ar = np.argsort(times)
+        times=times[ar]
+        for thing in self.stuff:
+            if thing in ['tdyn', 'EB']:
+                continue
+            if len(self.stuff[thing]) == 0:
+                continue
+            self.stuff[thing] = nar(self.stuff[thing])[ar]
         time_label  =r'$t [\rm{code}]$'
         if tn:
             time_label += r' $(t_{\rm{cross}}= %s)$'% nom_string(0.5/tn['mach'])
 
         sqrtfourpi=np.sqrt(4*np.pi)
 
-        if car.ds['HydroMethod'] in [4,6]:
+        if HydroMethod in [4,6]:
             plt.clf()
             n_points = len(times)
             my_ones = np.ones(n_points)
