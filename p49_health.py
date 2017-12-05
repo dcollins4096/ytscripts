@@ -10,6 +10,15 @@ if 'flt' not in dir():
     flt('car.qb_load()')
     flt['frames']='last'
     flt('car.get_frames()')
+
+
+def update(car):
+    new_pickle_name = 'xfer/quan_box_%s.pickle'%car.name
+    if glob.glob(new_pickle_name) != []:
+        car.qb.stuff.update(fPickle.load(new_pickle_name))
+    else:
+        print "no new pickle found"
+
 class dumb():
     def __init__(self):
         pass
@@ -28,3 +37,11 @@ def print_status(car):
 #lfd=print_status(flt[0])
 for car in flt:
     print_status(car)
+    update(car)
+    print_status(car)
+
+if 'yes_save' in dir():
+    for car in flt:
+        car.qb.dump()
+        print "dumped", car.name
+
