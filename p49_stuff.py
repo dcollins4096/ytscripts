@@ -65,10 +65,10 @@ Mb = '*'
 Me = '+'
 marker_dict  =  {'x':'x','y':'*','z':'+'}
 labels={}
-labels['axb19']=r'$\rm{%s}\ M=%0.1f\ Ma=%0.1f\ \log_{10}\beta=%0.1f\ \hat{%s}$'%('ax19', 1.0, 0.3,np.log10(2*(0.3/1.0)**2),'x')
-labels['axb20']=r'$\rm{%s}\ M=%0.1f\ Ma=%0.1f\ \log_{10}\beta=%0.1f\ \hat{%s}$'%('ax20', 3.0, 1.0,np.log10(2*(1.0/3.0)**2),'x')
-labels['axb21']=r'$\rm{%s}\ M=%0.1f\ Ma=%0.1f\ \log_{10}\beta=%0.1f\ \hat{%s}$'%('ax21', 0.6, 0.3,np.log10(2*(0.3/0.6)**2),'x')
-labels['axb22']=r'$\rm{%s}\ M=%0.1f\ Ma=%0.1f\ \log_{10}\beta=%0.1f\ \hat{%s}$'%('ax22', 3.0, 0.3,np.log10(2*(0.3/3.0)**2),'x')
+#labels['axb19']=r'$\rm{%s}\ M=%0.1f\ Ma=%0.1f\ \log_{10}\beta=%0.1f\ \hat{%s}$'%('ax19', 1.0, 0.3,np.log10(2*(0.3/1.0)**2),'x')
+#labels['axb20']=r'$\rm{%s}\ M=%0.1f\ Ma=%0.1f\ \log_{10}\beta=%0.1f\ \hat{%s}$'%('ax20', 3.0, 1.0,np.log10(2*(1.0/3.0)**2),'x')
+#labels['axb21']=r'$\rm{%s}\ M=%0.1f\ Ma=%0.1f\ \log_{10}\beta=%0.1f\ \hat{%s}$'%('ax21', 0.6, 0.3,np.log10(2*(0.3/0.6)**2),'x')
+#labels['axb22']=r'$\rm{%s}\ M=%0.1f\ Ma=%0.1f\ \log_{10}\beta=%0.1f\ \hat{%s}$'%('ax22', 3.0, 0.3,np.log10(2*(0.3/3.0)**2),'x')
 labels['aa19'] =r'$\rm{%s}\ M=%0.1f\ Ma=%0.1f\ \log_{10}\beta=%0.1f\ \hat{%s}$'%('aa19', 1.0, 0.3,np.log10(2*(0.3/1.0)**2),'x')
 labels['aa20'] =r'$\rm{%s}\ M=%0.1f\ Ma=%0.1f\ \log_{10}\beta=%0.1f\ \hat{%s}$'%('aa20', 3.0, 1.0,np.log10(2*(1.0/3.0)**2),'x')
 labels['aa21'] =r'$\rm{%s}\ M=%0.1f\ Ma=%0.1f\ \log_{10}\beta=%0.1f\ \hat{%s}$'%('aa21', 0.6, 0.3,np.log10(2*(0.3/0.6)**2),'x')
@@ -99,10 +99,10 @@ all_sims = all_all
 rm = rainbow_map(len(all_sims))
 color_sim_dict = dict(zip(all_sims, [rm(i) for i in range(len(all_sims))]))
 color_sim_dict['aa22'] = [0.0,0.0,0.0,1.0]
-for a,b in zip(['ax19','ax20','ax21','ax22'],
-               ['axb19','axb20','axb21','axb22']):
-    color_sim_dict[a]=color_sim_dict[b]
-    labels[a]=labels[b]
+#for a,b in zip(['ax19','ax20','ax21','ax22'],
+#               ['axb19','axb20','axb21','axb22']):
+#    color_sim_dict[a]=color_sim_dict[b]
+#    labels[a]=labels[b]
 color_sim_dict['b02_512']='r'
 color_sim_dict['b2_512']='g'
 color_sim_dict['b20_512']='b'
@@ -142,6 +142,8 @@ class field_stuff():
             self.field_name = 't'
         if self.field in ['beta'] and not self.logbeta:
             self.x_scale = 'log'
+        if self.field == 'AlfMach':
+            self.x_scale = 'log'
     def __call__(self,array):
         out = array
         if self.field in ['beta'] and self.logbeta:
@@ -149,9 +151,74 @@ class field_stuff():
         if self.field in ['t_tcross']:
             self.tcross = 0.5/nominal[self.car_name]['mach']
             out = array/self.tcross
+        if field == 'LogAlfMach':
+            out = np.log10(array)
         return out
     def x_label(self):
         out = r'$\rm{%s}$'%self.field
         if self.field in ['beta'] and self.logbeta:
             out = r'$\log_{10} \rm{%s}$'%self.field
+        elif self.field == 'log_brms_B':
+            out = r'$\ln <b^2>/<B>^2$'
+        elif self.field == 'AlfMach':
+            out = r'$M_{A}$'
+        elif self.field == 'LogAlfMach':
+            out = r'$\ln M_{A}$'
         return out
+all_sims=['aa19', 'aa20', 'aa21', 'aa22', 'ab19', 
+            'ab22', 'ab23', 'ab24', 'ab26', 
+            'ac19', 'ac22', 'ac23', 'ac25', 'ac26', 
+            'ax19', 'ax20', 'ax21', 'ax22', 
+            'az19', 'az20', 'az21', 'az22', 
+            'b02_512', 'b20_512', 'b2_512']
+rgb = ['r','g','b','k','m']
+series={}
+series['aa']= ['aa19', 'aa20','aa21', 'aa22']
+series['ab']= ['ab19',                'ab22', 'ab23', 'ab24', 'ab26']
+series['ac']= ['ac19',                'ac22', 'ac23', 'ac25', 'ac26']
+series['ax']= ['ax19', 'ax20', 'ax21','ax22'] 
+series['az']= ['az19', 'az20', 'az21','az22'] 
+series['b']= [ 'b02_512', 'b20_512', 'b2_512']
+series['22']= [ 'aa22','ab22','ac22','ax22','az22']
+series['all'] = all_sims
+all_series=['aa','ab','ac','ax','az','ab']
+titles={}
+titles['aa']='aa 256 dedner 5/3'
+titles['ab']='ab 256 dedner 1.001'
+titles['ac']='ac 512 dedner 1.001'
+titles['ax']='ax 512 CT Isothermal'
+titles['az']='az 512 dedner 5/3'
+titles['b']= 'b  512+4 CT Isothermal Gravity'
+titles['all'] = 'EVERYONE'
+color_sim_dict_2 = {}
+color_series_dict=dict(zip([19, 20, 21, 22, 23, 24, 25, 26],['r','g','b','c','m','y','k',[0.5]*3]))
+color_sim_dict_3=dict(zip(['aa','ab','ac','ax','az','b'],['r','g','b','c','m','k']))
+for sim in all_sims[:-3]:
+    color_sim_dict_2[sim] = color_series_dict[ int(sim[2:])]
+    color_sim_dict_3[sim] = color_sim_dict_3[ sim[:2]]
+color_sim_dict_2['b02_512']='r'
+color_sim_dict_2['b2_512']='g'
+color_sim_dict_2['b20_512']='b'
+def bump2(extents, log=False):
+    out = nar([0.0,0.0])
+    if log:
+        out[0] =10**(np.floor( np.log10(extents[0])))
+        out[1] =10**(np.ceil(  np.log10(extents[1])))
+    else:
+        out[0] = np.floor(extents[0])
+        out[1] = np.ceil(extents[1])
+        #print out, extents, factor
+    return out
+def bump1(extents, factor, log=False):
+    out = nar([0.0,0.0])
+    if log:
+        out[0] =np.log(extents[0])- factor*np.abs(np.log(extents[0]))
+        out[1] =np.log(extents[1])+ factor*np.abs(np.log(extents[1]))
+        out[0] = np.exp(out[0])
+        out[1] = np.exp(out[1])
+    else:
+        out[0] = extents[0] - factor*np.abs(extents[0])
+        out[1] = extents[1] + factor*np.abs(extents[1])
+        #print out, extents, factor
+    return out
+bump = bump2

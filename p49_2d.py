@@ -1,20 +1,47 @@
 ef('p49_stuff.py')
 from mpl_toolkits.mplot3d import Axes3D
 these_sims = ['ax19','ax22','az19','az22']
-#figb, axb = plt.subplots(1, 1, sharex=True)
-axd=None
+#figb, ax_RS = plt.subplots(1, 1, sharex=True)
+ax_Leg=None
 plt.close('all')
-figb, axes = plt.subplots(2,2,figsize=[12.8+4.8,2*4.8])
-axb = axes[0][0]
-axc = axes[0][1]
-axe = axes[1][0]
-axd = axes[1][1]
+if 0:
+    figb, axes = plt.subplots(2,2,figsize=[12.8+4.8,2*4.8])
+    ax_RS = axes[0][0]
+    ax_MaMs = axes[0][1]
+    ax_SS = axes[1][0]
+    ax_Leg = axes[1][1]
+    Nrows = 15
+if 0:
+    figb, (ax_MaMs,ax_Leg) = plt.subplots(1,2,figsize=[12.8+4.8,2*4.8])
+    fig_ignore, axes = plt.subplots(2,2,figsize=[12.8+4.8,2*4.8])
+    ax_RS = axes[0][0]
+    #ax_MaMs = axes[0][1]
+    ax_SS = axes[1][0]
+    #ax_Leg = axes[1][1]
+    Nrows=40
+if 0:
+    figb, ax_MaMs = plt.subplots(1,1,figsize=[2*4.8,2*4.8])
+    fig_ignore, axes = plt.subplots(2,2,figsize=[12.8+4.8,2*4.8])
+    ax_RS = axes[0][0]
+    #ax_MaMs = axes[0][1]
+    ax_SS = axes[1][0]
+    ax_Leg = axes[1][1]
+    Nrows=40
+if 1:
+    figb, ax_RS = plt.subplots(1,1,figsize=[2*4.8,2*4.8])
+    fig_ignore, axes = plt.subplots(2,2,figsize=[12.8+4.8,2*4.8])
+    #ax_RS = axes[0][0]
+    ax_MaMs = axes[0][1]
+    ax_SS = axes[1][0]
+    ax_Leg = axes[1][1]
+    Nrows=40
 
-#axb = figb.add_subplot(111, projection='3d')
-#axb,axc = figb.add_subplot(1,2)
+#ax_RS = figb.add_subplot(111, projection='3d')
+#ax_RS,ax_MaMs = figb.add_subplot(1,2)
 
 field1 = 'mach'
 field2 = 'AlfMach'
+labels_2d={'AlfMach':r'$M_A = \frac{V_{\rm{rms}}}{B/\sqrt{rho}}$', 'mach':r'$M_s=V_{\rm{rms}}/C_{\rm{sound}}$'}
 limits = {'mach':[0.05,10.0],'AlfMach':[0.0,50]}
 if field1 == 'mach' and field2 == 'AlfMach':
     for nb, beta in enumerate([0.01,0.1, 0.5, 1.0,  2,  10, 100, 1000]):
@@ -38,7 +65,13 @@ if field1 == 'mach' and field2 == 'AlfMach':
         if np.abs(beta - 10) < 1e-5:
             line = ":"
             label = r'$\beta=%s$'%beta_string
-        axc.plot( Ms, Ma, c=c,linestyle=line,label=label)
+        ax_MaMs.plot( Ms, Ma, c=c,linestyle=line,label=label)
+        if label is not None or beta < 0.1:
+            ax_MaMs.text( 1.2*Ms[1],1.2*Ma[1], r'$\beta=%0.2f$'%beta)
+        c=[0.8]*4
+        ax_MaMs.plot( limits['mach'], [1.0,1.0], c=c,linestyle=":")
+        ax_MaMs.plot( limits['mach'], [0.5,0.5], c=c,linestyle=":")
+        ax_MaMs.plot( [1.0,1.0], limits['AlfMach'], c=c,linestyle=":")
 car_list={}
 car_outname = ""
 these_sims = ['aa19','aa20','aa21','aa22']
@@ -53,7 +86,6 @@ these_sims += ['ax19','ax20','ax21','ax22']
 #these_sims = ['ax20','aa20','az20']
 these_sims = ['ab19','ab22','ab23']
 these_sims += ['aa19','aa20','aa21','aa22']
-#these_sims = ['ax21']# 'ax19','ax20',,'ax22']
 #these_sims =['ab19']
 #these_sims = ['ab19','aa19','ax19','az19']
 these_sims = ['ab19','aa19','ax19','az19']
@@ -77,20 +109,18 @@ these_sims = all_sims
 these_sims = ['b02_512','b2_512','b20_512']
 these_sims = ['ax22', 'aa22','ab22','ac22']
 these_sims = all_sims
-these_sims=['aa19', 'aa20', 'aa21', 'aa22', 'ab19', 'ab22', 'ab23', 'ab24',
-       'ab26', 'ac19', 'ac22', 'ac23', 'ac25', 'ac26', 'ax19', 'ax20',
-              'ax21', 'ax22', 'az19', 'az20',
-                     'az21', 'az22', 'b02_512', 'b20_512', 'b2_512']
-these_sims = ['aa19','aa20','aa21','aa22']
-these_sims = ['ac23']
-
-#color_sim_dict = dict(zip(['aa19','aa20','aa21','aa22'],['r','g','b','k']))
+title=''
+if 'which_series' in dir():
+    these_sims = series[which_series]
+    title = titles[which_series]
+    figb.suptitle(title)
+color_sim_dict = color_sim_dict_2
 axis_list = 'xyz'
-means = True
-modifier = 'all_'
+means = False
+do_MaMs = True
+modifier = 'EB_RGB_%s_'%axis_list
 if means:
     modifier = 'mean_'
-modifier = 'take11_'+axis_list
 if 1:
     for ncar,car_name in enumerate(these_sims): #,'ax21']:
         print car_name
@@ -129,32 +159,32 @@ if 1:
             ratios[ ratios > 1.5 ] = 1.5
             if axis == 'x' or len(axis_list) == 1:
                 label = car.name
-                axc.text(nominal[car_name]['mach'], nominal[car_name]['AlfMach'],'N',color=color_sim_dict.get(car.name,'k'))
+                #ax_MaMs.text(nominal[car_name]['mach'], nominal[car_name]['AlfMach'],'N',color=color_sim_dict.get(car.name,'k'))
+                ax_MaMs.scatter(nominal[car_name]['mach'], nominal[car_name]['AlfMach'],color=color_sim_dict.get(car.name,'k')) #, label=label)
             else:
                 label=None
             marker  =  {'x':'x','y':'*','z':'+'}[axis]
-            #axe.scatter(Bslope[sl], Eslope[sl],color=color_sim_dict.get(car.name,'k'),marker=marker) 
-            axe.scatter(Bslope[sl], Bslope[sl]/Eslope[sl],color=color_sim_dict.get(car.name,'k'),marker=marker) 
+            #ax_SS.scatter(Bslope[sl], Eslope[sl],color=color_sim_dict.get(car.name,'k'),marker=marker) 
+            ax_SS.scatter(Bslope[sl], Bslope[sl]/Eslope[sl],color=color_sim_dict.get(car.name,'k'),marker=marker) 
             the_y = Bslope[sl]
             if means:
-                axb.scatter(ratios, the_y, color=color_sim_dict.get(car.name,'k'),marker=marker)
-                pass
+                ax_RS.errorbar(r_bar,s_bar, xerr=r_std,yerr=s_std,color=color_sim_dict.get(car.name,'k'),marker=marker)
             else:
                 r_bar = np.mean(ratios); s_bar = np.mean(the_y)
                 r_std = np.std(ratios); s_std = np.std(the_y)
-                axb.scatter(ratios, the_y, color=color_sim_dict.get(car.name,'k'),marker=marker)
-                axb.errorbar(r_bar,s_bar, xerr=r_std,yerr=s_std,color=color_sim_dict.get(car.name,'k'),marker=marker)
+                ax_RS.scatter(ratios, the_y, color=color_sim_dict.get(car.name,'k'),marker=marker)
             label = None
             if axis == 'x' or len(axis_list) == 1:
                 label = car.outname
-            #axc.scatter(this_quan1, this_quan2, color=color_sim_dict.get(car.name,'k'),marker=marker,label=label)
+            #ax_MaMs.scatter(this_quan1, this_quan2, color=color_sim_dict.get(car.name,'k'),marker=marker,label=label)
             x_bar = nar(np.mean(this_quan1)); y_bar = nar(np.mean(this_quan2))
             x_err = nar(np.std(this_quan1));  y_err = nar(np.std(this_quan2))
-            if means:
-                axc.scatter(this_quan1, this_quan2, color=color_sim_dict.get(car.name,'k'),marker=marker,label=label)
-            else:
-                #axc.scatter(x_bar, y_bar, color=color_sim_dict.get(car.name,'k'),marker=marker,label=label)
-                axc.errorbar(x_bar,y_bar, xerr=x_err, yerr=y_err,  color=color_sim_dict.get(car.name,'k'),marker=marker,label=label)
+            if means and do_MaMs:
+                ax_MaMs.errorbar(x_bar,y_bar, xerr=x_err, yerr=y_err,  color=color_sim_dict.get(car.name,'k'),marker=marker,label=label)
+                pass
+            elif do_MaMs:
+                ax_MaMs.scatter(this_quan1, this_quan2, color=color_sim_dict.get(car.name,'k'),marker=marker,label=label)
+                pass
             x1c,x2c = limits[field1]
             y1c,y2c = limits[field2]
             if max(this_quan1) > x2c:
@@ -166,43 +196,42 @@ if 1:
             if min(this_quan2) < y1c:
                 print "Y lim to high", min(this_quan2), y1c
 
-            #axb.plot(ratios,the_y, c=[0.5]*4)
-            #axb.scatter(this_quan1, this_quan2, ratios ,label=label,
+            #ax_RS.plot(ratios,the_y, c=[0.5]*4)
+            #ax_RS.scatter(this_quan1, this_quan2, ratios ,label=label,
             #            color=color_sim_dict[car.name])
             #for x,y in zip(this_quan1,this_quan2):
-            #    axb.text(x,y,axis,color=color_sim_dict[car.name])
+            #    ax_RS.text(x,y,axis,color=color_sim_dict[car.name])
 
-    #axb.legend(loc=0)
+    #ax_RS.legend(loc=0)
     x1 = 0.0; x2 = 2.0
     y1 = -10.; y2=0.
-    axb.set_xlabel('B/E')
-    axb.set_xlim(x1,x2)
-    axb.set_ylabel('B Slope')
-    axb.set_ylim(y1,y2)
+    ax_RS.set_xlabel('B/E')
+    ax_RS.set_xlim(x1,x2)
+    ax_RS.set_ylabel('B Slope')
+    ax_RS.set_ylim(y1,y2)
 
-    #axe.plot([y1,y2],[y1,y2],c='k')
-    #axe.plot([y1,y2],[0.1*y1,0.1*y2],c=[0.5]*4)
-    axe.plot([y1,y2],[1.0,1.0], c='k')
-    axe.plot([y1,y2],np.ones(2)*1.5, c=[0.5]*4)
-    axe.plot([y1,y2],np.ones(2)*0.75, c=[0.5]*4)
-    axe.set_xlim(y1,y2) #; axe.set_ylim(y1,y2)
-    axe.set_xlabel('Bslope')
-    axe.set_ylabel('Bslope/Eslope')
+    #ax_SS.plot([y1,y2],[y1,y2],c='k')
+    #ax_SS.plot([y1,y2],[0.1*y1,0.1*y2],c=[0.5]*4)
+    ax_SS.plot([y1,y2],[1.0,1.0], c='k')
+    ax_SS.plot([y1,y2],np.ones(2)*1.5, c=[0.5]*4)
+    ax_SS.plot([y1,y2],np.ones(2)*0.75, c=[0.5]*4)
+    ax_SS.set_xlim(y1,y2) #; ax_SS.set_ylim(y1,y2)
+    ax_SS.set_xlabel('Bslope')
+    ax_SS.set_ylabel('Bslope/Eslope')
 
-    axc.set_xlim(x1c, x2c)
-    axc.set_ylim(y1c, y2c)
-    axc.set_xscale('log'); axc.set_yscale('log')
-    axc.set_xlim(x1c, x2c)
-    axc.set_ylim(y1c, y2c)
-    axc.set_xlabel(field1)
-    axc.set_ylabel(field2)
+    ax_MaMs.set_xlim(x1c, x2c)
+    ax_MaMs.set_ylim(y1c, y2c)
+    ax_MaMs.set_xscale('log'); ax_MaMs.set_yscale('log')
+    ax_MaMs.set_xlim(x1c, x2c)
+    ax_MaMs.set_ylim(y1c, y2c)
+    ax_MaMs.set_xlabel(labels_2d[field1])
+    ax_MaMs.set_ylabel(labels_2d[field2])
 
-    if axd is None:
-        axc.legend(loc=0)
-    #axc.legend(bbox_to_anchor=(0, 0, 1, 1), bbox_transform=gcf().transFigure)
+    if ax_Leg is None:
+        ax_MaMs.legend(loc=0)
+    #ax_MaMs.legend(bbox_to_anchor=(0, 0, 1, 1), bbox_transform=gcf().transFigure)
     else:
-        handles, labels = axc.get_legend_handles_labels()
-        Nrows = 15
+        handles, labels = ax_MaMs.get_legend_handles_labels()
         L = []; H = []; objs=[]
         if True:
             for i in range(len(labels)/Nrows+1):
@@ -214,19 +243,19 @@ if 1:
                 if len(dH) :
                     L.append(dL)
                     H.append(dH)
-                dO = axd.legend(dH,dL,loc=[1,2,10][i])
+                dO = ax_Leg.legend(dH,dL,loc=[1,2,10][i])
                 objs.append(dO)
             
-        for dO in objs[:-1]:
+        for dO in  objs[:-1]:
             print 'add', dO
             plt.gca().add_artist(dO)
 
 
 
-    axb.plot([0.5]*2,[y1,y2],c=[0.5]*3)
-    axb.plot([0.25]*2,[y1,y2],c=[0.5]*3,linestyle=':')
-    axb.plot([1.0]*2,[y1,y2],c=[0.5]*3,linestyle=':')
-    axb.plot([x1,x2],[-2.42]*2,c=[0.5]*3)
+    ax_RS.plot([0.5]*2,[y1,y2],c=[0.5]*3)
+    ax_RS.plot([0.25]*2,[y1,y2],c=[0.5]*3,linestyle=':')
+    ax_RS.plot([1.0]*2,[y1,y2],c=[0.5]*3,linestyle=':')
+    ax_RS.plot([x1,x2],[-2.42]*2,c=[0.5]*3)
 
     outname = 'p49_2d_%s_%s.png'%(modifier,car_outname)
     figb.savefig(outname)

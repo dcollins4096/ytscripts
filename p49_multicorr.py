@@ -20,31 +20,39 @@ if 1: #'horz' not in dir():
     plots_to_annotate=[]
     annotations=[]
 
-these_sims = ['aa19','aa20','aa21','aa22']
+these_sims =  ['aa19','aa20','aa21','aa22']
 these_sims += ['az19','az20','az21','az22']
 these_sims += ['ax19','ax20','ax21','ax22']
 #these_sims = ['ax22','aa22','az22']
 #these_sims = ['ax19','aa19','az19']
 #these_sims = ['ax21','aa21','az21']
 these_sims = ['ax22','aa22','az22']
-
 #these_sims = ['ab19','aa19','ax19','az19']
 #these_sims = ['b02','b2','b20']
-these_sims = all_sims
+#these_sims = all_sims
+
+if 'which_series' in dir():
+    these_sims = series[which_series]
+    #title = titles[which_series]
+    #figb.suptitle(title)
+    if which_series in ['22']:
+        color_sim_dict = color_sim_dict_3
+    else:
+        color_sim_dict = color_sim_dict_2
+
+
+#these_sims = ['ax22','aa22','az22'] #light blue
+#these_sims = ['aa20','ax20','az20'] #green
 
 #field= 't'
 #field= 't_tcross'
 #field = 'AlfMach'
+#field = 'LogAlfMach'
 #field = 'beta'
 #field = 'mach'
 field = 'log_brms_B'
-axis_list = 'x'
-modifier = 'take5_'+axis_list
-these_sims = ['b02_512','b2_512','b20_512']
-these_sims=['aa19', 'aa20', 'aa21', 'aa22', 'ab19', 'ab22', 'ab23', #'ab24',
-       'ab26', 'ac19', 'ac22', 'ac23', 'ac25', 'ac26', 'ax19', 'ax20',
-              'ax21', 'ax22', 'az19', 'az20',
-                     'az21', 'az22', 'b02_512', 'b20_512', 'b2_512']
+axis_list = 'y'
+modifier = 'Series_%s_'%axis_list
 
 if 0:
     fig, ax90210 = plt.subplots(3, 1, sharex=True)
@@ -151,10 +159,21 @@ ext_horz    = collect_extrema(horz, None)
 
 if 1:
     #nominal values
-    Rx_slope.plot( [horz.min(),horz.max()],[-2.42]*2,c=[0.5]*3, label='target')
-    Rx_ratio.plot( [horz.min(),horz.max()],[0.5]*2,c=[0.5]*3) #B = 0.5 E.  More e.
-    Rx_ratio.plot( [horz.min(),horz.max()],[1.0]*2,c=[0.5]*3, linestyle=':') #B = 0.5 E.  More e.
-    Rx_ratio.plot( [horz.min(),horz.max()],[0.25]*2,c=[0.5]*3, linestyle=':') #B = 0.5 E.  More e.
+    xlim_this=bump2(ext_horz,log=True)
+    this_min, this_max = xlim_this
+    if field == 'AlfMach':
+        xlim_this = [5e-3, 5e1]
+        this_min, this_max=xlim_this
+    if field == 'mach':
+        xlim_this = [0,10]
+        this_min, this_max=xlim_this
+    if field == 'log_brms_B':
+        xlim_this = [-3,2]
+        this_min, this_max=xlim_this
+    Rx_slope.plot( [this_min,this_max],[-2.42]*2,c=[0.5]*3, label='target')
+    Rx_ratio.plot( [this_min,this_max],[0.5]*2,c=[0.5]*3) #B = 0.5 E.  More e.
+    Rx_ratio.plot( [this_min,this_max],[1.0]*2,c=[0.5]*3, linestyle=':') #B = 0.5 E.  More e.
+    Rx_ratio.plot( [this_min,this_max],[0.25]*2,c=[0.5]*3, linestyle=':') #B = 0.5 E.  More e.
 for ax in ax90210:
     box = ax.get_position()
     ax.set_position([box.x0, box.y0, box.width * 0.8, box.height])
@@ -164,29 +183,6 @@ Rx_amp.legend(loc='center left', bbox_to_anchor=(1, 0.5))
 #    for sim in these_sims:
 
 
-def bump2(extents, log=False):
-    out = nar([0.0,0.0])
-    if log:
-        out[0] =10**(np.floor( np.log10(extents[0])))
-        out[1] =10**(np.ceil(  np.log10(extents[1])))
-    else:
-        out[0] = np.floor(extents[0])
-        out[1] = np.ceil(extents[1])
-        #print out, extents, factor
-    return out
-def bump1(extents, factor, log=False):
-    out = nar([0.0,0.0])
-    if log:
-        out[0] =np.log(extents[0])- factor*np.abs(np.log(extents[0]))
-        out[1] =np.log(extents[1])+ factor*np.abs(np.log(extents[1]))
-        out[0] = np.exp(out[0])
-        out[1] = np.exp(out[1])
-    else:
-        out[0] = extents[0] - factor*np.abs(extents[0])
-        out[1] = extents[1] + factor*np.abs(extents[1])
-        #print out, extents, factor
-    return out
-bump = bump2
 
 
 if 0:
@@ -200,6 +196,8 @@ if 1:
     Rx_ratio.set_ylabel('B/E')
     Rx_ratio.set_xlabel(fs.x_label())
     Rx_ratio.set_xscale(fs.x_scale)
+    Rx_slope.set_xscale(fs.x_scale)
+    Rx_amp.set_xscale(fs.x_scale)
 
     Rx_amp.set_yscale('log')
 
@@ -221,12 +219,14 @@ if len(figs) > 1:
     Rx_amp.set_xlabel(fs.x_label())
     Rx_slope.set_xlabel(fs.x_label())
 
+Rx_ratio.set_xlim(xlim_this)
+Rx_amp.set_xlim(xlim_this)
+Rx_slope.set_xlim(xlim_this)
 
 
 for nfig,fig in enumerate(figs):
     fig.set_figwidth(13)
-    outname = out_format%(car_outname,field,fig_names[nfig],plot_format)
-
+    outname = out_format%(field,fig_names[nfig],car_outname,plot_format)
     fig.savefig(outname)
     print outname
     plt.close(fig)
