@@ -9,6 +9,8 @@ import glob
 import fPickle
 import os
 import numpy as np
+import time
+import glob
 nar = np.array
 
 
@@ -29,10 +31,48 @@ class quan_box():
         self.plot_format=plot_format
         #self.EBSlopePower={}
 
+    def merge(self,dict2):
+        dict1 = self.stuff
+        #dict2 = other_quan.stuff
+        frames1 = dict1['frames']
+        frames2 = dict2['frames']
+        for i, frame in enumerate(frames2):
+            if frame not in frames1:
+                for key in dict1:
+                    if key in [ 'EB', 'grav_pot_2', 'tdyn']:
+                        continue
+                    if key in ['grav_pot'] and not self.potential_written:
+                        continue
+                    dict1[key].append(dict2[key][i])
+
+        if 'EB' in dict2:
+            if 'EB' not in dict1:
+                dict1['EB'] = {}
+            for frame in dict2['EB']:
+                if frame not in dict1['EB']:
+                    dict1['EB'][frame] = dict2['EB'][frame]
     def dump(self, pickle_name=None):
+        #pdb.set_trace()
         if pickle_name is None:
             pickle_name = 'quan_box_%s.pickle'%self.car.name
+        lock_name = pickle_name + ".lock"
+        counter = 0
+        while os.path.exists(lock_name) and counter < 5:
+            print lock_name, "exists"
+            counter += 1
+            time.sleep(1)
+        if counter > 15:
+            pickle_name = pickle_name+"%d"%len(glob.glob("%s*"%pickle_name))
+        fptr = open(lock_name,"w+")
+        fptr.write("in use\n");
+        fptr.close()
+        if os.path.exists(pickle_name):
+            other_pickle = fPickle.load(pickle_name)
+            self.merge(other_pickle)
+            
         fPickle.dump(self.stuff,pickle_name)
+        os.remove(lock_name)
+
 
     def load(self, pickle_name=None):
         if pickle_name is None:
