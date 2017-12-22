@@ -17,13 +17,3 @@ plt.plot(k,fx.real,label='fx.real',c='b')
 plt.legend(loc=0)
 plt.savefig('p44_gaussian_test.pdf')
 
-#what I think I should get
-x = k
-x0=0
-should_x = (2*np.pi*var)**0.5/N*np.exp(-(np.pi)**2*2*var*(x-x0)**2)
-plt.clf()
-plt.plot(k,fx.real,label='fx.real',c='b')
-plt.plot(k,fx_shift,label='fx_shift',c='g')
-plt.plot(x,should_x,label='should',c='k')
-plt.yscale('log')
-plt.savefig('p44_gaussian_test_2.pdf')
