@@ -155,7 +155,7 @@ class field_stuff():
         if self.field in ['t_tcross']:
             self.tcross = 0.5/nominal[self.car_name]['mach']
             out = array/self.tcross
-        if field == 'LogAlfMach':
+        if self.field == 'LogAlfMach':
             out = np.log10(array)
         return out
     def x_label(self):
@@ -180,6 +180,7 @@ series={}
 series['aa']= ['aa19', 'aa20','aa21', 'aa22']
 series['ab']= ['ab19',                'ab22', 'ab23', 'ab24', 'ab26']
 series['ac']= ['ac19',                'ac22', 'ac23', 'ac25', 'ac26']
+series['active']= ['ab26','ac19',                'ac22', 'ac23', 'ac25', 'ac26']
 series['ax']= ['ax19', 'ax20', 'ax21','ax22'] 
 series['az']= ['az19', 'az20', 'az21','az22'] 
 series['b']= [ 'b02_512', 'b20_512', 'b2_512']
@@ -194,6 +195,7 @@ titles['ax']='ax 512 CT Isothermal'
 titles['az']='az 512 dedner 5/3'
 titles['b']= 'b  512+4 CT Isothermal Gravity'
 titles['all'] = 'EVERYONE'
+titles['active']='ab26 (256 dender) + ac* (512 dedner) 1.001'
 color_sim_dict_2 = {}
 color_series_dict=dict(zip([19, 20, 21, 22, 23, 24, 25, 26],['r','g','b','c','m','y','k',[0.5]*3]))
 color_sim_dict_3=dict(zip(['aa','ab','ac','ax','az','b'],['r','g','b','c','m','k']))
@@ -203,6 +205,24 @@ for sim in all_sims[:-3]:
 color_sim_dict_2['b02_512']='r'
 color_sim_dict_2['b2_512']='g'
 color_sim_dict_2['b20_512']='b'
+color_sim_dict_hsv = {}
+import colorsys
+
+if 0:
+    for nsim,sim in enumerate(all_sims):
+        dh = 1./len(all_sims)
+        h = dh*nsim
+        s = 0.4
+        v = 0.8
+        color_sim_dict_hsv[sim] = np.random.random(3) # colorsys.hsv_to_rgb(h,s,v)
+else:
+    fptr = h5py.File('p49_color_random_1.h5','r')
+    color_list = fptr['random_color_1'][:]
+    fptr.close()
+    for nsim,sim in enumerate(all_sims):
+        color_sim_dict_hsv[sim]=color_list[nsim]
+
+
 def bump2(extents, log=False):
     out = nar([0.0,0.0])
     if log:
