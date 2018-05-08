@@ -2,8 +2,9 @@ if 'ef' not in dir():
     execfile('go')
 plt.close('all')
 
-Delta = 0.15 # the physical pixel size in units of length
+Delta = 1.0 #0.15 # the physical pixel size in units of length
 N = 8192 # the number of pixels
+#N = 100 # the number of pixels
 
 
 Nharm = N/2 + 1 # number of harmonics for real fft
@@ -18,7 +19,8 @@ k = np.arange(Nharm)*Deltak # the k values
 ###
 
 rhobar = 0.25 # mean of lognormal field
-Prhok = np.exp(-k**2/2./0.5**2) # power spectrum of lognormal field
+sigma_rho=0.5
+Prhok = np.exp(-k**2/2./sigma_rho**2) # power spectrum of lognormal field
 
 
 ###
@@ -60,25 +62,27 @@ if 1:
 # some plots
     #fig = figure()
     plt.clf()
-    plt.plot(k,Prhok)
-    plt.plot(k,abs(rhoharm)**2*Deltak/2/np.pi)
-    plt.xscale('log');plt.yscale('log')
+    plt.plot(k,Prhok, c='r')
+    plt.plot(k,abs(rhoharm)**2*Deltak/2/np.pi, c='g')
+    plt.xscale('linear');plt.yscale('log')
     plt.title('Prhok input vs output')
     plt.savefig('p44_kh_k_P.png')
 
     #figure()
     plt.clf()
+    #plt.plot(x,Xidelta,label='Xidelta')
     plt.plot(x,Xidelta,label='Xidelta')
-    plt.plot(x,XiA,label='XiA')
+    #plt.plot(x,XiA,label='XiA')
+    plt.yscale('log')
     plt.legend()
     plt.savefig('p44_kh_Xi.png')
 
     #figure()
     plt.clf()
-    plt.plot(k,PAk)
-    plt.plot(k,abs(Aharm)**2*Deltak/2/np.pi)
+    plt.plot(k,PAk,c='r')
+    plt.plot(k,abs(Aharm)**2*Deltak/2/np.pi,c='g')
     plt.title('PAk model vs output')
-    plt.xscale('log');plt.yscale('log')
+    plt.xscale('linear');plt.yscale('log')
     plt.savefig('p44_kh_model.png')
 
     plt.clf()
