@@ -28,7 +28,7 @@ def get_n0(factor):
     n0_str = str(int(round(n0)))   
     return n0, n0_str
 
-def add_epsilon_old(axis, factor):
+def add_epsilon_old(axis, factor, this_thing=yt):
     """ 
     makes an epsilon field for yt.
     epsilon is a scaling factor that scales the stokes parameters 
@@ -57,11 +57,11 @@ def add_epsilon_old(axis, factor):
 
         return epsilon
 
-    yt.add_field('epsilon_n0-%s_%s'%(n0_str, axis), function=_epsilon_local)
+    this_thing.add_field('epsilon_n0-%s_%s'%(n0_str, axis), function=_epsilon_local)
     
     return n0_str
 
-def add_epsilon(n0,p): 
+def add_epsilon(n0,p, this_thing=yt): 
     def _eps_local(field,data):
         """This function calculates the Stokes Parameter "Q" along an axis x, y, or z.
         Makes use of the depolarization factor "epsilon" using a power exponent.
@@ -75,8 +75,8 @@ def add_epsilon(n0,p):
         return  epsilon 
     
     print 'adding yt field epsilon_n0-%04d_p-%d'%(n0,p)
-    yt.add_field('epsilon_n0-%04d_p-%d'%(n0,p), function=_eps_local, force_override=True)
-def add_stokes(axis, n0, p):
+    this_thing.add_field('epsilon_n0-%04d_p-%d'%(n0,p), function=_eps_local, force_override=True)
+def add_stokes(axis, n0, p, this_thing=yt):
     """makes a stokes field for yt.
     axis should be x,y,z."""
     field_horizontal = {'x':'By','y':'Bz','z':'Bx'}[axis]
@@ -99,9 +99,10 @@ def add_stokes(axis, n0, p):
   
         return ( epsilon * (((data[field_horizontal])**2.0) - ((data[field_vertical])**2.0))/B_sq )
     
-    fname= 'Q%s_n0-%04d_p-%d'%(axis,n0,p)
-    print 'adding yt field %s'%fname
-    yt.add_field(fname, units='code_density', function=_Q_local, force_override=True)
+    #Q_fname= 'Q%s_n0-%04d_p-%d'%(axis,n0,p)
+    Q_fname= 'Q%s'%(axis) #_n0-%04d_p-%d'%(axis,n0,p)
+    print 'adding yt field %s'%Q_fname
+    this_thing.add_field(Q_fname, units='code_density', function=_Q_local, force_override=True)
 
     def _U_local(field,data):
         """Makes stokes U."""
@@ -116,11 +117,14 @@ def add_stokes(axis, n0, p):
         
         return  (2.0 * epsilon * ((data[field_horizontal]) * (data[field_vertical]))/B_sq)
 
-    print 'adding yt field U%s_n0-%04d_p-%d'%(axis,n0,p)
-    yt.add_field('U%s_n0-%04d_p-%d'%(axis,n0,p), units='g/cm**3', function=_U_local, force_override=True)
+    #U_fname = 'U%s_n0-%04d_p-%d'%(axis,n0,p)
+    U_fname = 'U%s'%(axis)
+    print 'adding yt field %s'%U_fname
+    this_thing.add_field(U_fname, units='g/cm**3', function=_U_local, force_override=True)
+    return Q_fname, U_fname
 
 
-def add_unweighted_stokes(axis):
+def add_unweighted_stokes(axis, this_thing=yt):
     """makes a stokes field for yt.
     axis should be x,y,z.
     These should test the projection and the rest of the pipeline.
@@ -136,7 +140,7 @@ def add_unweighted_stokes(axis):
 
     fieldname = 'unweighted_Q%s'%axis
     print "ADDING", fieldname
-    yt.add_field(fieldname, units='dimensionless', function=_unweighted_Q_local)
+    this_thing.add_field(fieldname, units='dimensionless', function=_unweighted_Q_local)
 
     def _unweighted_U_local(field,data):
         """Makes stokes U."""
@@ -146,9 +150,9 @@ def add_unweighted_stokes(axis):
 
     fieldname = 'unweighted_U%s'%axis
     print "Adding", fieldname
-    yt.add_field(fieldname, units='dimensionless', function=_unweighted_U_local)
+    this_thing.add_field(fieldname, units='dimensionless', function=_unweighted_U_local)
 
-def add_N2(axis, n0, p):
+def add_N2(axis, n0, p, this_thing=yt):
     """ Makes a field that when projected is a correction to the column density used
     in calculating the polarization fraction. """
     field_horizontal = {'x':'By','y':'Bz','z':'Bx'}[axis]
@@ -182,18 +186,19 @@ def add_N2(axis, n0, p):
         return epsilon * (0.5*cos_gamma_sq - 1/3) 
        
     fieldname = 'N2%s_n0-%04d_p-%d'%(axis,n0,p)
-    yt.add_field(fieldname, units='code_density', function=_N2_local)    
+    this_thing.add_field(fieldname, units='code_density', function=_N2_local)    
     print "Added", fieldname
 
 # Add yt fields for stokes and n2 along each axis with 
 # different cutoff density n0 and powerlaw index p
-for axis in ['x', 'y', 'z']:
+def add_QU(this_ds):
+    for axis in ['x', 'y', 'z']:
 #   for n0 in [19,39,1945]:
 #       add_stokes(axis, n0, p=0)
 #       add_N2(axis, n0, p=0)
-    add_stokes(axis, n0=1, p=1)
-    add_N2(axis, n0=1, p=1)
-    #add_unweighted_stokes(axis)
+        add_stokes(axis, n0=1, p=1, this_thing=this_ds)
+        add_N2(axis, n0=1, p=1, this_thing=this_ds)
+        #add_unweighted_stokes(axis)
 
 
 
