@@ -43,7 +43,7 @@ def particles_from_clump(clump):
 
 
 class DaveParticleCallback(PlotCallback):
-    _type_name = "dave_particles"
+    _type_name = "select_particles"
     region = None
     _descriptor = None
     def __init__(self, width, p_size=1.0, col='k', marker='o', stride=1.0,

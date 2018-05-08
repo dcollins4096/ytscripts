@@ -1,6 +1,6 @@
 from yt import ValidateParameter, add_field
 import numpy as np
-
+"""
 momentum_units = 'g/(cm**2*s)'
 def _momentum_x(field,data):
     return data['density']*data['velocity_x']
@@ -64,4 +64,4 @@ def _gas_work(field,data):
 add_field('gas_work',function=_gas_work,units=eng_units)
 
 
-
+"""

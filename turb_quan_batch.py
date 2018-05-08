@@ -23,7 +23,9 @@ if 1:
     qb = quan_box(car)
     qb.plot_format='png'
     qb.load()
-    qb.EBall()
+    for frame in car.return_frames():
+        qb.make_frbs(frame)
+    #qb.EBall()
     qb()
     qb.plot()
     #pickle_name = 'quan_box_%s.pickle'%car.name
