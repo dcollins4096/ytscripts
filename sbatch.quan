@@ -32,9 +32,9 @@
 
 set echo
 
-set car_list = "axb22" # ax20 ax21 ax22"
+set car_list = "b2_512 b02_512 b20_512" # ax20 ax21 ax22"
 #frames can be blank (every 10th), a list, or 'car' to use what's in the taxi
-set frames = "every 10"
+set frames = "car"
 
 foreach i ($car_list) 
     ipython  turb_quan_batch.py  $i $frames &

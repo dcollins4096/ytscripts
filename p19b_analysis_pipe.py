@@ -2,6 +2,7 @@
 execfile('go')
 import taxi
 from p19b_select_particle_callback import *
+#import clump_particles #
 import time
 import clump_properties
 reload(clump_properties)
@@ -17,6 +18,50 @@ import particle_grid_mask
 #6.)     -- Projections for simple vis
 #7.)     -- Fake herschel, alma maps; local (region) imges, full cloud images.
 #8.)     -- Physical Properties.
+
+def shift_particles(ds, position,shiftRight = True):
+    """Shifts a periodically separated clump by the domain width.
+    Looks for gaps in the positions larger than max('dx'), shifts one group
+    to the right (left if shiftRight=Flase) to be spatially contiguous."""
+    #max_dx may not be computed in the most efficient way.
+    DomainLeft = ds.domain_left_edge
+    DomainRight =  ds.domain_right_edge
+    DomainWidth = DomainRight - DomainLeft
+    shift = np.zeros(3)
+    for i,axis in enumerate(['x','y','z']):
+        if i != 1:
+            continue
+
+        dx = 'd'+axis
+        nique = np.unique(position[i])
+        nique.sort()
+        print(nique)
+        max_dx = ds.index.grids[0].dds.max().in_units('code_length')
+        min_dx = ds.index.get_smallest_dx()
+
+        #has to be close to the edges, or 'Periodic Wrap' isn't the problem.
+        if np.abs(nique.max() - DomainRight[i]) > 3*max_dx:
+            continue
+        if np.abs(nique.min() - DomainLeft[i]) > 3*max_dx:
+            continue
+        delta_x = nique[1:] - nique[0:-1]
+        max_delta_x = delta_x.max()
+        break_index = np.where(delta_x == max_delta_x)
+        print("SHIFT max %0.3f index %d"%(max_delta_x,break_index[0][0]))
+
+        if max_delta_x > max_dx:
+           break_x = nique[break_index[0]+1]
+           print("SHIFT break x %0.3f"%break_x)
+           if shiftRight:
+              all_to_shift = np.where( position[i] <= break_x + min_dx )[0]
+              position[i][all_to_shift] += DomainWidth[i]
+              shift[i] = DomainWidth[i]
+           else:
+                all_to_shift = np.where( position[i] >= break_x - min_dx )[0]
+                position[i][all_to_shift] -= DomainWidth[i]
+                shift[i] = -DomainWidth[i]
+                
+    return all_to_shift
 
 def clump_finder(ds, loc = None, width = None):
     if loc is None:
@@ -36,7 +81,7 @@ def clump_finder(ds, loc = None, width = None):
 #if 'u05' not in dir():
 #    u05 = taxi.taxi('u05')
 #    car = u05
-car = taxi.taxi('s06')
+car = taxi.taxi('u05')
 #
 # Get clumps.
 #
@@ -55,10 +100,9 @@ elif 0:
     region = ds.region(center=loc,left_edge = loc-1.5*min_dx, right_edge = loc+1.5*min_dx)
     indices = region['particle_index'].astype('int64')
     leaf_indices=[indices]
-elif 0:
-    car.fill(125)
-    ds = car.ds
-    keepers = [0,1,8,10,11,12,67,64,61, 201, 125, 306]
+elif 1:
+    ds = car.load(125)
+    keepers = [0,1,8,10,11,12,67,68,64,61, 201, 125, 306]
     colors  = ['r','g','b','c','m','y','r','g','b','c','m','y']
     peak_list = fPickle.load('u05_0125_peaklist.pickle')
     #indices_late,xpos_late,ypos_late,zpos_late  = {},{},{},{}
@@ -77,23 +121,59 @@ elif 0:
 # cherry pick for debugging.
 #
 
-frames_to_plot = range(0,155,20)+[155]# [0,10,20 ,30,40,50,60,70,80,90, 100 ,110,120,125] #[120] # [0,10,20 ,30,40,50,60,70,80,90,100,110,120,125][::2] #[10, 20, 30]:
+frames_to_plot = [10] # range(0,155,20)+[155]# [0,10,20 ,30,40,50,60,70,80,90, 100 ,110,120,125] #[120] # [0,10,20 ,30,40,50,60,70,80,90,100,110,120,125][::2] #[10, 20, 30]:
 #cores_to_plot = keepers
-cores_to_plot = [0]
+cores_to_plot = [8] # [0,1,8,68]
 
 #
 # pre-images
 #
-if 1:
+if 0:
     for frame in frames_to_plot:
         ds = car.load(frame)
-        proj_full = ds.proj('density',0,center='c')
-        pw_full = proj_full.to_pw(center = 'c',width=(1.0,'code_length'))
+        ad=ds.all_data()
+        this_center=[0.5,0.0,0.5]
+        proj_full = ds.proj('density',0,center=this_center)
+        pw_full = proj_full.to_pw(center = this_center,width=(1.0,'code_length'),origin='domain')
         pw_full.set_cmap('density','gray')
+        print pw_full.save('%s_peak_thing_core_center_scatter_%04d'%(car.name,frame))
         for nc,ic in enumerate(cores_to_plot):
             indices = leaf_indices[ic]
             pw_full.annotate_select_particles(1.0, col=colors[nc], indices=indices)
-        print pw_full.save('%s_peak_thing_core_%s_%04d'%(car.name,ic))
+            pw_full.annotate_text(peak_list[ic],'%d'%ic,text_args={'color':'r'})
+            these_pids = leaf_indices[ic].astype('int64').v
+            #ef('tmp.py')
+            my_indices = ad['particle_index'].astype('int64')
+            mask_to_get_2 = np.zeros(indices.shape, dtype='int32')
+            found_any, mask = particle_ops.mask_particles(
+                these_pids, my_indices, mask_to_get_2)
+            pos = ad['particle_position'][mask == 1]
+            pos_1 = copy.copy(pos)
+            xpos,ypos,zpos = pos[:,0], pos[:,1], pos[:,2]
+            xpos_1,ypos_1,zpos_1 = pos_1[:,0], pos_1[:,1], pos_1[:,2]
+            sha = shift_particles(ds,[xpos,ypos,zpos], shiftRight=False)
+            xbar = xpos.mean()
+            ybar = ypos.mean()
+            zbar = zpos.mean()
+            rmax = np.max( (xpos-xbar)**2+(ypos-ybar)**2+(zpos-zbar)**2)**0.5
+            center_sph = [xbar,ybar,zbar]
+            sph = ds.sphere(center_sph, rmax)
+            pw_full.annotate_sphere(center_sph,rmax)
+            pw_full.save('tmp.png')
+            pw_full.plots['density'].axes.scatter(ypos,zpos)
+            #pw_full.save('test5.png')
+#           print("poo")
+            #pw_full.plots['density'].axes.scatter(np.arange(0,1,0.1),np.arange(0,1,0.1))
+
+        #pw_full.plots['density'].axes.scatter(np.arange(0,1,0.1),np.arange(0,1,0.1))
+        print pw_full.save('%s_peak_thing_core_center_scatter_%04d'%(car.name,frame))
+        plt.clf()
+        plt.scatter(ypos,zpos)
+        plt.savefig('test7.png')
+        plt.clf()
+        plt.scatter(ypos_1,zpos_1)
+        plt.scatter(ypos_1[sha],zpos_1[sha],c='r')
+        plt.savefig('test71.png')
 
 #
 # long version.
@@ -172,7 +252,7 @@ if 0:
                     found_any_g, mask_g = particle_ops.mask_particles(
                         these_pids, grid['particle_index'].astype('int64'), mask_to_get_3)
                     if found_any_g:
-                        particle_grid_mask.particle_grid_mask_go_i1( #this may be broken.
+                        particle_grid_mask.particle_grid_mask_go_i2( #this may be broken.
                             xpos,ypos,zpos, grid.LeftEdge, grid.dds, grid.ActiveDimensions,grid.child_mask, grid_selector,particle_selector)
                         particle_selector = particle_selector == 1
                         particles_in_grid = these_pids[particle_selector]

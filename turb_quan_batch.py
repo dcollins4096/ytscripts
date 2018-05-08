@@ -23,6 +23,8 @@ if 1:
     qb = quan_box(car)
     qb.plot_format='png'
     qb.load()
+    for frame in car.return_frames():
+        qb.make_frbs(frame)
     #qb.EBall()
     qb()
     qb.plot()

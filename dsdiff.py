@@ -167,8 +167,12 @@ class udiff():
                     except Exception as e:
                         raise
                     if self.p['grid_direct']:
-                        g1_full=  read_grid(self.dir1,n1,grid1,field1).swapaxes(0,2)
-                        g2_full = read_grid(self.dir2,n2,grid2,field2).swapaxes(0,2)
+                        g1_full = read_grid(self.dir1,n1,grid1,field1)
+                        g2_full = read_grid(self.dir2,n2,grid2,field2)
+                        if len(g1_full.shape) == 3:
+                            g1_full = g1_full.swapaxes(0,2)
+                            g2_full = g2_full.swapaxes(0,2)
+
                         g1 = g1_full[Slice1]
                         g2 = g2_full[Slice2]
                     else:
@@ -198,6 +202,7 @@ class udiff():
                         continue
 
                     self.diff = (g1-g2)
+                    rank = len(self.diff.shape)
                     difflabel='set1-set2'
                     diff = self.diff
                     if self.p['normalize']:
@@ -240,21 +245,25 @@ class udiff():
                             slT = slice(nGhost,-nGhost)
                         else:
                             slT = slice(None)
-                        subset = [slT]*3
-                        index = {'x':0,'y':1,'z':2}[output]
-                        if self.p['output_at_max']:
-                            all_max = na.array(na.where(na.abs(self.diff)==na.abs(self.diff).max()))
-                            first_max = [stripe[0] for stripe in all_max]
-                            local_output_range=[first_max[index]]
-                            print "Peak difference at ", output_range
-                        if self.p['output_at_half']:
-                            local_output_range=[self.diff.shape[index]/2]
-                            print output_range
-                        if len(self.p['output_range'] ) > 0:
-                            local_output_range = copy.copy(self.p['output_range'])
+                        subset = [slT]*rank
+                        if rank == 3:
+                            index = {'x':0,'y':1,'z':2}[output]
+                            if self.p['output_at_max']:
+                                all_max = na.array(na.where(na.abs(self.diff)==na.abs(self.diff).max()))
+                                first_max = [stripe[0] for stripe in all_max]
+                                local_output_range=[first_max[index]]
+                                print "Peak difference at ", output_range
+                            if self.p['output_at_half']:
+                                local_output_range=[self.diff.shape[index]/2]
+                                print output_range
+                            if len(self.p['output_range'] ) > 0:
+                                local_output_range = copy.copy(self.p['output_range'])
+                        else:
+                            local_output_range=[0]
 
                         for x in local_output_range: #range(g1.shape[0]):
-                            subset[index]= x #min([x,g1[subset].shape[index]-1,g2[subset].shape[index]-1])
+                            if rank == 3:
+                                subset[index]= x #min([x,g1[subset].shape[index]-1,g2[subset].shape[index]-1])
                             plave(g1[subset],self.output_format%(output_prefix,\
                                                            n1,grid1,field1,output,x,'set1'), zlim=self.p['zlim'], label='%s set1'%field1)
                             plave(g2[subset],self.output_format%(output_prefix,

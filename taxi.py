@@ -28,10 +28,10 @@ if not_ported:
 import matplotlib.colorbar as cb
 import re
 import copy
-import turb_quan
-import QU_callback
-reload(QU_callback)
-import p49_fields
+#import turb_quan
+#import QU_callback
+#reload(QU_callback)
+#import p49_fields
 
 class fleet():
     def __init__(self,taxi_list=[]):
@@ -723,6 +723,12 @@ class taxi:
         self.ds = yt.load(self.basename)
         for filter_name in self.particle_filter_names:
             self.ds.add_particle_filter(filter_name)
+
+        for field in self.derived_fields:
+            print("LOADING FIELD",field)
+            self.ds.add_field(field,**self.derived_fields[field])
+
+
         for key in self.dummy_YTArray_list:
             dya = self.__dict__[key] 
             #if it's a dummy array, or even it it's suggest that it should be,
@@ -1515,7 +1521,7 @@ class taxi:
             for n, field in enumerate(fields):
                 print format_string%(out[n][0], out[n][1], field)
 
-    def mass_conservation(self, frames=None):
+    def conservation(self, frames=None, field='density', units='code_mass'):
         """This should be done in a more general manner, later."""
         if frames is None:
             frames = self.return_frames()
@@ -1526,7 +1532,7 @@ class taxi:
         for nf, frame in enumerate(frames):
             ad = self.load(frame).all_data()
             total_volume = ad.quantities['TotalQuantity']('cell_volume')
-            total_mass=(ad.quantities['WeightedAverageQuantity']('density', 'cell_volume')*total_volume).in_units('code_mass')
+            total_mass=(ad.quantities['WeightedAverageQuantity'](field, 'cell_volume')*total_volume).in_units(units)
             time.append(self.ds.current_time)
             volume.append(total_volume)
             mass.append(total_mass)
