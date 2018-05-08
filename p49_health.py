@@ -4,17 +4,27 @@
 #ac23_Ma6_Ma01_256
 #ac25_M01_Ma01_512
 #ac26_M01_Ma5_512
+if 'ef' not in dir():
+    execfile('go')
 ef('p49_stuff.py')
 if 'flt' not in dir():
-    #fleet_list = ['ac19','ac22','ac23','ac25','ac26']
+    fleet_list = ['ab26','ac19','ac22','ac23','ac25','ac26']
     #fleet_list = sorted(all_sims)
     #fleet_list = ['ax19','ax20', 'ax21','ax22']
-    fleet_list = sorted(series['az'])
+    #fleet_list = sorted(series['az'])
     flt = taxi.fleet(fleet_list)
     flt('car.qb_load()')
     flt['frames']='last'
     flt('car.get_frames()')
 
+
+if 1:
+    #how many restarts will I need?
+    steps_per_restart =132020- 120171 
+    avg_dt = 4.832112e-07
+    remaining_wall = 0.164
+    n_steps = remaining_wall/avg_dt
+    n_restarts = n_steps/steps_per_restart
 def doit(flt,fun):
     for car in flt:
         fun(car)

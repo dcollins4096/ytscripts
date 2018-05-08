@@ -721,12 +721,17 @@ class taxi:
         Possibly could be renamed 'load' """
         self.set_filename(frame)
         self.ds = yt.load(self.basename)
+
         for filter_name in self.particle_filter_names:
             self.ds.add_particle_filter(filter_name)
 
         for field in self.derived_fields:
+            field_stuff = self.derived_fields[field]
             print("LOADING FIELD",field)
-            self.ds.add_field(field,**self.derived_fields[field])
+            if type(field_stuff) is dict:
+                self.ds.add_field(field,**self.derived_fields[field])
+            else:
+                field_stuff(self.ds)
 
 
         for key in self.dummy_YTArray_list:
