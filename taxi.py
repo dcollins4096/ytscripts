@@ -465,6 +465,8 @@ class taxi:
         self.callback_args={'particles':{'args':[1],'kwargs':{'col':'r'}},'select_particles':{'args':1,'kwargs':{'col':'y'}}}
         self.callback_args['star_particles']={'args':[1],'kwargs':{'col':'g'}}
         self.callback_args['nparticles']= {'args': [[0.03, 0.03]], 'kwargs': {'coord_system': 'axis', 'text_args': {'color': 'red'}}}
+        self.callback_args['magnetic_field']={'kwargs':{'use_streamlines':True,'plot_args':{'color':'b'}}}
+        self.callback_args['velocity']={'kwargs':{'use_streamlines':False,'plot_args':{'color':'y'}}}
         #self.ExcludeFromWrite.append('callbacks')
         self.WriteSpecial['callbacks'] = self.write_callbacks
 
@@ -1410,6 +1412,8 @@ class taxi:
             args = self.callback_args.get(callback,{'args':[],'kwargs':{}})
             myargs=args.get('args',[])
             mykwargs=args.get('kwargs',{})
+            print("my args",myargs)
+            print("my kwargs", mykwargs)
             if isinstance(callback,types.StringType):
                 if callback == 'stokes_angles':
                     self.kludge_my_package={}
@@ -1420,7 +1424,9 @@ class taxi:
                 elif callback == 'magnetic_angles':
                     the_plot.annotate_magnetic_angles()
                 elif callback == 'velocity':
-                    the_plot.annotate_velocity()
+                    the_plot.annotate_velocity(*myargs,**mykwargs)
+                elif callback == 'magnetic_field':
+                    the_plot.annotate_magnetic_field(*myargs,**mykwargs)
                 elif callback == 'grids':
                     the_plot.annotate_grids()
                 elif callback == 'particles':
@@ -1487,8 +1493,6 @@ class taxi:
                         pkwargs=self.callback_args['nparticles']['kwargs']
                         the_plot.annotate_text(pargs[0],r'$n_{\rm{new}}=%d$'%these_indices.shape,**pkwargs)
 
-                elif callback == 'magnetic_field':
-                    the_plot.annotate_magnetic_field()
                 else:
                     raise PortError("Callback %s not supported"%callback)
             else:
