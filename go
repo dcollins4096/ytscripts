@@ -12,6 +12,7 @@ if 1:
 #import davecallback
     import dsdiff_helpers
     import fPickle
+    execfile('xtra_fields_always.py')
     #execfile('xtra_fields.py')
     #execfile('xtra_energy_fields.py')
     execfile('davetools.py') #as needed, no more execfile.  
