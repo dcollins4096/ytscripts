@@ -1,7 +1,8 @@
 import os
 import sys
 import pdb
-sys.path.append('cmbtools')
+#sys.path.append('cmbtools')
+sys.path.append('../cmbtools_nofits')
 if os.path.isdir('code') :
     sys.path.append('code')
 
