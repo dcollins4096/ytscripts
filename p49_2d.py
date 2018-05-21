@@ -4,7 +4,8 @@ these_sims = ['ax19','ax22','az19','az22']
 #figb, ax_RS = plt.subplots(1, 1, sharex=True)
 ax_Leg=None
 plt.close('all')
-if 0:
+if 1:
+    """all 4 panels"""
     figb, axes = plt.subplots(2,2,figsize=[12.8+4.8,2*4.8])
     ax_RS = axes[0][0]
     ax_MaMs = axes[0][1]
@@ -27,7 +28,9 @@ if 0:
     ax_SS = axes[1][0]
     ax_Leg = axes[1][1]
     Nrows=40
-if 1:
+
+if 0:
+    """just the B slope, B/E plot"""
     figb, ax_RS = plt.subplots(1,1,figsize=[2*4.8,2*4.8])
     fig_ignore, axes = plt.subplots(2,2,figsize=[12.8+4.8,2*4.8])
     #ax_RS = axes[0][0]
@@ -114,14 +117,29 @@ if 'which_series' in dir():
     these_sims = series[which_series]
     title = titles[which_series]
     figb.suptitle(title)
-color_sim_dict = color_sim_dict_2
+#color_sim_dict = color_sim_dict_2
+color_sim_dict = color_sim_dict_hsv
 axis_list = 'xyz'
 means = False
 do_MaMs = True
 modifier = 'EB_RGB_%s_'%axis_list
 if means:
     modifier = 'mean_'
+
+
 if 1:
+    fig_names,ax_names=plt.subplots(1,1)
+    names_y = 0
+    names_del = 0.1
+    for ncar,car_name in enumerate(these_sims):
+        ax_names.text(0,ncar*names_del,car_name,color=color_sim_dict[car_name])
+    outname = 'dumb_name.pdf'
+    ax_names.plot([-1,-1],[0,ncar*names_del])
+    ax_names.plot([1,1],[0,ncar*names_del])
+    fig_names.savefig(outname)
+    print(outname)
+
+if 0:
     for ncar,car_name in enumerate(these_sims): #,'ax21']:
         print car_name
         car = taxi.taxi(car_name)

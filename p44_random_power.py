@@ -1,5 +1,20 @@
 if 'ef' not in dir():
     execfile('go_lite')
+def gaussian(x,p):
+    #p = {mean, width, norm, offset}
+    return p[2]/np.sqrt(p[1]*2*np.pi)*np.exp(-( (x-p[0])/p[1])**2 ) #-p[3]
+
+def fwhm(arr, x=None):
+    if x is None:
+        x = np.arange(arr.size)
+    half_max = 0.5*(arr.max())
+    over_half = arr > half_max
+    max_x = x[over_half].max()
+    min_x = x[over_half].min()
+    max_pos = x[arr==arr.max()]
+    if len(max_pos) > 0:
+        max_pos = max_pos[0]
+    return half_max, max_pos, 1.0*(max_x-min_x)
 def L1(data):
     return np.abs(data).sum()
 def L2(data):
