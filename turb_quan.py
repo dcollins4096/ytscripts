@@ -11,6 +11,8 @@ import os
 import numpy as np
 import time
 import glob
+import h5py
+import re
 nar = np.array
 
 
@@ -119,6 +121,29 @@ class quan_box():
         if not self.stuff.has_key('EB'):
             self.stuff['EB']={}
         self.stuff['EB'][frame]=EBSlopePower
+    def GetQUEB(self,frame):
+
+        frb_dir = "%s/FRBs/"%self.car.directory
+        Qlist = glob.glob(frb_dir+'/DD%04d_Q[xyz]*.fits'%frame)
+        Ulist = []
+        # write the output near the input
+        self.QUEBarr = {'Q':{}, 'U':{}, 'E':{}, 'B':{}}
+        for Qfile in Qlist:
+            mo = re.match('(.*/DD[0-9]{4}_)Q([xyz].*)(.fits)',Qfile)
+            Ufile = mo.group(1)+'U'+mo.group(2)+'.fits'
+            Ulist.append(Ufile)
+            mo = re.match('(.*/DD[0-9]{4}_)Q([xyz].*)(.fits)',Qfile)
+            outroot = mo.group(1)
+            outsuf = mo.group(2)
+            Efile = outroot+'E'+outsuf+'.fits'
+            Bfile = outroot+'B'+outsuf+'.fits'
+            Clfile = outroot+'Cl'+outsuf+'.dat'
+            self.QUEBarr['Q'][Qfile] = np.array(pyfits.open(Qfile)[0].data,dtype=np.double)
+            self.QUEBarr['U'][Ufile] = np.array(pyfits.open(Ufile)[0].data,dtype=np.double)
+            self.QUEBarr['E'][Efile] = np.array(pyfits.open(Efile)[0].data,dtype=np.double)
+            self.QUEBarr['B'][Bfile] = np.array(pyfits.open(Bfile)[0].data,dtype=np.double)
+
+
     def QUEB(self, frame):
         import p49_QU2EB
         reload (p49_QU2EB)
@@ -131,12 +156,14 @@ class quan_box():
 #            self.make_frbs(frame)
 #            self.fit_slopes()
 #            self.plot_eebb()
-    def make_frbs(self,frame):
+    def make_frbs(self,frame, axes=['x','y','z']):
         fields=[]
-        for axis in ['x', 'y', 'z']:
+        for axis in axes:
           n0=1; p=1 #n0 in [19,39,1945] and p=0
-          fields.append( (axis,'Q%s_n0-%04d_p-%d'%(axis,n0,p))   )
-          fields.append( (axis,'U%s_n0-%04d_p-%d'%(axis,n0,p))   )
+          #fields.append( (axis,'Q%s_n0-%04d_p-%d'%(axis,n0,p))   )
+          #fields.append( (axis,'U%s_n0-%04d_p-%d'%(axis,n0,p))   )
+          fields.append( (axis,'Q%s'%(axis))   )
+          fields.append( (axis,'U%s'%(axis))   )
           fields.append( (axis,'density') )
 
         ds = None  #this is somewhat awkward, but useful for avoiding simulations
