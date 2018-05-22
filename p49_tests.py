@@ -9,6 +9,7 @@ reload(turb_quan)
 import p49_fields
 reload(p49_fields)
 car=taxi.taxi('r22')
+car.outname='r22_cmbtools_0.1_'
 if 1:
     car.derived_fields['QU'] = p49_fields.add_QU
 if 0:
@@ -27,9 +28,11 @@ if 1:
     plt.clf()
     for field in 'QUEB':
         for f in qb.QUEBarr[field]:
-            oot = "%s_%s"%(car.name,f.split('/')[-1])
+            oot = "%s_%s"%(car.outname,f.split('/')[-1])
             plt.clf()
-            plt.imshow(qb.QUEBarr[field][f],interpolation='nearest',origin='lower')
+            f = plt.imshow(qb.QUEBarr[field][f],interpolation='nearest',origin='lower')
+            plt.colorbar(f)
+            print("did a color")
             plt.title(oot)
             plt.savefig(oot+".png")
             print(oot)
