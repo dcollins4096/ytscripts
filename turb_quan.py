@@ -2,8 +2,8 @@ execfile('go_lite')
 import taxi
 import p49_fields
 import p49_labels
+import p49_QU2EB
 import xtra_energy_fields
-#import p49_fields
 import astropy.io.fits as pyfits
 import glob
 import fPickle
@@ -115,9 +115,7 @@ class quan_box():
                 self.EBslopes(frame)
         self.dump()
     def EBslopes(self,frame):
-        import p49_slopes_powers
-        reload(p49_slopes_powers)
-        EBSlopePower=p49_slopes_powers.slopes_powers(self.car,frame, plot_format=self.plot_format)
+        EBSlopePower=p49_QU2EB.slopes_powers(self.car,frame, plot_format=self.plot_format)
         if not self.stuff.has_key('EB'):
             self.stuff['EB']={}
         self.stuff['EB'][frame]=EBSlopePower
@@ -145,8 +143,6 @@ class quan_box():
 
 
     def QUEB(self, frame):
-        import p49_QU2EB
-        reload (p49_QU2EB)
         #ds = self.car.load(frame)
         frb_dir = "%s/FRBs/"%self.car.directory
         p49_QU2EB.QU2EB(frb_dir,frame)

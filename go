@@ -1,8 +1,8 @@
 import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
-
 import yt
+yt.config.ytcfg['yt','loglevel']="50"
 #yt.enable_plugins()
 if 1:
     not_in_yt3 = False #a universal flag to indicate things that need to be ported.

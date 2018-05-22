@@ -96,8 +96,10 @@ def add_stokes(axis, n0, p, this_thing=yt):
         #epsilon[ n <= n0 ] = (n.v)[ n <= n0 ]  
         #epsilon[ n > n0 ]  = (n0**(1-p) * n.v**p)[ n > n0 ]   
         epsilon = n
+        out = ( epsilon * (((data[field_horizontal])**2.0) - ((data[field_vertical])**2.0))/B_sq )
+        out[B_sq == 0] = 0
   
-        return ( epsilon * (((data[field_horizontal])**2.0) - ((data[field_vertical])**2.0))/B_sq )
+        return out
     
     #Q_fname= 'Q%s_n0-%04d_p-%d'%(axis,n0,p)
     Q_fname= 'Q%s'%(axis) #_n0-%04d_p-%d'%(axis,n0,p)
@@ -115,7 +117,9 @@ def add_stokes(axis, n0, p, this_thing=yt):
         #epsilon[ n > n0 ]  = n #(n0**(1-p) * n.v**p)[ n > n0 ] 
         epsilon = n
         
-        return  (2.0 * epsilon * ((data[field_horizontal]) * (data[field_vertical]))/B_sq)
+        out = (2.0 * epsilon * ((data[field_horizontal]) * (data[field_vertical]))/B_sq)
+        out[B_sq == 0 ] = 0
+        return out 
 
     #U_fname = 'U%s_n0-%04d_p-%d'%(axis,n0,p)
     U_fname = 'U%s'%(axis)
