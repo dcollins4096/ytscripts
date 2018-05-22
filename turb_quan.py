@@ -1,7 +1,7 @@
 execfile('go_lite')
 import taxi
 import p49_fields
-import p49_stuff
+import p49_labels
 import xtra_energy_fields
 #import p49_fields
 import astropy.io.fits as pyfits
@@ -293,7 +293,7 @@ class quan_box():
         if HydroMethod is None:
             ds=car.load()
             HydroMethod = car.ds['HydroMethod']
-        tn = p49_stuff.nominal.get(car.name,None)
+        tn = p49_labels.nominal.get(car.name,None)
         times = nar(self.stuff['t'])
         ar = np.argsort(times)
         times=times[ar]

@@ -1,4 +1,5 @@
 import numpy as np
+import h5py
 from davetools import rainbow_map
 nominal = { }
 nominal['aa19']=  dict(zip(['mach','field_cgs','AlfMach','beta','logbeta'],[1  ,11.82  ,0.300 , 0.180 , -0.7]))
