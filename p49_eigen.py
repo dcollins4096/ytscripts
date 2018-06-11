@@ -1,5 +1,66 @@
 import numpy as np 
-def speeds(d,vx,vy,vz,bx,by,bz,eng, EquationOfState = 0, Gamma=5./3, IsothermalSoundSpeed=1):
+nar=np.array
+import enzo_write
+reload(enzo_write)
+class waves():
+    def __init__(self,this_wave=6, d=1.0,vx=0.0,vy=0.0,vz=0.0,Bx=1.0,By=1.41421,Bz=0.5,Gamma=1.6666666667,E=None,P=None, write=True):
+        #P = 0.6
+        #Gamma=1.6666666667
+        self.wave=this_wave
+        if P is not None:
+            Egas=P/((Gamma-1)*d)
+            E = 0.5*(vx*vx+vy*vy+vz*vz)+0.5*(Bx*Bx+By*By+Bz*Bz)/d + Egas
+        self.quan={'d':d,'vx':vx,'vy':vy,'vz':vz,'Bx':Bx,'By':By,'Bz':Bz,'P':P,'Gamma':Gamma,'Egas':Egas,'E':E}
+        for a,b in [['d','Density'],['vx','x-velocity'],['vy','y-velocity'],['E','TotalEnergy']]:
+            self.quan[b]=self.quan[a]
+        self.v0 = np.array([vx,vy,vz])
+        self.B0 = np.array([Bx,By,Bz])
+        self.right = eigen(d, vx, vy, vz, Bx,By,Bz,E, Gamma=Gamma)
+        self.speeds = speeds(d, vx, vy, vz, Bx,By,Bz,E, Gamma=Gamma)
+    def __getitem__(self,field):
+        map_to_eigen={'d':0,'vx':2,'vy':3,'vz':4,'Bx':-1,'By':5,'Bz':6,'E':1}
+        this_pert = self.right[:,self.wave]
+        if field is 'dv':
+            return nar([ this_pert[2], this_pert[3], this_pert[4]])
+        if field is 'db':
+            return nar([ 0, this_pert[5], this_pert[6]])
+        if field is 'de':
+            return nar(this_pert[1])
+        if field is 'drho':
+            return nar(this_pert[0])
+        if field is 'all':
+            return this_pert
+
+
+
+    def perturb(self,base_size=None,pert=1e-6,wave=6,directory=".", write=True):
+
+        self.cubes={}
+        map_to_eigen={'d':0,'vx':2,'vy':3,'vz':4,'Bx':-1,'By':5,'Bz':6,'E':1}
+        map_to_label ={'d':'density','vx':'x-velocity','vy':'y-velocity','vz':'z-velocity',
+                'Bx':'Bx','By':'By','Bz':'Bz','E':'TotalEnergy'}
+        face_offset = {'Bx':nar([1,0,0]),'By':nar([0,1,0]),'Bz':nar([0,0,1])}
+        for field in ['d','E','vx','vy','vz','Bx','By','Bz']:
+            size = base_size+face_offset.get(field,0)
+            this_set = np.ones(size)*self.quan[field]
+            if field in ['vx','vy','vz','E']:
+                this_set *= self.cubes['density']
+            self.cubes[map_to_label[field]]=this_set
+        for field in ['d','E','vx','vy','vz','Bx','By','Bz']:
+            size = base_size+face_offset.get(field,0)
+            amplitude = np.zeros(size)
+            amplitude[:size[0]/2,:,:] = 1
+            amplitude[size[0]/2:,:,:] = -1
+            if field is not 'Bx':
+                the_wave = pert*amplitude*self.right[ map_to_eigen[field] ][wave] 
+                self.cubes[map_to_label[field]] += the_wave
+        for field in ['d','E','vx','vy','vz','Bx','By','Bz']:
+            this_filename = "%s/%s_16.h5"%(directory,map_to_label[field])
+            if field in ['vx','vy','vz','E']:
+                self.cubes[map_to_label[field]] /= self.cubes[map_to_label['d']]
+            if write:
+                enzo_write.dump_h5(self.cubes[map_to_label[field]],this_filename)
+def speeds(d,vx,vy,vz,bx,by,bz,eng=None,p=None, EquationOfState = 0, Gamma=5./3, IsothermalSoundSpeed=1):
 
     #float d, float vx, float vy, float vz, 
     #float bx, float by, float bz, float eng, 
@@ -16,6 +77,10 @@ def speeds(d,vx,vy,vz,bx,by,bz,eng, EquationOfState = 0, Gamma=5./3, IsothermalS
     sqrtDi = 1.0/sqrtD;
     sbx  = np.sign(bx);
     og1  = 1.0/(Gamma - 1);
+    if p is not None:
+        Egas=p/((Gamma-1)*d)
+        eng = 0.5*(vx*vx+vy*vy+vz*vz)+0.5*(bx*bx+by*by+bz*bz)/d + Egas
+
 
     if EquationOfState == 0 :
         p = (Gamma -1.0 ) * (eng - 0.5* d * (vx*vx + vy*vy + vz * vz ) - 0.5*(bx*bx + by*by + bz*bz));
