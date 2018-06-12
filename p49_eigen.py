@@ -4,7 +4,9 @@ nar=np.array
 import enzo_write
 reload(enzo_write)
 class waves():
-    def rotate(self,k_all):
+    def rotate(self,k_all, wave=None):
+        if wave is None:
+            wave = self.wave
         rank = 3
         B0 = self['b0']
         B0_mag = (B0**2).sum()**0.5
@@ -56,8 +58,9 @@ class waves():
         for field in ['d','P','e']:
             scalars[field]=self.quan[field]
 
-        hat_system = waves(bx=B0hat[0,...], by=B0hat[1,...], bz=B0hat[2,...],**scalars)
-        wave='a+'
+        hat_system = waves(bx=B0hat[0,...], by=B0hat[1,...], bz=B0hat[2,...],
+                           Gamma=self.Gamma,**scalars)
+        
         self.rot={}
         for f in ['d','vx','vy','vz','bx','by','bz','e']:
             self.rot[f]=np.zeros_like(a_unit)
@@ -108,7 +111,9 @@ class waves():
     def __init__(self,this_wave='f+', d=1.0,vx=0.0,vy=0.0,vz=0.0,bx=1.0,by=1.41421,bz=0.5,Gamma=1.6666666667,e=None,P=None, write=True):
         #P = 0.6
         #Gamma=1.6666666667
+        self.Gamma=Gamma
         self.wave=this_wave
+        self.cubes=None
         if P is not None:
             egas=P/((Gamma-1)*d)
             e = 0.5*(vx*vx+vy*vy+vz*vz)+0.5*(bx*bx+by*by+bz*bz)/d + egas
@@ -140,9 +145,9 @@ class waves():
         if field is 'all':
             return self.quan
 
-    def rot_write(self,k_rot=None,base_size=None,pert=1e-6,directory=".", write=True):
+    def rot_write(self,k_rot=None,base_size=None,pert=1e-6,directory=".", write=True, wave=None):
 
-        self.rotate(k_rot)
+        self.rotate(k_rot, wave)
         kint = k_rot.astype(int)
 
 
@@ -163,7 +168,8 @@ class waves():
                     print("Warning: large imaginary component")
             all_p[f]=tmp.real
 
-        self.cubes={}
+        if self.cubes is None:
+            self.cubes={}
         map_to_label ={'d':'density','vx':'x-velocity','vy':'y-velocity','vz':'z-velocity',
                 'bx':'Bx','by':'By','bz':'Bz','e':'TotalEnergy'}
         face_offset = {'bx':nar([1,0,0]),'by':nar([0,1,0]),'bz':nar([0,0,1])}
@@ -175,10 +181,10 @@ class waves():
             self.cubes[map_to_label[field]]=this_set
         for field in ['d','e','vx','vy','vz','bx','by','bz']:
             size = base_size+face_offset.get(field,0)
-            if field is not 'bx':
+            #if field is not 'bx':
                 #the_wave = pert*amplitude*self.right[ map_to_eigen[field] ][wave] 
                 #the_wave = pert*amplitude*self.right[self.wave][field]
-                self.cubes[map_to_label[field]][cube_slice] += all_p[field]
+            self.cubes[map_to_label[field]][cube_slice] += all_p[field]
         for field in ['d','e','vx','vy','vz','bx','by','bz']:
             this_filename = "%s/%s_16.h5"%(directory,map_to_label[field])
             if field in ['vx','vy','vz','e']:
