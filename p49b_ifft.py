@@ -21,6 +21,21 @@ plt.clf()
 plt.imshow(khathat)
 plt.savefig('p49b_ifft.png')
 
+d=1.
+vx=vy=vz=0
+Bx, By, Bz = 1.0,1.41421,0.5
+P = 0.6
+Gamma=1.6666666667
+Egas=P/((Gamma-1)*d)
+E = 0.5*(vx*vx+vy*vy+vz*vz)+0.5*(Bx*Bx+By*By+Bz*Bz)/d + Egas
+right = p49_eigen.eigen(d, vx, vy, vz, Bx,By,Bz,E, Gamma=Gamma)
+speeds = p49_eigen.speeds(d, vx, vy, vz, Bx,By,Bz,E, Gamma=Gamma)
+
+B0 = nar([1.,0.,0.])
+size = [64,64,64]
+kx, ky, kz = np.mgrid[0.:shape[0],0.:shape[1],0.:shape[2]]
+
+
 """
 a_unit = khat
 sinTheta b_unit = Bvec - cosTheta a_unit

@@ -2,70 +2,27 @@
 if 'ef' not in dir():
     execfile('go')
 reload(taxi)
+if 'always' not in dir():
+    always=True
+if 'garr' not in dir() or always:
+    r15=taxi.taxi('r15')
+    r15x=taxi.taxi('r15b')
+    r17b=taxi.taxi('r17b')
+    r17=taxi.taxi('r17')
+    flt = taxi.fleet([r15x,r17b])#,r15,r17])
+    flt('car.load(0)')
+    garr = flt('output.append( car.ds.index.grids[0])')
+for a,b in [['d','Density'],['vx','x-velocity'],['vy','y-velocity'],['vz','z-velocity'],['E','TotalEnergy']]:
+    quan[b]=quan[a]
+def moo(field):
+    print( "%5s            %0.16f \pm %0.16e "%(flt[0].name, np.mean(garr[0][field].v), np.std(garr[0][field].v)))
+    print( "%5s            %0.16f \pm %0.16e "%(flt[1].name, np.mean(garr[1][field].v), np.std(garr[1][field].v)))
+    #print( "%5s            %0.16f \pm %0.16e "%(flt[3].name, np.mean(garr[3][field].v), np.std(garr[3][field].v)))
+    print( "%5s %5s diff %0.16e"%(flt[0].name, flt[1].name,(np.abs(garr[0][field].v-garr[1][field].v)).sum()))
+    #print( "%5s %5s diff %0.16e"%(flt[3].name, flt[1].name,(np.abs(garr[3][field].v-garr[1][field].v)).sum()))
+    #print( "%5s %5s diff %0.16e"%(flt[3].name, flt[0].name,(np.abs(garr[3][field].v-garr[0][field].v)).sum()))
+    #print( "2 q g2 %0.16f \pm %0.16e quan %0.16e diff %0.16e"%( np.mean(garr[2][field].v), np.std(np.abs(garr[2][field].v)), quan[field], (np.abs(garr[2][field].v-quan[field])).sum()))
 
-sys.path.append('/Users/dcollins/local-other-2018-01-05/cmbtools_nofits')
-import turb_quan
-reload(turb_quan)
-import p49_fields
-reload(p49_fields)
-car=taxi.taxi('r22')
-if 1:
-    car.derived_fields['QU'] = p49_fields.add_QU
-if 0:
-    car.load()
-    ad=car.ds.all_data()
-    stat(ad['Ux'])
-    car.plot()
-if 1:
-    qb = turb_quan.quan_box(car)
-    qb.make_frbs(0, ['z'])
-    qb.QUEB(0)
-if 1:
-    qb = turb_quan.quan_box(car)
-    qb.GetQUEB(0)
-if 1:
-    plt.clf()
-    for field in 'QUEB':
-        for f in qb.QUEBarr[field]:
-            oot = "%s_%s"%(car.name,f.split('/')[-1])
-            plt.clf()
-            plt.imshow(qb.QUEBarr[field][f],interpolation='nearest',origin='lower')
-            plt.title(oot)
-            plt.savefig(oot+".png")
-            print(oot)
-    
-
-if 0:
-    """
-    Jordan Mirocha
-    cosmorec chluba & thomas
-    Wouthuysen Field Effect (Vowt Howsen) Prichartd & Furlanetto 2006
-    Furlaneto 2006
-    Mesinger+2011
-    deOlivera-Costa + 2008 sky model
-    loco.lab.asu.edu/download
-
-"""
-if 0:
-    axis='z'
-    field_horizontal = {'x':'By','y':'Bz','z':'Bx'}[axis]
-    field_vertical   = {'x':'Bz','y':'Bx','z':'By'}[axis]
-
-    def _Q_local(field,data):
-        """This function calculates the Stokes Parameter "Q" along an axis x, y, or z.
-        Makes use of the depolarization factor "epsilon" using a power exponent.
-        """
-        n = data['density']
-        B_sq = data['Bx']**2.0 + data['By']**2.0 + data['Bz']**2.0
-
-        #epsilon = np.ones(data['density'].shape)
-        #epsilon[ n <= n0 ] = (n.v)[ n <= n0 ]  
-        #epsilon[ n > n0 ]  = (n0**(1-p) * n.v**p)[ n > n0 ]   
-        epsilon = n
-        out = ( epsilon * (((data[field_horizontal])**2.0) - ((data[field_vertical])**2.0))/B_sq )
-        out[B_sq == 0] = 0
-        return out
-    car.load()
-    ad=car.ds.all_data()
-    b=_Q_local(None,ad)
-    stat(b)
+for field in ['Density','x-velocity','y-velocity','z-velocity','TotalEnergy']:
+    print("==== %s ===="%field)
+    moo(field)

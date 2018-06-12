@@ -44,10 +44,12 @@ class system():
             if write:
                 enzo_write.dump_h5(self.cubes[map_to_label[field]],this_filename)
 
-right_fast = system(P=0.6)
-right_fast.perturb(base_size=nar([16]*3),pert= 1e-6,wave= 6,directory= '/Users/dcollins/scratch/Paper49b_play/r17c_check')
-#g2, eigen, quan=r16_cube_right_fast('/Users/dcollins/scratch/Paper49b_play/r17c_check', write=True)
-    
+right_fast = p49_eigen.waves(P=0.6)
+#right_fast.perturb(base_size=nar([16]*3),pert= 1e-6,wave= 6,directory= '/Users/dcollins/scratch/Paper49b_play/r17d')
+print(right_fast['dv'])
+"""
+below are old things.
+"""
 def r16_cube_right_fast(directory, write=True):
     #base_size = nar([64]*3)
     base_size = nar([16]*3)
