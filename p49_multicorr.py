@@ -45,13 +45,13 @@ if 'which_series' in dir():
 #these_sims = ['aa20','ax20','az20'] #green
 
 #field= 't'
-#field= 't_tcross'
+field= 't_tcross'
 #field = 'AlfMach'
 #field = 'LogAlfMach'
 #field = 'beta'
 #field = 'mach'
-field = 'log_brms_B'
-axis_list = 'y'
+#field = 'log_brms_B'
+axis_list = 'xyz'
 modifier = 'Series_%s_'%axis_list
 
 if 0:
@@ -72,6 +72,9 @@ else:
 if 1:
     for ncar,car_name in enumerate(these_sims): #,'ax21']:
         car = taxi.taxi(car_name)
+        if True and car_name in ['ac19','ac22','ac23','ac25','ac26', 'b02_512','b2_512','b20_512']:
+            #car.outname = car.name + "_cmbto" #for old cmb tools
+            car.outname = car.name + "_both" #new cmb tools
         qb = quan_box(car, plot_format=plot_format)
         qb.load()
         car_list.append(car)
@@ -226,7 +229,7 @@ Rx_slope.set_xlim(xlim_this)
 
 for nfig,fig in enumerate(figs):
     fig.set_figwidth(13)
-    outname = out_format%(field,fig_names[nfig],car_outname,plot_format)
+    outname = out_format%(field,car_outname,fig_names[nfig],plot_format)
     fig.savefig(outname)
     print outname
     plt.close(fig)

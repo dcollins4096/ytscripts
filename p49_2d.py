@@ -1,6 +1,5 @@
 ef('p49_labels.py')
 from mpl_toolkits.mplot3d import Axes3D
-these_sims = ['ax19','ax22','az19','az22']
 #figb, ax_RS = plt.subplots(1, 1, sharex=True)
 ax_Leg=None
 plt.close('all')
@@ -127,7 +126,7 @@ if means:
     modifier = 'mean_'
 
 
-if 1:
+if 0:
     fig_names,ax_names=plt.subplots(1,1)
     names_y = 0
     names_del = 0.1
@@ -139,10 +138,13 @@ if 1:
     fig_names.savefig(outname)
     print(outname)
 
-if 0:
+if 1:
     for ncar,car_name in enumerate(these_sims): #,'ax21']:
         print car_name
         car = taxi.taxi(car_name)
+        if True and car_name in ['ac19','ac22','ac23','ac25','ac26', 'b02_512','b2_512','b20_512']:
+            #car.outname = car.name + "_cmbto" #for old cmb tools
+            car.outname = car.name + "_both" #new cmb tools
         car.qb_load()
         qb=car.qb
 
