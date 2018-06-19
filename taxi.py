@@ -28,7 +28,7 @@ if not_ported:
 import matplotlib.colorbar as cb
 import re
 import copy
-#import turb_quan
+import turb_quan
 #import QU_callback
 #reload(QU_callback)
 #import p49_fields
@@ -90,6 +90,7 @@ class fleet():
                     output.append(eval(command))
         return output
     def outname(self,prefix):
+
         """sets car.outname = prefix+car.name"""
         for car in self.taxi_list:
             car.outname = prefix + car.name
@@ -1014,7 +1015,10 @@ class taxi:
                     if self.verbose:
                         print "set lim", self.zlim[field_with_weight]
 
-                the_plot.set_zlim(field, self.zlim[field_with_weight][0].v, self.zlim[field_with_weight][1].v)
+                if hasattr(self.zlim[field_with_weight][0],'v'):
+                    the_plot.set_zlim(field, self.zlim[field_with_weight][0].v, self.zlim[field_with_weight][1].v)
+                else:
+                    the_plot.set_zlim(field, self.zlim[field_with_weight][0], self.zlim[field_with_weight][1])
                 if self.operation in ['Full','RegionProjection']:
                     self.proj_zlim = self.zlim
                 elif self.operation in ['MinSlice','PeakSlice','DensityPeakSlice','CenterSlice']:
