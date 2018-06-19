@@ -8,7 +8,7 @@ class waves():
         if wave is None:
             wave = self.wave
         rank = 3
-        B0 = self['b0']
+        B0 = self.b0
         B0_mag = (B0**2).sum()**0.5
         B_unit = B0/B0_mag
         knorm = (k_all[0,...]**2+k_all[1,...]**2+k_all[2,...]**2)**0.5
@@ -59,7 +59,7 @@ class waves():
             scalars[field]=self.quan[field]
 
         hat_system = waves(bx=B0hat[0,...], by=B0hat[1,...], bz=B0hat[2,...],
-                           Gamma=self.Gamma,**scalars)
+                           Gamma=self.Gamma,form=self.form,**scalars)
         
         self.rot={}
         for f in ['d','vx','vy','vz','bx','by','bz','e']:
@@ -108,21 +108,25 @@ class waves():
 #sinTheta b_unit = Bvec - cosTheta a_unit
 #b_unit = b_uni/||b_unit||
 #c_unit = a_unit cross b_unit
-    def __init__(self,this_wave='f+', d=1.0,vx=0.0,vy=0.0,vz=0.0,bx=1.0,by=1.41421,bz=0.5,Gamma=1.6666666667,e=None,P=None, write=True):
+    def __init__(self,this_wave='f+', d=1.0,vx=0.0,vy=0.0,vz=0.0,bx=1.0,by=1.41421,bz=0.5,Gamma=1.6666666667,e=None,P=None, write=True,
+                 form='rj95'):
         #P = 0.6
         #Gamma=1.6666666667
         self.Gamma=Gamma
+        self.form=form
         self.wave=this_wave
         self.cubes=None
         if P is not None:
             egas=P/((Gamma-1)*d)
             e = 0.5*(vx*vx+vy*vy+vz*vz)+0.5*(bx*bx+by*by+bz*bz)/d + egas
         self.quan={'d':d,'vx':vx,'vy':vy,'vz':vz,'bx':bx,'by':by,'bz':bz,'P':P,'Gamma':Gamma,'egas':egas,'e':e}
-        for a,b in [['d','Density'],['vx','x-velocity'],['vy','y-velocity'],['e','TotalEnergy']]:
+        for a,b in [['d','Density'],['vx','x-velocity'],['vz','z-velocity'],['vy','y-velocity'],['e','TotalEnergy']]:
             self.quan[b]=self.quan[a]
         self.v0 = np.array([vx,vy,vz])
         self.b0 = np.array([bx,by,bz])
-        self.right = eigen(d, vx, vy, vz, bx,by,bz,e, Gamma=Gamma, obj=self)
+        self.P = P
+        self.d = d
+        self.right = eigen(d, vx, vy, vz, bx,by,bz,e, Gamma=Gamma, form = self.form)
         self.speeds = speeds(d, vx, vy, vz, bx,by,bz,p=P, Gamma=Gamma)
     def __getitem__(self,field):
         map_to_eigen={'d':0,'vx':2,'vy':3,'vz':4,'bx':-1,'by':5,'bz':6,'e':1}
@@ -145,16 +149,24 @@ class waves():
         if field is 'all':
             return self.quan
 
-    def rot_write(self,k_rot=None,base_size=None,pert=1e-6,directory=".", write=True, wave=None):
+    def rot_write(self,k_rot=None,base_size=None,pert=1e-6,directory=".", write=True, wave=None, pert_shape='fft'):
+        if self.cubes is None:
+            print("no cubes")
+        else:
+            print("keys",self.cubes.keys())
 
-        self.rotate(k_rot, wave)
-        kint = k_rot.astype(int)
 
+        face_offset = {'bx':nar([1,0,0]),'by':nar([0,1,0]),'bz':nar([0,0,1])}
 
         all_hats = {}
         all_p = {}
         cube_slice=[slice(0,base_size[0]),slice(0,base_size[1]),slice(0,base_size[2])]
         field_list = ['d','vx','vy','vz','bx','by','bz','e']
+
+        #if pert_shape == 'fft':
+        self.rotate(k_rot, wave)
+        self.directory=directory
+        kint = k_rot.astype(int)
         for f in field_list:
             all_hats[f]=np.zeros(base_size)*1j
             all_hats[f][kint[0,...],kint[1,...],kint[2,...]] = self.rot[f]*pert
@@ -166,7 +178,16 @@ class waves():
             if (real_mean+imag_mean)>1e-16:
                 if imag_mean/(real_mean+imag_mean) > 1e-9:
                     print("Warning: large imaginary component")
-            all_p[f]=tmp.real
+            all_p[f]=tmp.real*tmp.size
+            #size = base_size #+face_offset.get(f,0)
+            #amplitude = np.zeros(size)
+            #amplitude[:size[0]/2,:,:] = 1
+            #amplitude[size[0]/2:,:,:] = -1
+            ##    the_wave = pert*amplitude*self.right[self.wave][field] #HOW IT SHOULD BE
+            #all_p[f] = amplitude*pert[0]*self.right[self.wave][f] #kludged
+            #print("WTF CLOWN ", pert[0]*self.right[self.wave][f], self.wave,f)
+
+            #
 
         if self.cubes is None:
             self.cubes={}
@@ -175,7 +196,12 @@ class waves():
         face_offset = {'bx':nar([1,0,0]),'by':nar([0,1,0]),'bz':nar([0,0,1])}
         for field in ['d','e','vx','vy','vz','bx','by','bz']:
             size = base_size+face_offset.get(field,0)
-            this_set = np.ones(size)*self.quan[field]
+            if map_to_label[field] in self.cubes:
+                print("has")
+                this_set = self.cubes[map_to_label[field]]
+            else:
+                print("new")
+                this_set = np.ones(size)*self.quan[field]
             if field in ['vx','vy','vz','e']:
                 this_set *= self.cubes['density']
             self.cubes[map_to_label[field]]=this_set
@@ -184,7 +210,8 @@ class waves():
             #if field is not 'bx':
                 #the_wave = pert*amplitude*self.right[ map_to_eigen[field] ][wave] 
                 #the_wave = pert*amplitude*self.right[self.wave][field]
-            self.cubes[map_to_label[field]][cube_slice] += all_p[field]
+            self.cubes[map_to_label[field]][cube_slice] += all_p[field] #HOW IT SHOULD BE
+            #self.cubes[map_to_label[field]]             += all_p[field]
         for field in ['d','e','vx','vy','vz','bx','by','bz']:
             this_filename = "%s/%s_16.h5"%(directory,map_to_label[field])
             if field in ['vx','vy','vz','e']:
@@ -195,7 +222,7 @@ class waves():
 
     def perturb(self,base_size=None,pert=1e-6,wave='a+',directory=".", write=True):
 
-        self.cubes={}
+        self.cubes={} ; print('in perturb')
         #map_to_eigen={'d':0,'vx':2,'vy':3,'vz':4,'bx':-1,'by':5,'bz':6,'e':1}
         map_to_label ={'d':'density','vx':'x-velocity','vy':'y-velocity','vz':'z-velocity',
                 'bx':'Bx','by':'By','bz':'Bz','e':'TotalEnergy'}
@@ -221,7 +248,281 @@ class waves():
                 self.cubes[map_to_label[field]] /= self.cubes[map_to_label['d']]
             if write:
                 enzo_write.dump_h5(self.cubes[map_to_label[field]],this_filename)
-def eigen(d,vx,vy,vz,bx,by,bz,eng, EquationOfState = 0, Gamma=5./3, IsothermalSoundSpeed=1, obj=None):
+def left_roe_balsara(d,vx,vy,vz,bx,by,bz,eng, EquationOfState = 0, Gamma=5./3, IsothermalSoundSpeed=1, obj=None):
+    # left eigen vectors
+
+    #float d, float vx, float vy, float vz, 
+    #float bx, float by, float bz, float eng, 
+    #float right[][7])
+
+    #Eigen vectors taken from Ryu & Jones, ApJ 442:228-258, 1995
+    #Normalization starting on p. 231.
+
+    p = -1
+    bp = 0.5*(bx*bx + by*by + bz*bz );
+    sqrt2 = np.sqrt(2.0);
+    sqrt2i= 1.0/sqrt2;
+    sqrtD = np.sqrt(d);
+    sqrtDi = 1.0/sqrtD;
+    sbx  = np.sign(bx);
+    og1  = 1.0/(Gamma - 1);
+
+    if EquationOfState == 0 :
+        p = (Gamma -1.0 ) * (eng - 0.5* d * (vx*vx + vy*vy + vz * vz ) - 0.5*(bx*bx + by*by + bz*bz));
+    else:
+        p = IsothermalSoundSpeed*IsothermalSoundSpeed * d;
+
+    #compute wave speeds
+    if EquationOfState == 0:
+        aa = np.sqrt( 1.0*Gamma* p/d )
+    else:
+        aa = IsothermalSoundSpeed;
+
+    cs =np.sqrt( 0.5*( aa*aa + 2*bp/d -np.sqrt( pow( (aa*aa + 2*bp/d ),2) - 4* aa*aa*bx*bx/d ) ) );
+    ca =np.sqrt( bx*bx/d ); 
+    cf =np.sqrt( 0.5*( aa*aa + 2*bp/d +np.sqrt( pow( (aa*aa + 2*bp/d ),2) - 4* aa*aa*bx*bx/d ) ) );
+    #compute ancilary values
+    #The normalization of alph_f may change. This normalization uses Ryu
+    #& Jones, but Balsara may be more robust.
+
+    betay=np.zeros_like(by)+sqrt2i
+    betaz=np.zeros_like(by)+sqrt2i
+    alph_f=np.zeros_like(by)+1
+    alph_s=np.zeros_like(by)+1
+    #non-degenerate points
+    non_deg = np.logical_or( by != 0.0 , bz != 0.0 )
+    bt =np.zeros_like(by)
+    if hasattr(by,'__getitem__'):
+        bt[non_deg] = np.sqrt( by[non_deg]*by[non_deg] + bz[non_deg]*bz[non_deg] );
+        betay[non_deg] = by[non_deg]/bt[non_deg];
+        betaz[non_deg] = bz[non_deg]/bt[non_deg];
+        alph_f[non_deg] = np.sqrt( (cf[non_deg]*cf[non_deg]-ca[non_deg]*ca[non_deg])/(cf[non_deg]*cf[non_deg]-cs[non_deg]*cs[non_deg]) );
+        alph_s[non_deg] = np.sqrt( (cf[non_deg]*cf[non_deg]-aa[non_deg]*aa[non_deg])/(cf[non_deg]*cf[non_deg]-cs[non_deg]*cs[non_deg]) );
+    else:
+        if non_deg:
+            bt = np.sqrt( by*by + bz*bz );
+            betay = by/bt;
+            betaz = bz/bt;
+            alph_f = np.sqrt( (cf*cf-ca*ca)/(cf*cf-cs*cs) );
+            alph_s = np.sqrt( (cf*cf-aa*aa)/(cf*cf-cs*cs) );
+
+    #Theta1 = alph_f**2*aa**2*(cf**2+(2-Gamma)/(Gamma-1)*aa**2) + 
+  
+#    if by == 0.0 and bz == 0.0:
+#        betay = sqrt2i
+#        betaz = sqrt2i
+#        alph_f = 1
+#        alph_s = 1
+#    else:
+#        bt = np.sqrt( by*by + bz*bz );
+#        betay = by/bt;
+#        betaz = bz/bt;
+#        alph_f = np.sqrt( (cf*cf-ca*ca)/(cf*cf-cs*cs) );
+#        alph_s = np.sqrt( (cf*cf-aa*aa)/(cf*cf-cs*cs) );
+  
+    #the vectors
+    left={}
+    for w in ['f-','a-','s-','c','f+','a+','s+']:
+        left[w] = {}
+        for f in range(1,8): #yes this is annoying indexing. For consistency with Ryu and Jones
+            left[w][f]=np.zeros_like(by)
+    map_to_eigen={'d':0,'vx':2,'vy':3,'vz':4,'bx':-1,'by':5,'bz':6,'e':1}
+    #left['f-'][0] = 
+
+
+#   right['f-']['d'] = alph_f
+#   if EquationOfState == 0 :
+#       right['f-']['e'] =  alph_f*0.5*(vx*vx+vy*vy+vz*vz) 
+#       right['f-']['e'] += alph_f*cf*cf*og1 - alph_f*cf*vx + alph_s*ca*sbx*(betay*vy + betaz*vz) 
+#       right['f-']['e'] += (Gamma-2)*og1*alph_f*(cf*cf-aa*aa)
+#   right['f-']['vx'] = alph_f*(vx - cf);
+#   right['f-']['vy'] = alph_f*vy + alph_s*betay*ca*sbx;
+#   right['f-']['vz'] = alph_f*vz + alph_s*betaz*ca*sbx;
+#   right['f-']['by'] = alph_s*betay*cf*sqrtDi;
+#   right['f-']['bz'] = alph_s*betaz*cf*sqrtDi;
+def right_roe_balsara(d,vx,vy,vz,hx,hy,hz,eng, EquationOfState = 0, Gamma=5./3, IsothermalSoundSpeed=1):
+    print("doing the balsara thing")
+
+    #float d, float vx, float vy, float vz, 
+    #float bx, float by, float bz, float eng, 
+    #float right[][7])
+
+    #From Roe&Balsara 1996, SIAM
+    #hx = magnetic field
+    #bx = hx/sqrt(rho)
+
+
+    p = -1
+    bp = 0.5*(hx*hx + hy*hy + hz*hz );
+    sqrt2 = np.sqrt(2.0);
+    sqrt2i= 1.0/sqrt2;
+    sqrtD = np.sqrt(d);
+    sqrtDi = 1.0/sqrtD;
+    sbx  = np.sign(hx);
+    og1  = 1.0/(Gamma - 1);
+
+    bx = hx*sqrtDi
+    by = hy*sqrtDi
+    bz = hz*sqrtDi
+
+    if EquationOfState == 0 :
+        p = (Gamma -1.0 ) * (eng - 0.5* d * (vx*vx + vy*vy + vz * vz ) - 0.5*(bx*bx + by*by + bz*bz));
+    else:
+        p = IsothermalSoundSpeed*IsothermalSoundSpeed * d;
+
+    #compute wave speeds
+    if EquationOfState == 0:
+        aa = np.sqrt( 1.0*Gamma* p/d )
+    else:
+        aa = IsothermalSoundSpeed;
+
+    cs =np.sqrt( 0.5*( aa*aa + 2*bp/d -np.sqrt( pow( (aa*aa + 2*bp/d ),2) - 4* aa*aa*bx*bx/d ) ) );
+    ca =np.sqrt( bx*bx/d ); 
+    cf =np.sqrt( 0.5*( aa*aa + 2*bp/d +np.sqrt( pow( (aa*aa + 2*bp/d ),2) - 4* aa*aa*bx*bx/d ) ) );
+    #compute ancilary values
+    #The normalization of alph_f may change. This normalization uses Ryu
+    #& Jones, but Balsara may be more robust.
+
+    betay=np.zeros_like(by)+sqrt2i
+    betaz=np.zeros_like(by)+sqrt2i
+    alph_f=np.zeros_like(by)+1
+    alph_s=np.zeros_like(by)+1
+    #non-degenerate points
+    non_deg = np.logical_or( by != 0.0 , bz != 0.0 )
+    bt =np.zeros_like(by)
+    if hasattr(hy,'__getitem__'):
+        bt[non_deg] = np.sqrt( by[non_deg]*by[non_deg] + bz[non_deg]*bz[non_deg] );
+        betay[non_deg] = by[non_deg]/bt[non_deg];
+        betaz[non_deg] = bz[non_deg]/bt[non_deg];
+        alph_f[non_deg] = np.sqrt(np.abs((cs[non_deg]*cs[non_deg]-aa[non_deg]*aa[non_deg])/\
+                                         (cf[non_deg]*cf[non_deg]-cs[non_deg]*cs[non_deg])) );
+        alph_s[non_deg] = np.sqrt(np.abs((cf[non_deg]*cf[non_deg]-aa[non_deg]*aa[non_deg])/
+                                         (cf[non_deg]*cf[non_deg]-cs[non_deg]*cs[non_deg])));
+    else:
+        if non_deg:
+            bt = np.sqrt( by*by + bz*bz );
+            betay = by/bt;
+            betaz = bz/bt;
+            alph_f = np.sqrt( (aa*aa-cs*cs)/(cf*cf-cs*cs) );
+            alph_s = np.sqrt( (cf*cf-aa*aa)/(cf*cf-cs*cs) );
+  
+#    if by == 0.0 and bz == 0.0:
+#        betay = sqrt2i
+#        betaz = sqrt2i
+#        alph_f = 1
+#        alph_s = 1
+#    else:
+#        bt = np.sqrt( by*by + bz*bz );
+#        betay = by/bt;
+#        betaz = bz/bt;
+#        alph_f = np.sqrt( (cf*cf-ca*ca)/(cf*cf-cs*cs) );
+#        alph_s = np.sqrt( (cf*cf-aa*aa)/(cf*cf-cs*cs) );
+  
+    #the vectors
+    right={}
+    left={}
+    for w in ['f-','a-','s-','c','f+','a+','s+']:
+        right[w] = {}
+        left[w] = {}
+        for f in ['d','vx','vy','vz','bx','by','bz','e', 'p']:
+            right[w][f]=np.zeros_like(hy)
+            left[w][f]=np.zeros_like(hy)
+  
+    #fast, left
+    right['f-']['d'] = alph_f*d
+    if EquationOfState == 0 :
+        right['f-']['p'] =  alph_f*d*aa*aa
+    right['f-']['vx'] =   alph_f*cf           + alph_f*vx; #these second terms
+    right['f-']['vy'] = 0.0 #- alph_s*betay*cs*sbx + alph_f*vy  #may be
+    right['f-']['vz'] = - alph_s*betaz*cs*sbx + alph_f*vz  #incorrect. 
+    right['f-']['by'] = alph_s*sqrtDi*aa*betay
+    right['f-']['bz'] = alph_s*sqrtDi*aa*betaz
+    print("roe: right energy", right['f-']['e'])
+
+    return right
+
+
+    #alfven][left
+    #right['a-']['d'] = 0; already zero
+    if EquationOfState == 0:
+        right['a-']['e'] = 1*(betaz*vy - betay*vz)*sbx;
+    #right['a-']['vx'] = 0; already zero.
+    right['a-']['vy'] =  1*betaz*sbx;
+    right['a-']['vz'] = -1*betay*sbx;
+    right['a-']['by'] = betaz*sqrtDi;
+    right['a-']['bz'] = -betay*sqrtDi;
+
+    #alfven,right
+    #right['a+']['d'] = 0.; already zero
+    if EquationOfState == 0.:
+        right['a+']['e'] = -1*(betaz*vy - betay*vz)*sbx;
+    #right['a+']['vx'] = 0.; already zero.
+    right['a+']['vy'] = -1*betaz*sbx;
+    right['a+']['vz'] = +1*betay*sbx;
+    right['a+']['by'] = betaz*sqrtDi;
+    right['a+']['bz'] = -betay*sqrtDi;
+
+  
+    #slow,left
+    right['s-']['d'] = alph_s;
+    if EquationOfState == 0:
+        right['s-']['e'] = alph_s*0.5*(vx*vx+vy*vy+vz*vz) + \
+            alph_s*cs*cs*og1 - alph_s*cs*vx - alph_f*aa*sbx*(betay*vy + betaz*vz) +\
+            (Gamma-2)*og1*alph_s*(cs*cs - aa*aa );
+    right['s-']['vx'] = alph_s*(vx-cs);
+    right['s-']['vy'] = alph_s*vy - alph_f*betay*aa*sbx;
+    right['s-']['vz'] = alph_s*vz - alph_f*betaz*aa*sbx;
+    right['s-']['by'] = -alph_f*betay*aa*aa*sqrtDi/cf;
+    right['s-']['bz'] = -alph_f*betaz*aa*aa*sqrtDi/cf;
+  
+    #entropy (no entropy wave in isothermal MHD.)(Or hydro,for that matter)
+    if EquationOfState == 0:
+        right['c']['d'] = 1;
+        right['c']['e'] = 0.5*(vx*vx+vy*vy+vz*vz);
+        right['c']['vx'] = vx;
+        right['c']['vy'] = vy;
+        right['c']['vz'] = vz;
+        right['c']['by'] = 0;
+        right['c']['bz'] = 0;
+  
+    #slow,right
+    right['s+']['d'] = alph_s;
+    if EquationOfState  == 0:
+        right['s+']['e'] = alph_s*0.5*(vx*vx+vy*vy+vz*vz) + alph_s*cs*cs*og1 + \
+            alph_s*cs*vx + alph_f*aa*sbx*(betay*vy + betaz*vz) + (Gamma-2)*og1*alph_s*(cs*cs - aa*aa );
+    right['s+']['vx'] = alph_s*(vx+cs);
+    right['s+']['vy'] = alph_s*vy + alph_f*betay*aa*sbx;
+    right['s+']['vz'] = alph_s*vz + alph_f*betaz*aa*sbx;
+    right['s+']['by'] = -alph_f*betay*aa*aa*sqrtDi/cf;
+    right['s+']['bz'] = -alph_f*betaz*aa*aa*sqrtDi/cf;
+  
+
+
+    #fast, right
+    right['f+']['d'] = alph_f;
+    if EquationOfState  == 0:
+        right['f+']['e'] = alph_f*0.5*(vx*vx+vy*vy+vz*vz) + \
+        alph_f*cf*cf*og1 + alph_f*cf*vx - alph_s*ca*sbx*(betay*vy + betaz*vz) + \
+        (Gamma-2)*og1*alph_f*(cf*cf-aa*aa);
+    right['f+']['vx'] = alph_f*(vx + cf);
+    right['f+']['vy'] = alph_f*vy - alph_s*betay*ca*sbx;
+    right['f+']['vz'] = alph_f*vz - alph_s*betaz*ca*sbx;
+    right['f+']['by'] = alph_s*betay*cf*sqrtDi;
+    right['f+']['bz'] = alph_s*betaz*cf*sqrtDi;
+    return right
+def eigen(d,vx,vy,vz,bx,by,bz,eng, EquationOfState = 0, Gamma=5./3, IsothermalSoundSpeed=1, obj=None, form='rj95'):
+    if form == 'rj95':
+        #as formulated by Ryu and Jones 1995
+        right= eigen_ryu_jones(d,vx,vy,vz,bx,by,bz,eng, \
+                EquationOfState, Gamma, IsothermalSoundSpeed)
+    elif form == 'rb96':
+        #as formulated by Roe andBalsara, 1996
+        right = right_roe_balsara(d,vx,vy,vz,bx,by,bz,eng, \
+                EquationOfState, Gamma, IsothermalSoundSpeed)
+    return right
+
+
+def eigen_ryu_jones(d,vx,vy,vz,bx,by,bz,eng, EquationOfState = 0, Gamma=5./3, IsothermalSoundSpeed=1):
 
     #float d, float vx, float vy, float vz, 
     #float bx, float by, float bz, float eng, 
@@ -318,8 +619,8 @@ def eigen(d,vx,vy,vz,bx,by,bz,eng, EquationOfState = 0, Gamma=5./3, IsothermalSo
     #right['a-']['vx'] = 0; already zero.
     right['a-']['vy'] =  1*betaz*sbx;
     right['a-']['vz'] = -1*betay*sbx;
-    right['a-']['by'] = -betaz*sqrtDi;
-    right['a-']['bz'] = betay*sqrtDi;
+    right['a-']['by'] = betaz*sqrtDi;
+    right['a-']['bz'] = -betay*sqrtDi;
 
     #alfven,right
     #right['a+']['d'] = 0.; already zero
