@@ -2,14 +2,17 @@ import os
 import sys
 import pdb
 #sys.path.append('cmbtools')
-#sys.path.append('../cmbtools_nofits')
+sys.path = ['../cmbtools_nofits']+sys.path
 #if os.path.isdir('code') :
 #    sys.path.append('code')
 
 import cmbtools
+print("USING THIS",cmbtools)
 #import pyfits
 import astropy.io.fits as pyfits
+from scipy.optimize import leastsq
 from pylab import *
+import pylab
 import re
 import glob
 
@@ -24,12 +27,14 @@ def linear_chi2(par,x,y) :
     
     return(y - ymodel)
 
-
+frbname = 'FRB_old_again'
 
 
 def slopes_powers(car,frame, n0=1,p=1, fitlmin=1e3, fitlmax=8e3, plot_format="pdf"):
-    base = '%s/FRBs/DD%04d_Cl%s_n0-%04d_p-%d.dat'%(car.directory,frame, "%s", n0, p)
-    output_base = '%s_DD%04d_n0-%04d_p-%d_%s.%s'%(car.outname,frame, n0, p,"%s","%s")
+    #base = '%s/FRBs/DD%04d_Cl%s_n0-%04d_p-%d.dat'%(car.directory,frame, "%s", n0, p)
+    #output_base = '%s_DD%04d_n0-%04d_p-%d_%s.%s'%(car.outname,frame, n0, p,"%s","%s")
+    base = '%s/'+frbname+'/DD%04d_Cl%s.dat'%(car.directory,frame, "%s")
+    output_base = '%s_DD%04d%s.%s'%(car.outname,frame,"%s","%s")
     shortname = car.name
     shortname_n0p = "%s_n0-%04d_p-%d"%(shortname, n0, p)
 

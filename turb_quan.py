@@ -16,7 +16,7 @@ import re
 nar = np.array
 
 
-
+frbname = p49_QU2EB.frbname
 #fleet = [aw11]
 class quan_box():
     def __init__(self,car, plot_format='png'):
@@ -121,7 +121,7 @@ class quan_box():
         self.stuff['EB'][frame]=EBSlopePower
     def GetQUEB(self,frame):
 
-        frb_dir = "%s/FRBs/"%self.car.directory
+        frb_dir = "%s/"+frbname"+/"%self.car.directory
         Qlist = glob.glob(frb_dir+'/DD%04d_Q[xyz]*.fits'%frame)
         Ulist = []
         # write the output near the input
@@ -144,7 +144,7 @@ class quan_box():
 
     def QUEB(self, frame):
         #ds = self.car.load(frame)
-        frb_dir = "%s/FRBs/"%self.car.directory
+        frb_dir = "%s/"+frbname"+/"%self.car.directory
         p49_QU2EB.QU2EB(frb_dir,frame)
 #        if frames is None:
 #            frames = self.car.return_frames()
@@ -165,7 +165,7 @@ class quan_box():
         ds = None  #this is somewhat awkward, but useful for avoiding simulations
                    #  that have only products, not datasest
         for axis, field in fields :
-            outputdir = "%s/FRBs/"%self.car.directory
+            outputdir = "%s/"+frbname"+/"%self.car.directory
             if not os.access(outputdir, os.F_OK):
                 os.mkdir(outputdir)
             #Hm.  Q and U have the name in the field, but others don't.

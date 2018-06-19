@@ -211,7 +211,7 @@ color_sim_dict_2['b20_512']='b'
 color_sim_dict_hsv = {}
 import colorsys
 
-if 0:
+if 1:
     for nsim,sim in enumerate(all_sims):
         dh = 1./len(all_sims)
         h = dh*nsim
