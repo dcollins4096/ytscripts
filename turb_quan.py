@@ -78,7 +78,7 @@ class quan_box():
 
     def load(self, pickle_name=None):
         if pickle_name is None:
-            pickle_name = 'quan_box_%s.pickle'%self.car.name
+            pickle_name = 'quan_box_%s.pickle'%self.car.outname
         if len(glob.glob(pickle_name)):
             self.stuff = fPickle.load(pickle_name)
         else:
