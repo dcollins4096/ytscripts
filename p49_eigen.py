@@ -4,6 +4,11 @@ import copy
 nar=np.array
 import enzo_write
 reload(enzo_write)
+def is_iterable(thing):
+    if hasattr(thing,'__getitem__') and type(thing) not in [np.float64]:
+        return True
+    else:
+        return False
 def wrap_faces(array,field):
     if field not in ['hx','hy','hz']:
         return 
@@ -17,10 +22,49 @@ def wrap_faces(array,field):
         else:
             print("Wrap Error")
         return 
+#def to_ft(fields,mean={}):
+#    field_list = ['d','vx','vy','vz','hx','hy','hz','p']
+#    for field in 
+def get_cubes_cg(ds,mean={}):
+    print(ds['DomainLeftEdge'].astype('float'))
+    cg = ds.covering_grid(0,ds['DomainLeftEdge'].astype('float'),ds['TopGridDimensions'])
+    field_list = ['d','vx','vy','vz','hx','hy','hz','p']
+    map_to_label ={'d':'density','vx':'x-velocity','vy':'y-velocity','vz':'z-velocity',
+                   'hx':'Bx','hy':'By','hz':'Bz','e':'TotalEnergy','p':'pressure'}
+    cubes={}
+    means={}
+    for field in field_list:
+        cubes[field] = cg[map_to_label[field] ].v
+        means[field] = np.mean( cubes[field])
+    means['Gamma']=ds['Gamma']
+    return {'cubes':cubes, 'means':means}
+
+def get_ffts(cubes):
+    field_list = ['d','vx','vy','vz','hx','hy','hz','p']
+    ffts = {}
+    for field in field_list:
+        ffts[field] = np.fft.fftn(cubes[field])
+    return ffts
+
+def rotate_back(ffts,means):
+    this_system = waves(form='rb96',**means)
+    size = nar(ffts['d'].shape)
+    k_all = np.mgrid[:size[0],:size[1],:size[2]]
+    this_system.rotate_back(k_all, ffts)
+
+    return this_system
+
+
+
+#def to_ampl(ds, mean={}):
+#
+#    ds.
+
+    
+
+
 class waves():
-    def rotate(self,k_all_in, wave=None):
-        if wave is None:
-            wave = self.wave
+    def compute_unit_vectors(self,k_all_in):
         rank = 3
         k_all = k_all_in.astype('float') #just to be sure.
         B0 = self.b0
@@ -81,47 +125,66 @@ class waves():
         B0hat[2,...] = self.b0[0]*c_unit[0,...]+self.b0[1]*c_unit[1,...]+self.b0[2]*c_unit[2,...]
         self.B0hat=B0hat
 
+    def rotate_back(self,k_all_in, fields):
+        scalars={}
+        self.compute_unit_vectors(k_all_in)
+        for field in ['d','p','e', 'vx','vy','vz']:
+            scalars[field]=np.zeros_like(self.B0hat[0,...])+self.quan[field]
+
+        hat_system = waves(hx=self.B0hat[0,...], hy=self.B0hat[1,...], hz=self.B0hat[2,...],
+                           Gamma=self.Gamma,form=self.form,**scalars)
+    def do_rotation(self,fields):
+        rot = {}
+        for f in ['vx','vy','vz','hx','hy','hz']:
+            rot[f]=np.zeros_like(self.a_unit)
+        rot['vx']  = self.a_unit[0,...]*fields['vx']
+        rot['vx'] += self.b_unit[0,...]*fields['vy']
+        rot['vx'] += self.c_unit[0,...]*fields['vz']
+
+        rot['vy']  = self.a_unit[1,...]*fields['vx']
+        rot['vy'] += self.b_unit[1,...]*fields['vy']
+        rot['vy'] += self.c_unit[1,...]*fields['vz']
+
+        rot['vz']  = self.a_unit[2,...]*fields['vx']
+        rot['vz'] += self.b_unit[2,...]*fields['vy']
+        rot['vz'] += self.c_unit[2,...]*fields['vz']
+
+        rot['hx']  = self.a_unit[0,...]*fields['hx']
+        rot['hx'] += self.b_unit[0,...]*fields['hy']
+        rot['hx'] += self.c_unit[0,...]*fields['hz']
+
+        rot['hy']  = self.a_unit[1,...]*fields['hx']
+        rot['hy'] += self.b_unit[1,...]*fields['hy']
+        rot['hy'] += self.c_unit[1,...]*fields['hz']
+
+        rot['hz']  = self.a_unit[2,...]*fields['hx']
+        rot['hz'] += self.b_unit[2,...]*fields['hy']
+        rot['hz'] += self.c_unit[2,...]*fields['hz']
+        return rot
+    def rotate(self,k_all_in, wave=None):
+        if wave is None:
+            wave = self.wave
+        self.compute_unit_vectors(k_all_in)
+
 #this_system = p49_eigen.waves(hx=1.0,hy=0.0,hz=0.5,p=0.6,this_wave='a+')
         scalars={}
         for field in ['d','p','e', 'vx','vy','vz']:
-            scalars[field]=np.zeros_like(B0hat[0,...])+self.quan[field]
+            scalars[field]=np.zeros_like(self.B0hat[0,...])+self.quan[field]
 
-        hat_system = waves(hx=B0hat[0,...], hy=B0hat[1,...], hz=B0hat[2,...],
+        hat_system = waves(hx=self.B0hat[0,...], hy=self.B0hat[1,...], hz=self.B0hat[2,...],
                            Gamma=self.Gamma,form=self.form,**scalars)
         #pdb.set_trace()
         
         self.rot={}
-        for f in ['d','vx','vy','vz','hx','hy','hz','e']:
-            self.rot[f]=np.zeros_like(a_unit)
+        for f in ['vx','vy','vz','hx','hy','hz']:
+            self.rot[f]=np.zeros_like(self.a_unit)
 
         self.rot['d'] = hat_system.right[wave]['d']
         if 'e' in hat_system.right[wave]:
             self.rot['e'] = hat_system.right[wave]['e']
         if 'p' in hat_system.right[wave]:
             self.rot['p'] = hat_system.right[wave]['p']
-        self.rot['vx']  = a_unit[0,...]*hat_system.right[wave]['vx']
-        self.rot['vx'] += b_unit[0,...]*hat_system.right[wave]['vy']
-        self.rot['vx'] += c_unit[0,...]*hat_system.right[wave]['vz']
-
-        self.rot['vy']  = a_unit[1,...]*hat_system.right[wave]['vx']
-        self.rot['vy'] += b_unit[1,...]*hat_system.right[wave]['vy']
-        self.rot['vy'] += c_unit[1,...]*hat_system.right[wave]['vz']
-
-        self.rot['vz']  = a_unit[2,...]*hat_system.right[wave]['vx']
-        self.rot['vz'] += b_unit[2,...]*hat_system.right[wave]['vy']
-        self.rot['vz'] += c_unit[2,...]*hat_system.right[wave]['vz']
-
-        self.rot['hx']  = a_unit[0,...]*hat_system.right[wave]['hx']
-        self.rot['hx'] += b_unit[0,...]*hat_system.right[wave]['hy']
-        self.rot['hx'] += c_unit[0,...]*hat_system.right[wave]['hz']
-
-        self.rot['hy']  = a_unit[1,...]*hat_system.right[wave]['hx']
-        self.rot['hy'] += b_unit[1,...]*hat_system.right[wave]['hy']
-        self.rot['hy'] += c_unit[1,...]*hat_system.right[wave]['hz']
-
-        self.rot['hz']  = a_unit[2,...]*hat_system.right[wave]['hx']
-        self.rot['hz'] += b_unit[2,...]*hat_system.right[wave]['hy']
-        self.rot['hz'] += c_unit[2,...]*hat_system.right[wave]['hz']
+        self.rot.update(self.do_rotation(hat_system.right[wave]))
         self.hat_system=hat_system
 
 
@@ -141,7 +204,7 @@ class waves():
 #b_unit = b_uni/||b_unit||
 #c_unit = a_unit cross b_unit
     def __init__(self,this_wave='f+', d=1.0,vx=0.0,vy=0.0,vz=0.0,hx=1.0,hy=1.41421,hz=0.5,Gamma=1.6666666667,e=None,p=None, write=True,
-                 form='rj95'):
+                 form='rj95', **kwargs):
         #p = 0.6
         #Gamma=1.6666666667
         self.Gamma=Gamma
@@ -159,7 +222,7 @@ class waves():
         self.b0 = np.array([hx,hy,hz])
         self.p = p
         self.d = d
-        self.right = self.eigen(d, vx, vy, vz, hx,hy,hz,e, Gamma=Gamma, form = self.form)
+        self.left, self.right = self.eigen(d, vx, vy, vz, hx,hy,hz,e, Gamma=Gamma, form = self.form)
         self.speeds = self.speeds(d, vx, vy, vz, hx,hy,hz,p=p, Gamma=Gamma)
     def __getitem__(self,field):
         map_to_eigen={'d':0,'vx':2,'vy':3,'vz':4,'hx':-1,'hy':5,'hz':6,'e':1}
@@ -286,23 +349,6 @@ class waves():
                 self.cubes[map_to_label[field]] /= self.cubes[map_to_label['d']]
             if write:
                 enzo_write.dump_h5(self.cubes[map_to_label[field]],this_filename)
-    def left_roe_balsara(self,d,vx,vy,vz,hx,hy,hz,eng, EquationOfState = 0, Gamma=5./3, IsothermalSoundSpeed=1, obj=None):
-        # left eigen vectors
-
-        #float d, float vx, float vy, float vz, 
-        #float hx, float hy, float bz, float eng, 
-        #float right[][7])
-
-        #Eigen vectors taken from Ryu & Jones, ApJ 442:228-258, 1995
-        #Normalization starting on p. 231.
-
-      
-        #the vectors
-        left={}
-        for w in ['f-','a-','s-','c','f+','a+','s+']:
-            left[w] = {}
-            for f in range(1,8): #yes this is annoying indexing. For consistency with Ryu and Jones
-                left[w][f]=np.zeros_like(by)
     def right_roe_balsara(self,d,vx,vy,vz,hx,hy,hz,eng, EquationOfState = 0, Gamma=5./3, IsothermalSoundSpeed=1):
 
         #float d, float vx, float vy, float vz, 
@@ -352,7 +398,7 @@ class waves():
         #non-degenerate points
         non_deg = np.logical_or( by != 0.0 , bz != 0.0 )
         bt =np.zeros_like(by)
-        if hasattr(hy,'__getitem__'):
+        if is_iterable(by):
             bt[non_deg] = np.sqrt( by[non_deg]*by[non_deg] + bz[non_deg]*bz[non_deg] );
             betay[non_deg] = by[non_deg]/bt[non_deg];
             betaz[non_deg] = bz[non_deg]/bt[non_deg];
@@ -394,10 +440,19 @@ class waves():
         if EquationOfState == 0 :
             right['f-']['p'] =  alph_f*d*aa*aa
 
+        over_two_a2 = 1./(2*aa**2)
+        left['f-'][0] = 0
+        left['f-'][1] = -alph_f*cf*over_two_a2
+        left['f-'][2] = +alph_s*cs*betay*sbx*over_two_a2
+        left['f-'][3] = +alph_s*cs*betaz*sbx*over_two_a2
+        left['f-'][4] =  alph_s*aa*betay*sqrtDi*over_two_a2
+        left['f-'][5] =  alph_s*aa*betaz*sqrtDi*over_two_a2
+        left['f-'][6] =  alph_f/d
 
 
 
-        return right
+
+        return left, right
 
 
         #alfven][left
@@ -472,13 +527,13 @@ class waves():
         #B = H in this function
         if form == 'rj95':
             #as formulated by Ryu and Jones 1995
-            right= self.eigen_ryu_jones(d,vx,vy,vz,bx,by,bz,eng, \
+            left, right= self.eigen_ryu_jones(d,vx,vy,vz,bx,by,bz,eng, \
                     EquationOfState, Gamma, IsothermalSoundSpeed)
         elif form == 'rb96':
             #as formulated by Roe andBalsara, 1996
-            right = self.right_roe_balsara(d,vx,vy,vz,bx,by,bz,eng, \
+            left, right = self.right_roe_balsara(d,vx,vy,vz,bx,by,bz,eng, \
                     EquationOfState, Gamma, IsothermalSoundSpeed)
-        return right
+        return left, right
 
 
     def eigen_ryu_jones(self,d,vx,vy,vz,bx,by,bz,eng, EquationOfState = 0, Gamma=5./3, IsothermalSoundSpeed=1):
@@ -525,7 +580,7 @@ class waves():
         #non-degenerate points
         non_deg = np.logical_or( by != 0.0 , bz != 0.0 )
         bt =np.zeros_like(by)
-        if hasattr(by,'__getitem__'):
+        if is_iterable(by): #hasattr(by,'__getitem__'):
             bt[non_deg] = np.sqrt( by[non_deg]*by[non_deg] + bz[non_deg]*bz[non_deg] );
             betay[non_deg] = by[non_deg]/bt[non_deg];
             betaz[non_deg] = bz[non_deg]/bt[non_deg];
@@ -643,7 +698,7 @@ class waves():
         right['f+']['vz'] = alph_f*vz - alph_s*betaz*ca*sbx;
         right['f+']['hy'] = alph_s*betay*cf*sqrtDi;
         right['f+']['hz'] = alph_s*betaz*cf*sqrtDi;
-        return right
+        return None, right
     def speeds(self,d,vx,vy,vz,bx,by,bz,eng=None,p=None, EquationOfState = 0, Gamma=5./3, IsothermalSoundSpeed=1):
 
         #float d, float vx, float vy, float vz, 
