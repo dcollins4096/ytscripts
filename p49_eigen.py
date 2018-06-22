@@ -125,15 +125,126 @@ class waves():
         B0hat[2,...] = self.b0[0]*c_unit[0,...]+self.b0[1]*c_unit[1,...]+self.b0[2]*c_unit[2,...]
         self.B0hat=B0hat
 
-    def rotate_back(self,k_all_in, fields):
-        scalars={}
+    def fields_to_wave_frame(self,k_all_in, fields):
+
         self.compute_unit_vectors(k_all_in)
+
+        scalars={}
         for field in ['d','p','e', 'vx','vy','vz']:
             scalars[field]=np.zeros_like(self.B0hat[0,...])+self.quan[field]
 
         hat_system = waves(hx=self.B0hat[0,...], hy=self.B0hat[1,...], hz=self.B0hat[2,...],
                            Gamma=self.Gamma,form=self.form,**scalars)
-    def do_rotation(self,fields):
+        self.wave_frame={}
+        for f in ['vx','vy','vz','hx','hy','hz']:
+            self.wave_frame[f]=np.zeros_like(self.a_unit)
+
+        self.wave_frame['d'] = fields['d']
+        if 'e' in fields:
+            self.wave_frame['e'] = fields['e']
+        if 'p' in fields:
+            self.wave_frame['p'] = fields['p']
+        self.wave_frame.update(self.rotate_to_abc(fields))
+
+    def check_orthonormality(self,k_all_in,fields, means=None):
+        field_list = ['d','vx','vy','vz','hx','hy','hz','p']
+        #field_list = ['hx','hy','hz','p']
+        dbg=0
+        self.fields_to_wave_frame(k_all_in,fields)
+        if means is None:
+            means = self.quan
+
+        form = " %8s"
+        formn = " %8.2e"
+        tensor = {}
+        wave_list_1=['f-', 'a-','s-','c','f+','a+','s+']
+        wave_list_2=['f-', 'a-','s-','c','f+','a+','s+']
+        for wave_1 in wave_list_1:
+            tensor[wave_1]={}
+            for wave_2 in wave_list_2:
+                tensor[wave_1][wave_2]=0.0
+                for field in field_list:
+                    this_part = self.right[wave_1][field]*self.left[wave_2][field]
+                    tensor[wave_1][wave_2] += this_part
+                    if dbg > 1:
+                        print("%s %s %s tot= %s L %s R %s val %s"%(form%wave_1,form%wave_2,form%field,\
+                                 formn%tensor[wave_1][wave_2], \
+                                 formn%self.left[wave_2][field],\
+                                 formn%self.right[wave_1][field],\
+                                 formn%this_part))
+
+        if dbg > 1:
+            print("alph_f**2 a**2 %0.2e"%(self.alph_f**2*self.aa**2))
+        print( form%" "+form*len(wave_list_2)%tuple(wave_list_2))
+        for wave_1 in wave_list_1:
+            this_string = form%wave_1
+            for wave_2 in wave_list_2:
+                val = tensor[wave_1][wave_2]
+                if val != 0.0 and np.abs(val) > 2e-16:
+                    this_string += formn%tensor[wave_1][wave_2]
+                else:
+                    this_string += form%"."
+            print(this_string)
+
+        if dbg > 1:
+            squares2= self.cf**2*self.alph_f**2+self.cs**2*self.alph_s**2
+            print("alph_f**2 + alph_s**2 = 1; %0.2e"%(self.alph_f**2+self.alph_s**2))
+            print("alph_f**2 cf**2 + alph_s**2 cs**2 = a**2; %0.2e %0.2e %0.2e"%\
+                    (squares2, self.aa**2,1-squares2/self.aa**2 ))
+            print("betay**2+betaz**2 = 1; %0.2e"%(self.betay**2+self.betaz**2))
+        #print(tensor)
+
+    def project_to_waves(self,k_all_in,fields, means=None):
+        field_list = ['d','vx','vy','vz','hx','hy','hz','p']
+        self.fields_to_wave_frame(k_all_in,fields)
+        if means is None:
+            means = self.quan
+
+        self.wave_content = {}
+        for wave in ['f-', 'a-','s-','c','f+','a+','s+']:
+            self.wave_content[wave] = np.zeros_like(fields['d'])
+            for field in field_list:
+                #self.wave_content[wave] += (fields[field]-means[field])*self.left[wave][field]
+                self.wave_content[wave] += (self.wave_frame[field]-means[field])*self.left[wave][field]
+
+                
+
+
+
+
+
+    def rotate_to_abc(self,fields):
+        """from xyz to abc, where abc is defined by the wave vector and the field."""
+        back = {}
+        for f in ['vx','vy','vz','hx','hy','hz']:
+            back[f]=np.zeros_like(self.a_unit)
+        back['vx']  = self.a_unit[0,...]*fields['vx']
+        back['vx'] += self.a_unit[1,...]*fields['vy']
+        back['vx'] += self.a_unit[2,...]*fields['vz']
+
+        back['vy']  = self.b_unit[0,...]*fields['vx']
+        back['vy'] += self.b_unit[1,...]*fields['vy']
+        back['vy'] += self.b_unit[2,...]*fields['vz']
+
+        back['vz']  = self.c_unit[0,...]*fields['vx']
+        back['vz'] += self.c_unit[1,...]*fields['vy']
+        back['vz'] += self.c_unit[2,...]*fields['vz']
+
+        back['hx']  = self.a_unit[0,...]*fields['hx']
+        back['hx'] += self.a_unit[1,...]*fields['hy']
+        back['hx'] += self.a_unit[2,...]*fields['hz']
+
+        back['hy']  = self.b_unit[0,...]*fields['hx']
+        back['hy'] += self.b_unit[1,...]*fields['hy']
+        back['hy'] += self.b_unit[2,...]*fields['hz']
+
+        back['hz']  = self.c_unit[0,...]*fields['hx']
+        back['hz'] += self.c_unit[1,...]*fields['hy']
+        back['hz'] += self.c_unit[2,...]*fields['hz']
+        return back
+    def rotate_to_xyz(self,fields):
+        """from hat system, ahat, bhat, chat, along k and H0
+        to xyz"""
         rot = {}
         for f in ['vx','vy','vz','hx','hy','hz']:
             rot[f]=np.zeros_like(self.a_unit)
@@ -161,19 +272,17 @@ class waves():
         rot['hz'] += self.b_unit[2,...]*fields['hy']
         rot['hz'] += self.c_unit[2,...]*fields['hz']
         return rot
-    def rotate(self,k_all_in, wave=None):
+    def wave_to_fields(self,k_all_in, wave=None):
         if wave is None:
             wave = self.wave
         self.compute_unit_vectors(k_all_in)
 
-#this_system = p49_eigen.waves(hx=1.0,hy=0.0,hz=0.5,p=0.6,this_wave='a+')
         scalars={}
         for field in ['d','p','e', 'vx','vy','vz']:
             scalars[field]=np.zeros_like(self.B0hat[0,...])+self.quan[field]
 
         hat_system = waves(hx=self.B0hat[0,...], hy=self.B0hat[1,...], hz=self.B0hat[2,...],
                            Gamma=self.Gamma,form=self.form,**scalars)
-        #pdb.set_trace()
         
         self.rot={}
         for f in ['vx','vy','vz','hx','hy','hz']:
@@ -184,7 +293,7 @@ class waves():
             self.rot['e'] = hat_system.right[wave]['e']
         if 'p' in hat_system.right[wave]:
             self.rot['p'] = hat_system.right[wave]['p']
-        self.rot.update(self.do_rotation(hat_system.right[wave]))
+        self.rot.update(self.rotate_to_xyz(hat_system.right[wave]))
         self.hat_system=hat_system
 
 
@@ -264,7 +373,7 @@ class waves():
         self.directory=directory
 
         if pert_shape == 'fft':
-            self.rotate(k_rot, wave)
+            self.wave_to_fields(k_rot, wave)
             kint = k_rot.astype(int)
             for f in field_list:
                 all_hats[f]=np.zeros(base_size)*1j
@@ -364,7 +473,7 @@ class waves():
         bp = 0.5*(hx*hx + hy*hy + hz*hz );
         sqrt2 = np.sqrt(2.0);
         sqrt2i= 1.0/sqrt2;
-        sqrtD = np.sqrt(d);
+        sqrtD = np.sqrt(1.*d);
         sqrtDi = 1.0/sqrtD;
         sbx  = np.sign(hx);
         og1  = 1.0/(Gamma - 1);
@@ -387,6 +496,7 @@ class waves():
         cs =np.sqrt( 0.5*( aa*aa + 2*bp/d -np.sqrt( pow( (aa*aa + 2*bp/d ),2) - 4* aa*aa*bx*bx/d ) ) );
         ca =np.sqrt( bx*bx/d ); 
         cf =np.sqrt( 0.5*( aa*aa + 2*bp/d +np.sqrt( pow( (aa*aa + 2*bp/d ),2) - 4* aa*aa*bx*bx/d ) ) );
+        
         #compute ancilary values
         #The normalization of alph_f may change. This normalization uses Ryu
         #& Jones, but Balsara may be more robust.
@@ -418,6 +528,10 @@ class waves():
         self.alph_s = alph_s
         self.betay = betay
         self.betaz = betaz
+        self.cf = cf
+        self.ca = ca
+        self.cs = cs
+        self.aa = aa
         #the vectors
         right={}
         left={}
@@ -425,104 +539,142 @@ class waves():
             right[w] = {}
             left[w] = {}
             #for f in ['d','vx','vy','vz','bx','by','bz','e', 'p']
-            for f in ['d','vx','vy','vz','hx','by','bz', 'p']:
+            for f in ['d','vx','vy','vz','hx','hy','hz', 'p']:
                 right[w][f]=np.zeros_like(hy)
                 left[w][f]=np.zeros_like(hy)
       
         #fast, left
+        over_two_a2 =  1./(2*aa**2)
+        self.over_two_a2 = over_two_a2
         right['f-']['d'] = alph_f*d
-        right['f-']['vx'] =  -1*alph_f*cf           + alph_f*vx; #these second terms
-        right['f-']['vy'] = +1*alph_s*betay*cs*sbx + alph_f*vy  #may be
-        right['f-']['vz'] = +1*alph_s*betaz*cs*sbx + alph_f*vz  #incorrect. 
-        right['f-']['hy'] = alph_s*sqrtDi*aa*betay
-        right['f-']['hz'] = alph_s*sqrtDi*aa*betaz
-        tr = right['f-']
-        if EquationOfState == 0 :
-            right['f-']['p'] =  alph_f*d*aa*aa
+        right['f-']['vx'] = -1*alph_f*cf         # + alph_f*vx; #these second terms
+        right['f-']['vy'] = +1*alph_s*betay*cs*sbx#+ alph_f*vy  #may be
+        right['f-']['vz'] = +1*alph_s*betaz*cs*sbx#+ alph_f*vz  #incorrect. 
+        right['f-']['hy'] = alph_s*sqrtD*aa*betay
+        right['f-']['hz'] = alph_s*sqrtD*aa*betaz
+        right['f-']['p']  = alph_f*d*aa*aa
+
+        left['f-']['d'] = 0
+        left['f-']['vx'] = -alph_f*cf*over_two_a2
+        left['f-']['vy'] = +alph_s*cs*betay*sbx*over_two_a2
+        left['f-']['vz'] = +alph_s*cs*betaz*sbx*over_two_a2
+        left['f-']['hy']  = alph_s*aa*betay*sqrtDi*over_two_a2
+        left['f-']['hz']  = alph_s*aa*betaz*sqrtDi*over_two_a2
+        left['f-']['p']   = alph_f/d*over_two_a2
+
+
+        #fast, right
+        right['f+']['d'] = alph_f*d
+        right['f+']['vx'] = +1*alph_f*cf           + alph_f*vx; #these second terms
+        right['f+']['vy'] = -1*alph_s*betay*cs*sbx + alph_f*vy  #may be
+        right['f+']['vz'] = -1*alph_s*betaz*cs*sbx + alph_f*vz  #incorrect. 
+        right['f+']['hy'] = alph_s*sqrtDi*aa*betay
+        right['f+']['hz'] = alph_s*sqrtDi*aa*betaz
+        right['f+']['p'] =  alph_f*d*aa*aa
 
         over_two_a2 = 1./(2*aa**2)
-        left['f-'][0] = 0
-        left['f-'][1] = -alph_f*cf*over_two_a2
-        left['f-'][2] = +alph_s*cs*betay*sbx*over_two_a2
-        left['f-'][3] = +alph_s*cs*betaz*sbx*over_two_a2
-        left['f-'][4] =  alph_s*aa*betay*sqrtDi*over_two_a2
-        left['f-'][5] =  alph_s*aa*betaz*sqrtDi*over_two_a2
-        left['f-'][6] =  alph_f/d
+        left['f+']['d'] = 0
+        left['f+']['vx'] = +alph_f*cf*over_two_a2
+        left['f+']['vy'] = -alph_s*cs*betay*sbx*over_two_a2
+        left['f+']['vz'] = -alph_s*cs*betaz*sbx*over_two_a2
+        left['f+']['hy'] =  alph_s*aa*betay*sqrtDi*over_two_a2
+        left['f+']['hz'] =  alph_s*aa*betaz*sqrtDi*over_two_a2
+        left['f+']['p']  =  alph_f/d*over_two_a2
+
+        #slow, right
+        right['s+']['d']  = alph_s*d
+        right['s+']['vx'] = +1*alph_s*cs          # + alph_f*vx; #these second terms
+        right['s+']['vy'] = +1*alph_f*betay*cf*sbx# + alph_f*vy  #may be
+        right['s+']['vz'] = +1*alph_f*betaz*cf*sbx# + alph_f*vz  #incorrect. 
+        right['s+']['hy'] = -alph_f*sqrtD*aa*betay
+        right['s+']['hz'] = -alph_f*sqrtD*aa*betaz
+        right['s+']['p']  =  alph_s*d*aa*aa
+
+        over_two_a2 = 1./(2*aa**2)
+        left['s+']['d'] = 0
+        left['s+']['vx'] = +alph_s*cs*over_two_a2
+        left['s+']['vy'] = +alph_f*cf*betay*sbx*over_two_a2
+        left['s+']['vz'] = +alph_f*cf*betaz*sbx*over_two_a2
+        left['s+']['hy'] = -alph_f*aa*betay*sqrtDi*over_two_a2
+        left['s+']['hz'] = -alph_f*aa*betaz*sqrtDi*over_two_a2
+        left['s+']['p']  =  alph_s/d*over_two_a2
+
+        #aaa
+        #slow, left
+        right['s-']['d']  = alph_s*d
+        right['s-']['vx'] = -1.*alph_s*cs          # + alph_f*vx; #these second terms
+        right['s-']['vy'] = -1.*alph_f*betay*cf*sbx# + alph_f*vy  #may be
+        right['s-']['vz'] = -1.*alph_f*betaz*cf*sbx# + alph_f*vz  #incorrect. 
+        right['s-']['hy'] = -alph_f*sqrtD*aa*betay
+        right['s-']['hz'] = -alph_f*sqrtD*aa*betaz
+        right['s-']['p']  =  alph_s*d*aa*aa
+
+        over_two_a2 = 1./(2*aa**2)
+        left['s-']['d'] = 0
+        left['s-']['vx'] = -1.*alph_s*cs*over_two_a2
+        left['s-']['vy'] = -1.*alph_f*cf*betay*sbx*over_two_a2
+        left['s-']['vz'] = -1.*alph_f*cf*betaz*sbx*over_two_a2
+        left['s-']['hy'] = -alph_f*aa*betay*sqrtDi*over_two_a2
+        left['s-']['hz'] = -alph_f*aa*betaz*sqrtDi*over_two_a2
+        left['s-']['p']  =  alph_s/d*over_two_a2
+        #bbb
 
 
-
-
-        return left, right
 
 
         #alfven][left
         #right['a-']['d'] = 0; already zero
-        if EquationOfState == 0:
-            right['a-']['e'] = 1*(betaz*vy - betay*vz)*sbx;
         #right['a-']['vx'] = 0; already zero.
-        right['a-']['vy'] =  1*betaz*sbx;
-        right['a-']['vz'] = -1*betay*sbx;
-        right['a-']['hy'] = betaz*sqrtDi;
-        right['a-']['hz'] = -betay*sqrtDi;
+        right['a-']['vy'] = -1.*betaz*sbx;
+        right['a-']['vz'] = +1.*betay*sbx;
+        right['a-']['hy'] = -betaz*sqrtD;
+        right['a-']['hz'] =  betay*sqrtD;
+        #right['a-']['p'] = 0; already zero
 
-        #alfven,right
-        #right['a+']['d'] = 0.; already zero
-        if EquationOfState == 0.:
-            right['a+']['e'] = -1*(betaz*vy - betay*vz)*sbx;
-        #right['a+']['vx'] = 0.; already zero.
-        right['a+']['vy'] = -1*betaz*sbx;
-        right['a+']['vz'] = +1*betay*sbx;
-        right['a+']['hy'] = betaz*sqrtDi;
-        right['a+']['hz'] = -betay*sqrtDi;
+        #left['a-']['d'] = 0; already zero
+        #left['a-']['vx'] = 0; already zero.
+        left['a-']['vy'] = -1.*betaz*sbx*0.5;
+        left['a-']['vz'] = +1.*betay*sbx*0.5;
+        left['a-']['hy'] = -1.*betaz*sqrtDi*sbx*0.5;
+        left['a-']['hz'] = +1.*betay*sqrtDi*sbx*0.5;
+        #left['a-']['p'] = 0; already zero
+
+        #alfven][right
+        #right['a+']['d'] = 0; already zero
+        #right['a+']['vx'] = 0; already zero.
+        right['a+']['vy'] = +1.*betaz*sbx;
+        right['a+']['vz'] = -1.*betay*sbx;
+        right['a+']['hy'] = -betaz*sqrtD;
+        right['a+']['hz'] =  betay*sqrtD;
+        #right['a+']['p'] = 0; already zero
+
+        #left['a+']['d'] = 0; already zero
+        #left['a+']['vx'] = 0; already zero.
+        left['a+']['vy'] = +1.*betaz*sbx*0.5;
+        left['a+']['vz'] = -1.*betay*sbx*0.5;
+        left['a+']['hy'] = -1.*betaz*sqrtDi*sbx*0.5;
+        left['a+']['hz'] = +1.*betay*sqrtDi*sbx*0.5;
+        #left['a+']['p'] = 0; already zero
 
       
-        #slow,left
-        right['s-']['d'] = alph_s;
-        if EquationOfState == 0:
-            right['s-']['e'] = alph_s*0.5*(vx*vx+vy*vy+vz*vz) + \
-                alph_s*cs*cs*og1 - alph_s*cs*vx - alph_f*aa*sbx*(betay*vy + betaz*vz) +\
-                (Gamma-2)*og1*alph_s*(cs*cs - aa*aa );
-        right['s-']['vx'] = alph_s*(vx-cs);
-        right['s-']['vy'] = alph_s*vy - alph_f*betay*aa*sbx;
-        right['s-']['vz'] = alph_s*vz - alph_f*betaz*aa*sbx;
-        right['s-']['hy'] = -alph_f*betay*aa*aa*sqrtDi/cf;
-        right['s-']['hz'] = -alph_f*betaz*aa*aa*sqrtDi/cf;
-      
-        #entropy (no entropy wave in isothermal MHD.)(Or hydro,for that matter)
-        if EquationOfState == 0:
-            right['c']['d'] = 1;
-            right['c']['e'] = 0.5*(vx*vx+vy*vy+vz*vz);
-            right['c']['vx'] = vx;
-            right['c']['vy'] = vy;
-            right['c']['vz'] = vz;
-            right['c']['hy'] = 0;
-            right['c']['hz'] = 0;
-      
-        #slow,right
-        right['s+']['d'] = alph_s;
-        if EquationOfState  == 0:
-            right['s+']['e'] = alph_s*0.5*(vx*vx+vy*vy+vz*vz) + alph_s*cs*cs*og1 + \
-                alph_s*cs*vx + alph_f*aa*sbx*(betay*vy + betaz*vz) + (Gamma-2)*og1*alph_s*(cs*cs - aa*aa );
-        right['s+']['vx'] = alph_s*(vx+cs);
-        right['s+']['vy'] = alph_s*vy + alph_f*betay*aa*sbx;
-        right['s+']['vz'] = alph_s*vz + alph_f*betaz*aa*sbx;
-        right['s+']['hy'] = -alph_f*betay*aa*aa*sqrtDi/cf;
-        right['s+']['hz'] = -alph_f*betaz*aa*aa*sqrtDi/cf;
-      
+        right['c']['d'] = 1;
+        right['c']['vx'] = 0. #vx;
+        right['c']['vy'] = 0. #vy;
+        right['c']['vz'] = 0. #vz;
+        right['c']['hy'] = 0;
+        right['c']['hz'] = 0;
+        right['c']['p'] =  0;
 
+        left['c']['d'] = 1;
+        left['c']['vx'] = 0.;
+        left['c']['vy'] = 0.;
+        left['c']['vz'] = 0.;
+        left['c']['hy'] = 0;
+        left['c']['hz'] = 0;
+        left['c']['p'] =  -1./aa**2; #0.5*(vx*vx+vy*vy+vz*vz);
 
-        #fast, right
-        right['f+']['d'] = alph_f;
-        if EquationOfState  == 0:
-            right['f+']['e'] = alph_f*0.5*(vx*vx+vy*vy+vz*vz) + \
-            alph_f*cf*cf*og1 + alph_f*cf*vx - alph_s*ca*sbx*(betay*vy + betaz*vz) + \
-            (Gamma-2)*og1*alph_f*(cf*cf-aa*aa);
-        right['f+']['vx'] = alph_f*(vx + cf);
-        right['f+']['vy'] = alph_f*vy - alph_s*betay*ca*sbx;
-        right['f+']['vz'] = alph_f*vz - alph_s*betaz*ca*sbx;
-        right['f+']['hy'] = alph_s*betay*cf*sqrtDi;
-        right['f+']['hz'] = alph_s*betaz*cf*sqrtDi;
-        return right
+        return left,right
+      
     def eigen(self,d,vx,vy,vz,bx,by,bz,eng, EquationOfState = 0, Gamma=5./3, IsothermalSoundSpeed=1, obj=None, form='rj95'):
         #B = H in this function
         if form == 'rj95':
