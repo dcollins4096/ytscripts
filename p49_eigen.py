@@ -135,6 +135,7 @@ class waves():
 
         hat_system = waves(hx=self.B0hat[0,...], hy=self.B0hat[1,...], hz=self.B0hat[2,...],
                            Gamma=self.Gamma,form=self.form,**scalars)
+        self.hat_system = hat_system
         self.wave_frame={}
         for f in ['vx','vy','vz','hx','hy','hz']:
             self.wave_frame[f]=np.zeros_like(self.a_unit)
@@ -205,7 +206,7 @@ class waves():
             self.wave_content[wave] = np.zeros_like(fields['d'])
             for field in field_list:
                 #self.wave_content[wave] += (fields[field]-means[field])*self.left[wave][field]
-                self.wave_content[wave] += (self.wave_frame[field]-means[field])*self.left[wave][field]
+                self.wave_content[wave] += (self.wave_frame[field]-means[field])*self.hat_system.left[wave][field]
 
                 
 
