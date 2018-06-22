@@ -21,9 +21,9 @@ def tube(ds_list,fields=None,times=None, points=[(0.0,0.0,0.0),(1.0,0.0,0.0)],wi
          filename='FILE.png',fig_args={},plot_args={},legend=False,
          renorm=False,return_ray=False,
          offsets=None,
-         axis=0,coord=(0.505,0.505),
+         axis=0,coord=(0.505,0.505), coord2=None,ray_type='oray',
          debug=0,delta=False,
-         labels=None, xlim = None): 
+         labels=None, xlim = None, ylim={}, ylim_method=None, yscale={}): 
     """Plots 1d profiles for each ds in *ds_list*, for each field in *fields* and time in *times*.
     One plot per field, with oober and time overplotted in each field window.
     Uses the AMRRay from yt, with start and end points given by *points*.
@@ -69,8 +69,23 @@ def tube(ds_list,fields=None,times=None, points=[(0.0,0.0,0.0),(1.0,0.0,0.0)],wi
             ray_set[lab]= ds.ortho_ray(axis,coord) 
         return ray_set
     else:
-        for ds in ds_list:
-            ray_set[ds]= ds.ortho_ray(axis,coord) 
+        xcoord={}
+        for nds,ds in enumerate(ds_list):
+            if ray_type == 'oray':
+                ray_set[ds]= ds.ortho_ray(axis,coord) 
+            elif ray_type == 'obl':
+                if len(coord) != 3 or len(coord2) != 3:
+                    print("coordinates must be 3d")
+                    return -1
+                ray_set[ds] = ds.r[ coord:coord2 ]
+            elif ray_type == 'multi':
+                ray_set[ds] = ds.r[ coord[nds]:coord2[nds]]
+            if type(axis) == str: 
+                xcoord[ds]=axis
+            elif type(axis) == int:
+                xcoord[ds]='xyz'[axis]    
+            elif type(axis) == list:
+                xcoord[ds] = axis[nds]
 
     #make the figure
     fig = plt.figure(**fig_args)
@@ -92,7 +107,7 @@ def tube(ds_list,fields=None,times=None, points=[(0.0,0.0,0.0),(1.0,0.0,0.0)],wi
         for n_ds,ds in enumerate(ds_list):
             counter += 1
             this_ray = ray_set[ds]
-            this_x = copy.copy(this_ray['xyz'[axis]].v[:])
+            this_x = copy.copy(this_ray[xcoord[ds]].v[:])
             sort_x = np.argsort(this_x)
             this_x = this_x[sort_x]
             this_y = copy.copy(this_ray[field])
@@ -127,9 +142,17 @@ def tube(ds_list,fields=None,times=None, points=[(0.0,0.0,0.0),(1.0,0.0,0.0)],wi
             #plot_args['linewidth']=0.1
             #print this_y
             L = ax.plot(this_x,this_y,**plot_args)
-            if this_y.min() > 0:
-                #ax.set_yscale('linear')
-                ax.set_yscale('log')
+            if ylim_method == 'monotonic':
+                if field not in ylim:
+                    ylim[field] = [min(this_y),max(this_y)]
+                else:
+                    ylim[field][0] = min( ylim[field][0], min(this_y))
+                    ylim[field][1] = max( ylim[field][1], max(this_y))
+                print("YLIM",ylim)
+
+            if this_y.min() > 0 :
+                ax.set_yscale( yscale.get(field,'log'))
+
 #               if first_ax is None:
 #                   Labels.append( '%s %d'%(o.name,t))
 
@@ -138,6 +161,9 @@ def tube(ds_list,fields=None,times=None, points=[(0.0,0.0,0.0),(1.0,0.0,0.0)],wi
             Handels, LabelsToUse = first_ax.get_legend_handles_labels()
         if xlim is not None:
             ax.set_xlim(xlim)
+        if field in ylim:
+            ax.set_ylim(ylim[field])
+
         ax.set_ylabel(field)
 
     if legend == 1:
