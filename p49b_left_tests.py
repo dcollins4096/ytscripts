@@ -29,7 +29,8 @@ if 0:
     directory = '/Users/dcollins/scratch/Paper49b_play/Eigen/r701_rb96_fft_f-'
     name = 'r701'
     wave='f-'
-    ts701 = p49_eigen.waves(hx=1.0,hy=1.0,hz=1.0,p=0.6,this_wave=wave, form='rb96')
+    ts701 = p49_eigen.waves(hx=1.0,hy=1.41421,hz=0.5,p=0.6,this_wave=wave, form='rb96')
+    #ts701 = p49_eigen.waves(hx=1.0,hy=1.0,hz=1.0,p=0.6,this_wave=wave, form='rb96')
     k_test = nar([[1.,0.],[0.,0.],[0.,1]])
     ratio = ts701.speeds['cf']/ts701.speeds['aa']
     ampl = nar([1e-6*ratio,2.3])
@@ -41,7 +42,8 @@ if 0:
 
 if 0:
     #eigen vector check
-    ret701.check_orthonormality(k_test,ts701.rot)
+    #ret701.check_orthonormality(k_test,ts701.rot)
+    ts701.check_orthonormality()
 if 0:
     #rotation check; dummy is dumb, rotten rotates, stillrotten is dummy back again.
     dummy={'vx':0.1,'vy':0.2,'vz':0.3,'hx':0,'hy':0,'hz':0}
@@ -79,17 +81,6 @@ if 0:
     # 1.) start with rotated field; t701.rot, real space.
     # 2.) given k, rotate back, project.
 
-if 1:
-    wave='f-'
-    tsfft = p49_eigen.waves(hx=1.0,hy=1.0,hz=1.0,p=0.6,this_wave=wave, form='rb96')
-    k_test = nar([[1.,0.],[0.,0.],[0.,1]])
-    ampl = nar([1,1.])
-    nn=5
-    tsfft.rot_write(pert_shape='fft',base_size=nar([nn]*3),pert=ampl,directory='',
-                          wave=wave,k_rot=k_test,write=False)
-    k_test = nar([[1.,1.],[0.,0.],[0.,1]])
-    tsfft.rot_write(pert_shape='fft',base_size=nar([nn]*3),pert=ampl,directory='',
-                          wave='a+',k_rot=k_test,write=False)
 
 if 1:
     field_list = ['d','vx','vy','vz','hx','hy','hz','p']
@@ -110,25 +101,52 @@ if 1:
             these_cubes
         fobase_k = np.zeros([4,4,4])*1j
     if 0:
-        #great test
-        #test one: actual FFTs and cubes
-        these_cubes={}
-        more_fft={}
-        for a,b in [['d','density'],['vx','x-velocity'],['hx','Bx'],['hy','By'],['hz','Bz'],
-                ['vz','z-velocity'],['vy','y-velocity'], ['p','GasPressure']]:
-            these_cubes[a] = tsfft.cubes[b][:nn,:nn,:nn]#- tsfft.quan[a]
+        #great test. Works.
+        wave='f-'
+        tsfft = p49_eigen.waves(hx=1.0,hy=1.0,hz=1.0,p=0.6,this_wave=wave, form='rb96')
+        k_test = nar([[1.,0.],[0.,0.],[0.,1]])
+        ampl = nar([1,1.])
+        nn=5
+        tsfft.rot_write(pert_shape='fft',base_size=nar([nn]*3),pert=ampl,directory='',
+                              wave=wave,k_rot=k_test,write=False)
+        k_test = nar([[1.,1.],[0.,0.],[0.,1]])
+        tsfft.rot_write(pert_shape='fft',base_size=nar([nn]*3),pert=ampl,directory='',
+                              wave='a+',k_rot=k_test,write=False)
+        ##test one: actual FFTs and cubes
+        #these_cubes={}
+        #more_fft={}
+        #these_means={}
+        #for a,b in [['d','density'],['vx','x-velocity'],['hx','Bx'],['hy','By'],['hz','Bz'],
+        #        ['vz','z-velocity'],['vy','y-velocity'], ['p','GasPressure']]:
+        #    these_cubes[a] = tsfft.cubes[b][:nn,:nn,:nn]#- tsfft.quan[a]
+        #    these_means[a] = tsfft.quan[a]
+        #    these_means[a] = np.mean(these_cubes[a]) #both of these work.
 
         #get_ffts subtracts mean, converts to conserved space.
-        these_ffts = p49_eigen.get_ffts(these_cubes, tsfft.quan)
+        #these_ffts = p49_eigen.get_ffts(these_cubes, tsfft.quan)
+        these_ffts = p49_eigen.get_ffts(tsfft.temp_cubes, tsfft.temp_means)
+        these_means = tsfft.temp_means
     if 0:
         #new thing, in preocess.
-        directory = '/Users/dcollins/scratch/Paper49b_play/Eigen/r701_rb96_fft_f-'
-        frame = 0
+        directory = '/Users/dcollins/scratch/Paper49b_play/Eigen/y701_rb96_fft_f-_play'
+        name = 'y701'
+        wave='f-'
+        #tsy701 = p49_eigen.waves(hx=1.0,hy=1.0,hz=1.0,p=0.6,this_wave=wave, form='rb96')
+        tsy701 = p49_eigen.waves(hx=1.0,hy=1.41421,hz=0.5,p=0.6,this_wave=wave, form='rb96')
+        k_test = nar([[1.,1.],[0.,0.],[0.,1]])
+        ratio = tsy701.speeds['cf']/tsy701.speeds['aa']
+        ampl = nar([1e-6*ratio,0])
+        tsy701.rot_write(pert_shape='fft',base_size=nar([16]*3),pert=ampl,directory=directory,
+                              wave=wave,k_rot=k_test, write=True)
+        these_ffts = p49_eigen.get_ffts(tsy701.temp_cubes, tsy701.temp_means)
+        these_means = tsy701.temp_means
+    if 1:
+        #yay!
+        frame = 50
         ds = yt.load("%s/DD%04d/data%04d"%(directory,frame,frame))
         stuff = p49_eigen.get_cubes_cg(ds)
-
-    if 0:
-        ffts = p49_eigen.get_ffts(stuff['cubes'])
+        these_means = stuff['means']
+        these_ffts  = p49_eigen.get_ffts(stuff['cubes'], these_means)
 
     print_fields = False
     print_waves = True
@@ -152,15 +170,11 @@ if 1:
         for wave in wut.wave_content:
             thisthing = wut.wave_content[wave]
             bang_or_not = ""
-            if ( np.abs(thisthing)>1e-13).sum() > 0:
-                bang_or_not = "!!!"*8
+            if ( np.abs(thisthing)>1e-12).sum() > 0:
+                bang_or_not = "!!!"*8 + " meann %0.2e max %0.2e"%(np.mean(np.abs(thisthing)),np.abs(thisthing).max())
             print("=== Wave %s %s"%(wave, bang_or_not))
             s1 = str(nz(thisthing.real).size)
             s2 = str(nz(thisthing.imag).size)
             print("wave real nz %s imag %s"%(s1,s2))
         
-
-#
-# live test.
-# 
 
