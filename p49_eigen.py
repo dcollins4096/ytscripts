@@ -39,20 +39,37 @@ def get_cubes_cg(ds,mean={}):
     means['Gamma']=ds['Gamma']
     return {'cubes':cubes, 'means':means}
 
-def get_ffts(cubes):
+def get_ffts(cubes, means={}):
     field_list = ['d','vx','vy','vz','hx','hy','hz','p']
+    if means == 'get':
+        means={}
+        for field in field_list:
+            means[field] = np.mean(cubes[field])
+
     ffts = {}
+
+    kludge={}
     for field in field_list:
-        ffts[field] = np.fft.fftn(cubes[field])
+        this_cube = cubes[field]-means.get(field,0)
+        if field in ['vx','vy','vz']:
+            this_cube *= cubes['d']
+        kludge[field]=this_cube
+
+        ffts[field] = np.fft.fftn(this_cube)
+
     return ffts
 
 def rotate_back(ffts,means):
+
     this_system = waves(form='rb96',**means)
     size = nar(ffts['d'].shape)
     k_all = np.mgrid[:size[0],:size[1],:size[2]]
-    this_system.rotate_back(k_all, ffts)
+    #rotate from xyz to abc
+    #this_system.fields_to_wave_frame(k_all, ffts)
+    this_system.project_to_waves(k_all, ffts, means={})
+    this_system.dumb=ffts
 
-    return this_system
+    return k_all, this_system
 
 
 
@@ -202,11 +219,12 @@ class waves():
             means = self.quan
 
         self.wave_content = {}
+        print("Means in project", means)
         for wave in ['f-', 'a-','s-','c','f+','a+','s+']:
             self.wave_content[wave] = np.zeros_like(fields['d'])
             for field in field_list:
                 #self.wave_content[wave] += (fields[field]-means[field])*self.left[wave][field]
-                self.wave_content[wave] += (self.wave_frame[field]-means[field])*self.hat_system.left[wave][field]
+                self.wave_content[wave] += (self.wave_frame[field]-means.get(field,0))*self.hat_system.left[wave][field]
 
                 
 
@@ -364,6 +382,7 @@ class waves():
 
 
         all_hats = {}
+        self.cubes_test={}
         all_p = {}
         face_offset = {'hx':nar([1,0,0]),'hy':nar([0,1,0]),'hz':nar([0,0,1])}
         cube_slice=[slice(0,base_size[0]),slice(0,base_size[1]),slice(0,base_size[2])]
@@ -373,6 +392,8 @@ class waves():
             field_list = ['d','vx','vy','vz','hx','hy','hz','p']
         self.directory=directory
 
+        def nz(thing):
+            return thing[ np.abs(thing) > 1e-13]
         if pert_shape == 'fft':
             self.wave_to_fields(k_rot, wave)
             kint = k_rot.astype(int)
@@ -380,6 +401,9 @@ class waves():
                 all_hats[f]=np.zeros(base_size)*1j
                 all_hats[f][kint[0,...],kint[1,...],kint[2,...]] = self.rot[f]*pert
                 all_hats[f][-kint[0,...],-kint[1,...],-kint[2,...]] = (all_hats[f][kint[0,...],kint[1,...],kint[2,...]] ).conj()
+                #print("make hats ROT: %3s %s"%(f,str(self.rot[f]*pert)))
+                #print("make hats fld: %3s %s"%(f,str(nz(all_hats[f]))))
+                #print("make hats prt: %3s %s"%(f,str(pert)))
             for f in  field_list:
                 tmp=np.fft.ifftn(all_hats[f])
                 real_mean = np.mean(np.abs(tmp.real))
@@ -387,7 +411,7 @@ class waves():
                 if (real_mean+imag_mean)>1e-16:
                     if imag_mean/(real_mean+imag_mean) > 1e-9:
                         print("Warning: large imaginary component")
-                all_p[f]=tmp.real*tmp.size*0.5
+                all_p[f]=tmp.real*tmp.size*0.5 
         elif pert_shape == 'square_x':
             size = base_size #+face_offset.get(f,0)
             amplitude = np.zeros(size)
@@ -420,6 +444,7 @@ class waves():
         for field in field_list:
             size = base_size+face_offset.get(field,0)
             self.cubes[map_to_label[field]][cube_slice] += all_p[field] 
+            self.cubes_test[field]  =  self.cubes[map_to_label[field]][cube_slice] - self.quan[field]
         for field in field_list:
             #self.cubes[map_to_label[field]] = wrap_faces(self.cubes[map_to_label[field]], field)
             wrap_faces(self.cubes[map_to_label[field]], field)
@@ -429,6 +454,9 @@ class waves():
             if write:
                 enzo_write.dump_h5(self.cubes[map_to_label[field]],this_filename)
                 print("wrote "+this_filename)
+
+        self.all_hats=all_hats
+        self.all_p = all_p
 
 
     def perturb(self,base_size=None,pert=1e-6,wave='a+',directory=".", write=True):
