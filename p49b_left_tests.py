@@ -85,8 +85,11 @@ if 0:
 if 1:
     field_list = ['d','vx','vy','vz','hx','hy','hz','p']
     def nz(field):
-        nz = np.abs(field) > 1e-13
+        nz = np.abs(field) > 1e-12
         return field[nz]
+    def wnz(field):
+        nz = np.abs(field) > 1e-12
+        return np.where(nz)
 
 
     if 0:
@@ -101,7 +104,7 @@ if 1:
             these_cubes
         fobase_k = np.zeros([4,4,4])*1j
     if 0:
-        #great test. Works.
+        #great test. Works.  Two waves.
         wave='f-'
         tsfft = p49_eigen.waves(hx=1.0,hy=1.0,hz=1.0,p=0.6,this_wave=wave, form='rb96')
         k_test = nar([[1.,0.],[0.,0.],[0.,1]])
@@ -112,22 +115,10 @@ if 1:
         k_test = nar([[1.,1.],[0.,0.],[0.,1]])
         tsfft.rot_write(pert_shape='fft',base_size=nar([nn]*3),pert=ampl,directory='',
                               wave='a+',k_rot=k_test,write=False)
-        ##test one: actual FFTs and cubes
-        #these_cubes={}
-        #more_fft={}
-        #these_means={}
-        #for a,b in [['d','density'],['vx','x-velocity'],['hx','Bx'],['hy','By'],['hz','Bz'],
-        #        ['vz','z-velocity'],['vy','y-velocity'], ['p','GasPressure']]:
-        #    these_cubes[a] = tsfft.cubes[b][:nn,:nn,:nn]#- tsfft.quan[a]
-        #    these_means[a] = tsfft.quan[a]
-        #    these_means[a] = np.mean(these_cubes[a]) #both of these work.
-
-        #get_ffts subtracts mean, converts to conserved space.
-        #these_ffts = p49_eigen.get_ffts(these_cubes, tsfft.quan)
         these_ffts = p49_eigen.get_ffts(tsfft.temp_cubes, tsfft.temp_means)
         these_means = tsfft.temp_means
     if 0:
-        #new thing, in preocess.
+        #also works.
         directory = '/Users/dcollins/scratch/Paper49b_play/Eigen/y701_rb96_fft_f-_play'
         name = 'y701'
         wave='f-'
@@ -140,32 +131,78 @@ if 1:
                               wave=wave,k_rot=k_test, write=True)
         these_ffts = p49_eigen.get_ffts(tsy701.temp_cubes, tsy701.temp_means)
         these_means = tsy701.temp_means
+    if 0:
+        #yay! Load the data, k=100
+        frame = 0
+        directory = '/Users/dcollins/scratch/Paper49b_play/Eigen/y701_rb96_fft_f-_play'
+        ds = yt.load("%s/DD%04d/data%04d"%(directory,frame,frame))
+        stuff = p49_eigen.get_cubes_cg(ds)
+        these_means = stuff['means']
+        these_ffts  = p49_eigen.get_ffts(stuff['cubes'], these_means)
+    if 0:
+        #harder run; k=110.  Broken
+        wave='f-'
+        directory = '/Users/dcollins/scratch/Paper49b_play/Eigen/r801_rj95_110_f-'
+        ts801 = p49_eigen.waves(hx=1.0,hy=1.41421,hz=0.5,p=0.6,this_wave=wave, form='rb96')
+        k_test = nar([[1.,1.],[1.,0.],[0.,0]])
+        ratio = ts801.speeds['cf']/ts801.speeds['aa']
+        ampl= nar([1e-6*ratio,0])
+        #ampl = nar([1.,0.])
+        ts801.rot_write(pert_shape='fft',base_size=nar([16]*3),pert=ampl,directory=directory,
+                              wave=wave,k_rot=k_test,write=True)
+        tsfft = ts801
+        these_ffts = p49_eigen.get_ffts(tsfft.temp_cubes, tsfft.temp_means)
+        these_means = tsfft.temp_means
+        ###
+    if 0:
+        #harder test: read rotated
+        frame = 0
+        directory = '/Users/dcollins/scratch/Paper49b_play/Eigen/r801_rj95_110_f-'
+        ds = yt.load("%s/DD%04d/data%04d"%(directory,frame,frame))
+        stuff = p49_eigen.get_cubes_cg(ds)
+        these_means = stuff['means']
+        these_ffts  = p49_eigen.get_ffts(stuff['cubes'], these_means)
+        ###
     if 1:
-        #yay!
-        frame = 50
+        #Rotated, rb96.  Works by itself.
+        #rA01 
+        directory = '/Users/dcollins/scratch/Paper49b_play/Eigen/rA01_rb96_110_f-'
+        name = 'rA01'
+        wave='f-'
+        tsA01 = p49_eigen.waves(hx=1.0,hy=1.41421,hz=0.5,p=0.6,this_wave=wave, form='rb96')
+        k_test = nar([[1.,1.],[1.,0.],[0.,0]])
+        ratio =  tsA01.speeds['cf']/tsA01.speeds['aa']
+        ampl = nar([1e-6*ratio,0])
+        tsA01.rot_write(pert_shape='fft',base_size=nar([16]*3),pert=ampl,directory=directory,
+                              wave=wave,k_rot=k_test, write=True)
+        these_ffts = p49_eigen.get_ffts(tsA01.temp_cubes, tsA01.temp_means)
+        these_means = tsA01.temp_means
+        tsfft = tsA01
+    if 1:
+        #Rotate, rb96, life: IN PROCESS.
+        frame = 0
+        directory = '/Users/dcollins/scratch/Paper49b_play/Eigen/rA01_rb96_110_f-'
         ds = yt.load("%s/DD%04d/data%04d"%(directory,frame,frame))
         stuff = p49_eigen.get_cubes_cg(ds)
         these_means = stuff['means']
         these_ffts  = p49_eigen.get_ffts(stuff['cubes'], these_means)
 
-    print_fields = False
-    print_waves = True
+    print_fields = True
+    print_waves = False
     kall,wut=p49_eigen.rotate_back(these_ffts, these_means)
     fl =  np.zeros_like(wut.wave_frame['d']).astype('bool')
     if print_fields:
-        for field in wut.wave_frame:
+        for field in  wut.wave_frame:
             print(" ===== %s ===="%field)
             thisthing =  wut.wave_frame[field]
             thisthing =  wut.dumb[field]
-            this_bool = np.abs(thisthing) > 1e-13
-            #fl = np.logical_or(fl, this_bool)
-            nonzeros = len( this_bool )
             print("  eigen    %s"%str(tsfft.right['f-'][field]))
             print("  rot      %s"%str(tsfft.rot[field]))
             print("all_hat  %3s %s"%(field, nz(tsfft.all_hats[field])))
-            aaa = these_ffts[field] #is good.
-            print("also fft input  k %3s %s"%(field, str(nz(aaa).size)))
-            print("this wave frame k %3s %s"%(field, str(nz(thisthing).size)))
+            #aaa = these_ffts[field] #is good.
+            #print("also fft input  k %3s %s"%(field, str(nz(aaa).size)))
+            print("this wave frame n k %3s %s"%(field, str(nz(thisthing).size)))
+            print("this wave frame   k %3s %s"%(field, str(wnz(thisthing))))
     if print_waves:
         for wave in wut.wave_content:
             thisthing = wut.wave_content[wave]

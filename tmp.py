@@ -1,28 +1,55 @@
+my_ts = tsA01 #tsy701
+my_stuff = stuff
+directory = '/Users/dcollins/scratch/Paper49b_play/Eigen/rA01_rb96_110_f-/%s'
+#directory = '/Users/dcollins/scratch/Paper49b_play/Eigen/y701_rb96_fft_f-_play/%s'
+off_disk = {}
+names={}
+n2={}
+n2['hx']='Bx'
+n2['hy']='By'
+n2['hz']='Bz'
+n2['d']='density'
+n2['vx']='x-velocity'
+n2['vy']='y-velocity'
+n2['vz']='z-velocity'
+names['hx']='Bx_16.h5'
+names['hy']='By_16.h5'
+names['hz']='Bz_16.h5'
+names['d']='density_16.h5'
+names['vx']='x-velocity_16.h5'
+names['vy']='y-velocity_16.h5'
+names['vz']='z-velocity_16.h5'
+#['d','density'],['vx','x-velocity'],['hx','Bx'],['hy','By'],['hz','Bz'],
+#                ['vz','z-velocity'],['vy','y-velocity'], ['p','GasPressure']
+for field in ['hx']: #['d','vx','vy','vz','hx','hy','hz']:# field_list:
+    #print( field, np.abs(my_ts.temp_means[field])-my_stuff['means'][field])
 
-if 'ef' not in dir():
-    execfile('go')
-reload(taxi)
-if 'always' not in dir():
-    always=True
-if 'garr' not in dir() or always:
-    r15=taxi.taxi('r15')
-    r15x=taxi.taxi('r15b')
-    r17b=taxi.taxi('r17b')
-    r17=taxi.taxi('r17')
-    flt = taxi.fleet([r15x,r17b])#,r15,r17])
-    flt('car.load(0)')
-    garr = flt('output.append( car.ds.index.grids[0])')
-for a,b in [['d','Density'],['vx','x-velocity'],['vy','y-velocity'],['vz','z-velocity'],['E','TotalEnergy']]:
-    quan[b]=quan[a]
-def moo(field):
-    print( "%5s            %0.16f \pm %0.16e "%(flt[0].name, np.mean(garr[0][field].v), np.std(garr[0][field].v)))
-    print( "%5s            %0.16f \pm %0.16e "%(flt[1].name, np.mean(garr[1][field].v), np.std(garr[1][field].v)))
-    #print( "%5s            %0.16f \pm %0.16e "%(flt[3].name, np.mean(garr[3][field].v), np.std(garr[3][field].v)))
-    print( "%5s %5s diff %0.16e"%(flt[0].name, flt[1].name,(np.abs(garr[0][field].v-garr[1][field].v)).sum()))
-    #print( "%5s %5s diff %0.16e"%(flt[3].name, flt[1].name,(np.abs(garr[3][field].v-garr[1][field].v)).sum()))
-    #print( "%5s %5s diff %0.16e"%(flt[3].name, flt[0].name,(np.abs(garr[3][field].v-garr[0][field].v)).sum()))
-    #print( "2 q g2 %0.16f \pm %0.16e quan %0.16e diff %0.16e"%( np.mean(garr[2][field].v), np.std(np.abs(garr[2][field].v)), quan[field], (np.abs(garr[2][field].v-quan[field])).sum()))
+    lc = my_stuff['cubes'][field]
+    oc = my_ts.temp_cubes[field]
+    occ = my_ts.cubes[n2[field]]
 
-for field in ['Density','x-velocity','y-velocity','z-velocity','TotalEnergy']:
-    print("==== %s ===="%field)
-    moo(field)
+    df = h5py.File(directory%names[field])
+    dc_all = df[names[field]][:]
+    dcc = dc_all.swapaxes(0,2)
+    dc = dc_all.swapaxes(0,2)[:16,:16,:16]
+    df.close()
+
+    ff = h5py.File(directory%('DD0000/data0000.cpu0000'))
+    fc_all = ff['Grid00000001']['BxF'][:]
+    fcc = fc_all.swapaxes(0,2)
+    fc = fc_all.swapaxes(0,2)[:16,:16,:16]
+    ff.close()
+    gf = h5py.File(directory%('DD0000/data0000.cpu0000'))
+    gc_all = gf['Grid00000001']['Bx'][:]
+    gcc = gc_all.swapaxes(0,2)
+    gc = gc_all.swapaxes(0,2)[:16,:16,:16]
+    ff.close()
+    
+    bar = 0.# np.mean(oc)
+    print( field, dif)
+    print("lc  ",lc[:5,8,8]-bar)
+    print("occ ",occ[:5,8,8]-bar)
+    print("dcc ",dcc[:5,8,8]-bar)
+    print( "dc - oc %0.2e"%(np.abs(dc-oc).sum()))
+    print( "dc - lc %0.2e"%(np.abs(dc-lc).sum()))
+    print( "dcc - occ %0.2e"%(np.abs(dcc-occ).sum()))

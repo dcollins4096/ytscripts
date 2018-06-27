@@ -98,13 +98,13 @@ if 0:
     directory = '/Users/dcollins/scratch/Paper49b_play/Eigen/r801_rj95_110_f-'
     name = 'r801'
     wave='f-'
-    ts = p49_eigen.waves(hx=1.0,hy=1.41421,hz=0.5,p=0.6,this_wave=wave)#, form='rb96')
+    ts801 = p49_eigen.waves(hx=1.0,hy=1.41421,hz=0.5,p=0.6,this_wave=wave, form='rb96')
     k_test = nar([[1.,1.],[1.,0.],[0.,1]])
     ratio = 1.0# ts.speeds['cf']/ts.speeds['aa']
     ampl = nar([1e-6,0])
-    ts.rot_write(pert_shape='fft',base_size=nar([16]*3),pert=ampl,directory=directory,
+    ts801.rot_write(pert_shape='fft',base_size=nar([16]*3),pert=ampl,directory=directory,
                           wave=wave,k_rot=k_test)
-    r801=eigen_taxi(ts,name)
+    r801=eigen_taxi(ts801,name)
 
 if 0:
     #r901 r901_rj_010_f-
@@ -130,7 +130,7 @@ if 0:
                           wave=wave)
     r402=eigen_taxi(this_system,name)
 
-if 1:
+if 0:
     #r602 r602_rb_sq_f+
     directory = '/Users/dcollins/scratch/Paper49b_play/Eigen/r602_rb96_sq_f+'
     name = 'r602'
@@ -180,7 +180,7 @@ if 0:
     ts.rot_write(pert_shape='square_x',base_size=nar([16]*3),pert=ampl,directory=directory,
                           wave=wave,k_rot=k_test)
     r605=eigen_taxi(ts,name)
-if 1:
+if 0:
     #r606 r606_rb_sq_a+
     directory = '/Users/dcollins/scratch/Paper49b_play/Eigen/r606_rb96_sq_a+'
     name = 'r606'
@@ -192,3 +192,17 @@ if 1:
     ts.rot_write(pert_shape='square_x',base_size=nar([16]*3),pert=ampl,directory=directory,
                           wave=wave,k_rot=k_test)
     r605=eigen_taxi(ts,name)
+
+if 1:
+    #IN PROCESS
+    #rA01
+    directory = '/Users/dcollins/scratch/Paper49b_play/Eigen/rA01_rb96_110_f-'
+    name = 'rA01'
+    wave='f-'
+    tsA01 = p49_eigen.waves(hx=1.0,hy=1.41421,hz=0.5,p=0.6,this_wave=wave, form='rb96')
+    k_test = nar([[1.,1.],[1.,0.],[0.,0]])
+    ratio =  tsA01.speeds['cf']/tsA01.speeds['aa']
+    ampl = nar([1e-6*ratio,0])
+    tsA01.rot_write(pert_shape='fft',base_size=nar([16]*3),pert=ampl,directory=directory,
+                          wave=wave,k_rot=k_test)
+    rA01=eigen_taxi(tsA01,name)

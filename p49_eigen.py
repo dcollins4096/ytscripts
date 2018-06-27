@@ -59,11 +59,29 @@ def get_ffts(cubes, means={}):
 
     return ffts
 
+def make_k_freqs(nk):
+
+    k_freq = np.zeros([3,nk,nk,nk])
+    frq=np.fft.fftfreq(nk,d=1)
+    x = np.repeat(frq,nk*nk)
+    x.shape = (nk,nk,nk)
+    y = np.repeat(frq,nk*nk)
+    y.shape = (nk,nk,nk)
+    y=y.swapaxes(0,1)
+    z = np.repeat(frq,nk*nk)
+    z.shape = (nk,nk,nk)
+    z=z.swapaxes(0,2)
+    k_freq[0,...]=x
+    k_freq[1,...]=y
+    k_freq[2,...]=z
+    return k_freq
 def rotate_back(ffts,means):
 
     this_system = waves(form='rb96',**means)
     size = nar(ffts['d'].shape)
     k_all = np.mgrid[:size[0],:size[1],:size[2]]
+    #k_all = make_k_freqs(size[0])
+    
     #rotate from xyz to abc
     #this_system.fields_to_wave_frame(k_all, ffts)
     this_system.project_to_waves(k_all, ffts, means={})
@@ -164,13 +182,15 @@ class waves():
             self.wave_frame['p'] = fields['p']
         self.wave_frame.update(self.rotate_to_abc(fields))
 
-    def check_orthonormality(self,k_all_in,fields, means=None):
+    #def check_orthonormality(self,k_all_in,fields, means=None):
+    def check_orthonormality(self, right=None,left=None):
         field_list = ['d','vx','vy','vz','hx','hy','hz','p']
+        if left is None:
+            left = self.left
+        if right is None:
+            right = self.right
         #field_list = ['hx','hy','hz','p']
         dbg=0
-        self.fields_to_wave_frame(k_all_in,fields)
-        if means is None:
-            means = self.quan
 
         form = " %8s"
         formn = " %8.2e"
@@ -182,13 +202,13 @@ class waves():
             for wave_2 in wave_list_2:
                 tensor[wave_1][wave_2]=0.0
                 for field in field_list:
-                    this_part = self.right[wave_1][field]*self.left[wave_2][field]
+                    this_part = right[wave_1][field]*left[wave_2][field]
                     tensor[wave_1][wave_2] += this_part
                     if dbg > 1:
                         print("%s %s %s tot= %s L %s R %s val %s"%(form%wave_1,form%wave_2,form%field,\
                                  formn%tensor[wave_1][wave_2], \
-                                 formn%self.left[wave_2][field],\
-                                 formn%self.right[wave_1][field],\
+                                 formn%left[wave_2][field],\
+                                 formn%right[wave_1][field],\
                                  formn%this_part))
 
         if dbg > 1:
@@ -455,8 +475,16 @@ class waves():
                 enzo_write.dump_h5(self.cubes[map_to_label[field]],this_filename)
                 print("wrote "+this_filename)
 
+        #test stuff.
         self.all_hats=all_hats
         self.all_p = all_p
+        self.temp_cubes={}
+        self.temp_means={}
+        for a,b in [['d','density'],['vx','x-velocity'],['hx','Bx'],['hy','By'],['hz','Bz'],
+                ['vz','z-velocity'],['vy','y-velocity'], ['p','GasPressure']]:
+            self.temp_cubes[a] = self.cubes[b][cube_slice]#- tsfft.quan[a]
+            self.temp_means[a] = self.quan[a]
+            #temp_means[a] = np.mean(these_cubes[a]) #both of these work.
 
 
     def perturb(self,base_size=None,pert=1e-6,wave='a+',directory=".", write=True):
