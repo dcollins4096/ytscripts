@@ -352,9 +352,10 @@ class waves():
 #b_unit = b_uni/||b_unit||
 #c_unit = a_unit cross b_unit
     def __init__(self,this_wave='f+', d=1.0,vx=0.0,vy=0.0,vz=0.0,hx=1.0,hy=1.41421,hz=0.5,Gamma=1.6666666667,e=None,p=None, write=True,
-                 form='rj95', **kwargs):
+                 form='rj95', HydroMethod=6, **kwargs):
         #p = 0.6
         #Gamma=1.6666666667
+        self.HydroMethod = HydroMethod
         self.Gamma=Gamma
         self.form=form
         self.wave=this_wave
@@ -404,13 +405,18 @@ class waves():
         all_hats = {}
         self.cubes_test={}
         all_p = {}
-        face_offset = {'hx':nar([1,0,0]),'hy':nar([0,1,0]),'hz':nar([0,0,1])}
+        if self.HydroMethod == 6:
+            face_offset = {'hx':nar([1,0,0]),'hy':nar([0,1,0]),'hz':nar([0,0,1])}
+        else:
+            face_offset={}
         cube_slice=[slice(0,base_size[0]),slice(0,base_size[1]),slice(0,base_size[2])]
         print("Eigenvector formulation %s"%self.form)
         field_list = ['d','vx','vy','vz','hx','hy','hz','e']
         if self.form =='rb96':
             field_list = ['d','vx','vy','vz','hx','hy','hz','p']
         self.directory=directory
+        map_to_label ={'d':'density','vx':'x-velocity','vy':'y-velocity','vz':'z-velocity',
+                       'hx':'Bx','hy':'By','hz':'Bz','e':'TotalEnergy','p':'GasPressure'}
 
         def nz(thing):
             return thing[ np.abs(thing) > 1e-13]
@@ -446,15 +452,14 @@ class waves():
 
         if self.cubes is None:
             self.cubes={}
-        map_to_label ={'d':'density','vx':'x-velocity','vy':'y-velocity','vz':'z-velocity',
-                       'hx':'Bx','hy':'By','hz':'Bz','e':'TotalEnergy','p':'GasPressure'}
-        face_offset = {'hx':nar([1,0,0]),'hy':nar([0,1,0]),'hz':nar([0,0,1])}
         for field in field_list:
             size = base_size+face_offset.get(field,0)
             if map_to_label[field] in self.cubes:
                 this_set = self.cubes[map_to_label[field]]
+                #print("recalw: %s %s %s"%(field,map_to_label[field],str(this_set.shape)))
             else:
                 this_set = np.ones(size)*self.quan[field]
+                #print("Setup: %s %s %s"%(field,map_to_label[field],str(this_set.shape)))
             if field in ['vx','vy','vz','e']:
                 if np.abs(np.mean(self.cubes['density']) - 1.0) > 1e-7:
                     print("YOU MAY NOT WANT TO BE MULTIPLYING ENERGY BY DENSITY INITALLLY.")
@@ -467,13 +472,14 @@ class waves():
             self.cubes_test[field]  =  self.cubes[map_to_label[field]][cube_slice] - self.quan[field]
         for field in field_list:
             #self.cubes[map_to_label[field]] = wrap_faces(self.cubes[map_to_label[field]], field)
-            wrap_faces(self.cubes[map_to_label[field]], field)
+            if self.HydroMethod == '6':
+                wrap_faces(self.cubes[map_to_label[field]], field)
             this_filename = "%s/%s_16.h5"%(directory,map_to_label[field])
             if field in ['vx','vy','vz','e']:
                 self.cubes[map_to_label[field]] /= self.cubes[map_to_label['d']]
             if write:
                 enzo_write.dump_h5(self.cubes[map_to_label[field]],this_filename)
-                print("wrote "+this_filename)
+                print("wrote "+this_filename + " with shape "+str(self.cubes[map_to_label[field]].shape))
 
         #test stuff.
         self.all_hats=all_hats

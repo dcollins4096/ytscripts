@@ -93,10 +93,6 @@ if 1:
 
 
     if 0:
-        #target: not working
-        these_means = stuff['cubes']
-        these_ffts = ffts
-    if 0:
         #really stupid test.
         field_list = ['d','vx','vy','vz','hx','hy','hz','p']
         these_cubes={}
@@ -109,12 +105,28 @@ if 1:
         tsfft = p49_eigen.waves(hx=1.0,hy=1.0,hz=1.0,p=0.6,this_wave=wave, form='rb96')
         k_test = nar([[1.,0.],[0.,0.],[0.,1]])
         ampl = nar([1,1.])
-        nn=5
+        nn=32
         tsfft.rot_write(pert_shape='fft',base_size=nar([nn]*3),pert=ampl,directory='',
                               wave=wave,k_rot=k_test,write=False)
         k_test = nar([[1.,1.],[0.,0.],[0.,1]])
         tsfft.rot_write(pert_shape='fft',base_size=nar([nn]*3),pert=ampl,directory='',
                               wave='a+',k_rot=k_test,write=False)
+        these_ffts = p49_eigen.get_ffts(tsfft.temp_cubes, tsfft.temp_means)
+        these_means = tsfft.temp_means
+    if 1:
+        #More modes.  IN THE WORKS.
+        wave='f-'
+        write=True
+        name = 'rB01'
+        directory = '/Users/dcollins/scratch/Paper49b_play/Eigen/rB01_rb_several'
+        tsfft = p49_eigen.waves(hx=1.0,hy=1.41421,hz=0.5,p=0.6,this_wave=wave, form='rb96', HydroMethod=4)
+        k_test = nar([[2.,1.],[3.,0.],[0.,1]])
+        ratio = 1.0# ts.speeds['cf']/ts.speeds['aa']
+        ampl = nar([1e-6*ratio,0])
+        #ts.rot_write(pert_shape='fft',base_size=nar([16]*3),pert=ampl,directory=directory,
+        #                      wave=wave,k_rot=k_test)
+        tsfft.rot_write(pert_shape='fft',base_size=nar([32]*3),pert=ampl,directory=directory,
+                              wave='s+',k_rot=nar([[1,4],[0,4],[0,1]]), write=write)
         these_ffts = p49_eigen.get_ffts(tsfft.temp_cubes, tsfft.temp_means)
         these_means = tsfft.temp_means
     if 0:
@@ -163,13 +175,14 @@ if 1:
         these_means = stuff['means']
         these_ffts  = p49_eigen.get_ffts(stuff['cubes'], these_means)
         ###
-    if 1:
+    if 0:
         #Rotated, rb96.  Works by itself.
         #rA01 
         directory = '/Users/dcollins/scratch/Paper49b_play/Eigen/rA01_rb96_110_f-'
         name = 'rA01'
         wave='f-'
-        tsA01 = p49_eigen.waves(hx=1.0,hy=1.41421,hz=0.5,p=0.6,this_wave=wave, form='rb96')
+        tsA01 = p49_eigen.waves(hx=1.0,hy=1.41421,hz=0.5,p=0.6,this_wave=wave, form='rb96',\
+                                HydroMethod = 4)
         k_test = nar([[1.,1.],[1.,0.],[0.,0]])
         ratio =  tsA01.speeds['cf']/tsA01.speeds['aa']
         ampl = nar([1e-6*ratio,0])
@@ -178,17 +191,17 @@ if 1:
         these_ffts = p49_eigen.get_ffts(tsA01.temp_cubes, tsA01.temp_means)
         these_means = tsA01.temp_means
         tsfft = tsA01
-    if 1:
+    if 0:
         #Rotate, rb96, life: IN PROCESS.
-        frame = 0
+        frame = 50
         directory = '/Users/dcollins/scratch/Paper49b_play/Eigen/rA01_rb96_110_f-'
         ds = yt.load("%s/DD%04d/data%04d"%(directory,frame,frame))
         stuff = p49_eigen.get_cubes_cg(ds)
         these_means = stuff['means']
         these_ffts  = p49_eigen.get_ffts(stuff['cubes'], these_means)
 
-    print_fields = True
-    print_waves = False
+    print_fields = False
+    print_waves = True
     kall,wut=p49_eigen.rotate_back(these_ffts, these_means)
     fl =  np.zeros_like(wut.wave_frame['d']).astype('bool')
     if print_fields:
@@ -196,12 +209,13 @@ if 1:
             print(" ===== %s ===="%field)
             thisthing =  wut.wave_frame[field]
             thisthing =  wut.dumb[field]
-            print("  eigen    %s"%str(tsfft.right['f-'][field]))
-            print("  rot      %s"%str(tsfft.rot[field]))
-            print("all_hat  %3s %s"%(field, nz(tsfft.all_hats[field])))
+            #print("  eigen    %s"%str(tsfft.right['f-'][field]))
+            #print("  rot      %s"%str(tsfft.rot[field]))
+            #print("all_hat  %3s %s"%(field, nz(tsfft.all_hats[field])))
             #aaa = these_ffts[field] #is good.
             #print("also fft input  k %3s %s"%(field, str(nz(aaa).size)))
             print("this wave frame n k %3s %s"%(field, str(nz(thisthing).size)))
+            print("this wave frame   a %3s %s"%(field, str(nz(thisthing))))
             print("this wave frame   k %3s %s"%(field, str(wnz(thisthing))))
     if print_waves:
         for wave in wut.wave_content:

@@ -193,16 +193,23 @@ if 0:
                           wave=wave,k_rot=k_test)
     r605=eigen_taxi(ts,name)
 
-if 1:
+if 0:
     #IN PROCESS
     #rA01
     directory = '/Users/dcollins/scratch/Paper49b_play/Eigen/rA01_rb96_110_f-'
-    name = 'rA01'
+
+if 1:
+    #rB01 rB01_rb_several
+    directory = '/Users/dcollins/scratch/Paper49b_play/Eigen/rB01_rb_several'
+    name = 'rB01'
     wave='f-'
-    tsA01 = p49_eigen.waves(hx=1.0,hy=1.41421,hz=0.5,p=0.6,this_wave=wave, form='rb96')
-    k_test = nar([[1.,1.],[1.,0.],[0.,0]])
-    ratio =  tsA01.speeds['cf']/tsA01.speeds['aa']
+    ts = p49_eigen.waves(hx=1.0,hy=1.41421,hz=0.5,p=0.6,this_wave=wave, form='rb96', HydroMethod=4)
+    k_test = nar([[1.,0.],[0.,0.],[0.,1]])
+    ratio = 1.0# ts.speeds['cf']/ts.speeds['aa']
     ampl = nar([1e-6*ratio,0])
-    tsA01.rot_write(pert_shape='fft',base_size=nar([16]*3),pert=ampl,directory=directory,
-                          wave=wave,k_rot=k_test)
-    rA01=eigen_taxi(tsA01,name)
+    ts.rot_write(pert_shape='fft',base_size=nar([32]*3),pert=ampl,directory=directory,
+                          wave=wave,k_rot=k_test,start=True)
+    ts.rot_write(pert_shape='fft',base_size=nar([32]*3),pert=ampl,directory=directory,
+                          wave='s+',k_rot=nar([[3,4],[2,4],[0,1]]),start=False)
+    print('bigger.')
+    rB01=eigen_taxi(ts,name)
