@@ -14,6 +14,8 @@ import glob
 import h5py
 import re
 nar = np.array
+import xtra_energy_fields
+reload(xtra_energy_fields)
 
 
 frbname = p49_QU2EB.frbname
@@ -36,16 +38,17 @@ class quan_box():
     def merge(self,dict2):
         dict1 = self.stuff
         #dict2 = other_quan.stuff
-        frames1 = dict1['frames']
-        frames2 = dict2['frames']
-        for i, frame in enumerate(frames2):
-            if frame not in frames1:
-                for key in dict1:
-                    if key in [ 'EB', 'grav_pot_2', 'tdyn']:
-                        continue
-                    if key in ['grav_pot'] and not self.potential_written:
-                        continue
-                    dict1[key].append(dict2[key][i])
+        if 'frames' in dict1 and 'frames' in dict2:
+            frames1 = dict1['frames']
+            frames2 = dict2['frames']
+            for i, frame in enumerate(frames2):
+                if frame not in frames1:
+                    for key in dict1:
+                        if key in [ 'EB', 'grav_pot_2', 'tdyn']:
+                            continue
+                        if key in ['grav_pot'] and not self.potential_written:
+                            continue
+                        dict1[key].append(dict2[key][i])
 
         if 'EB' in dict2:
             if 'EB' not in dict1:
@@ -56,7 +59,7 @@ class quan_box():
     def dump(self, pickle_name=None):
         #pdb.set_trace()
         if pickle_name is None:
-            pickle_name = 'quan_box_%s.pickle'%self.car.name
+            pickle_name = 'quan_box_%s.pickle'%self.car.outname
         lock_name = pickle_name + ".lock"
         counter = 0
         while os.path.exists(lock_name) and counter < 5:
@@ -121,7 +124,7 @@ class quan_box():
         self.stuff['EB'][frame]=EBSlopePower
     def GetQUEB(self,frame):
 
-        frb_dir = "%s/"+frbname"+/"%self.car.directory
+        frb_dir = "%s/%s/"%(self.car.directory,frbname)
         Qlist = glob.glob(frb_dir+'/DD%04d_Q[xyz]*.fits'%frame)
         Ulist = []
         # write the output near the input
@@ -144,7 +147,7 @@ class quan_box():
 
     def QUEB(self, frame):
         #ds = self.car.load(frame)
-        frb_dir = "%s/"+frbname"+/"%self.car.directory
+        frb_dir = "%s/%s/"%(self.car.directory,frbname)
         p49_QU2EB.QU2EB(frb_dir,frame)
 #        if frames is None:
 #            frames = self.car.return_frames()
@@ -165,7 +168,7 @@ class quan_box():
         ds = None  #this is somewhat awkward, but useful for avoiding simulations
                    #  that have only products, not datasest
         for axis, field in fields :
-            outputdir = "%s/"+frbname"+/"%self.car.directory
+            outputdir = "%s/%s/"%(self.car.directory,frbname)
             if not os.access(outputdir, os.F_OK):
                 os.mkdir(outputdir)
             #Hm.  Q and U have the name in the field, but others don't.
@@ -230,6 +233,7 @@ class quan_box():
         self.stuff['frames'].append(frame)
         self.stuff['t'].append(car.ds['InitialTime']/(tdyn) )
         reg = car.get_region(frame)
+        xtra_energy_fields.dave_add_field(car.ds) #adds many fields.
         total_volume = reg['cell_volume'].sum()
         volume = reg['cell_volume']
         #self.stuff['mass'].append( (reg.quantities['WeightedAverageQuantity']('density', 'cell_volume')*total_volume).in_units('code_mass'))
