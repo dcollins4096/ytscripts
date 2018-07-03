@@ -8,7 +8,7 @@ if 'ef' not in dir():
     execfile('go')
 ef('p49_labels.py')
 if 'flt' not in dir():
-    fleet_list = ['ab26','ac19','ac22','ac23','ac25','ac26']
+    fleet_list = ['ab25','ab27','ab28','ab29']
     #fleet_list = sorted(all_sims)
     #fleet_list = ['ax19','ax20', 'ax21','ax22']
     #fleet_list = sorted(series['az'])
@@ -53,6 +53,7 @@ def check_quan(car, print_ok=True, print_not_ok = False):
 
 def print_status(car):
     """Check last frame, quan, and EB for consistency"""
+    print('moo')
     last_frame=max(car.frame_dict.keys())
     lfd = car.frame_dict[last_frame]
     last_quan = max(car.qb.stuff['frames'])

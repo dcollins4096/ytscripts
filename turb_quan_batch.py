@@ -22,6 +22,7 @@ if 1:
     ef('turb_quan.py')
     qb = quan_box(car)
     qb.plot_format='png'
+    car.derived_fields['QU'] = p49_fields.add_QU
     qb.load()
     for frame in car.return_frames():
         qb.make_frbs(frame)

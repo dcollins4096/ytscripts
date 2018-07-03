@@ -31,9 +31,9 @@
 #Application 1
 set echo
 
-set car_list = "axb19 axb20 axb21 axb22"
+set car_list =  'ab25 ab27 ab28 ab29' #"axb19 axb20 axb21 axb22"
 foreach i ($car_list) 
-    set frames = "final_5"
+    set frames = "all"
     python harry_plotter.py $i $frames &
 end
 set keep_going = 1

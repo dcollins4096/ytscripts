@@ -28,7 +28,7 @@ if not_ported:
 import matplotlib.colorbar as cb
 import re
 import copy
-#import turb_quan
+import turb_quan
 #import QU_callback
 #reload(QU_callback)
 #import p49_fields
@@ -662,6 +662,9 @@ class taxi:
         SetNumber = re.compile(r'([^\d]*)(\d\d\d\d)')
         SetNumber = re.compile(r'(.*)(\d\d\d\d)')
         debug = 0
+        if self.name_syntax == 'preset':
+            self.frame_dict={}
+            return
         if not hasattr(self,'frame_dict') or self.frame_dict is None:
             self.frame_dict = {}
             output_name = "%s/%s"%(self.directory , self.OutputLog)
@@ -788,7 +791,8 @@ class taxi:
 
     def return_frames(self):
         if self.name_syntax == 'preset':
-            if not isinstance(self.frames, types.ListType):
+            if not isinstance(self.frames, types.ListType) \
+               and not isinstance(self.frames, np.ndarray) :
                 print "With preset name syntax, frames must be a list of integers."
                 raise
             return self.frames

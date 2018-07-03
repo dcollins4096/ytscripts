@@ -3,13 +3,14 @@ if 'ef' not in dir():
     execfile('go')
 reload(taxi)
 
-sys.path.append('/Users/dcollins/local-other-2018-01-05/cmbtools_nofits')
+#sys.path.append('/Users/dcollins/local-other-2018-01-05/cmbtools_nofits')
 import turb_quan
 reload(turb_quan)
 import p49_fields
 reload(p49_fields)
 car=taxi.taxi('r22')
-car.outname='r22_cmbtools_0.1_'
+#car.outname='r22_cmbtools_0.1_'
+car.name=car.outname='r22_orig_pfe'
 if 1:
     car.derived_fields['QU'] = p49_fields.add_QU
 if 0:
