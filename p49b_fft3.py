@@ -1,3 +1,9 @@
+ef=execfile
+import p49_eigen
+import numpy as np
+nar = np.array
+reload(p49_eigen)
+
 def symmetric(v):
     #for real fft, Ak = A(-k)^*; the negative-phase is the conjugate
     #(that way when you sum, the imaginary parts cancel.)
@@ -9,13 +15,26 @@ def symmetric(v):
     s2[0]=v[0]
     return s2
 
-size = nar([64,64,64])
-dx=1./size
+twod = True
+if twod:
+    size = nar([64,64])
+    dx=1./size
+    kall= p49_eigen.make_k_freqs_2d(size[0])*size[0]
 
-k = np.zeros(size)*1j
-x,y,z = np.mgrid[0:1:dx[0], 0:1:dx[1],0:1:dx[2]]
-k_unit = nar([8.,14,5])
-kp_unit = k_unit*2*np.pi
+    k = np.zeros(size)*1j
+    x,y = np.mgrid[0:1:dx[0], 0:1:dx[1]]
+    z=0.
+    k_unit = nar([8.,-14, 0])
+    kp_unit = k_unit*2*np.pi
+else:
+    size = nar([64,64,64])
+    dx=1./size
+    kall= p49_eigen.make_k_freqs(size[0])*size[0]
+
+    k = np.zeros(size)*1j
+    x,y,z = np.mgrid[0:1:dx[0], 0:1:dx[1],0:1:dx[2]]
+    k_unit = nar([8.,14,-5])
+    kp_unit = k_unit*2*np.pi
 #k_unit /= (k_unit**2).sum()**0.5
 #rho = np.sin(2*np.pi*k_unit[0]*x)+np.sin(2*np.pi*k_unit[1]*y)
 #rho=( np.exp( 1j*(k_unit[0]*x+k_unit[1]*y))).real
@@ -30,39 +49,38 @@ def nz(arr):
     return  np.where(np.abs(arr) > 1e-9)
 def nonzero(arr):
     return arr[ nz(arr)]
-plt.clf()
-plt.imshow(cut(rho))
-plt.savefig('p49b_fft3_rho%s.png'%cutname)
-rhohat=np.fft.fftn(rho)
-print("real",np.abs(rhohat.real).sum())
-print("imag",np.abs(rhohat.imag).sum())
-print( nonzero(rhohat))
-mask = nz(rhohat)
+def pnz(arr):
+    print arr[ nz(arr)]
+    nza = nz(arr)
+    print nza
+    if twod:
+        print zip(nza[0],nza[1])
+    else:
+        print zip(nza[0],nza[1],nza[2])
 #plt.clf()
-#plt.imshow(rhohat.real)
-#plt.savefig('p49b_real.png')
-#plt.clf()
-#plt.imshow(rhohat.imag)
-#plt.savefig('p49b_imag.png')
+#plt.imshow(cut(rho))
+#plt.savefig('p49b_fft3_rho%s.png'%cutname)
 
-"""
-def su(x):
-    y=np.abs(x).sum()
-    if y < 1e-8:
-        return "--"
-    return "%0.1e"%y
-cn = rainbow_map(64)
-plt.clf()
-for n in range(64):
-    plt.plot(rhohat.real[:,n],c=cn(n))
-    print( "n %3d r %8s i %8s"%(n,su(rhohat.real[:,n]), su(rhohat.imag[:,n])))
-plt.savefig('p49b_rhohat_real.png')
-plt.clf()
-for n in range(64):
-    plt.plot(rhohat.imag[:,n],c=cn(n))
-plt.savefig('p49b_rhohat_imag.png')
+def do_more_stuff(msg,arr):
+    print("===== %s ======"%msg)
+    print(arr.shape)
+    print("real sum %0.2e"%np.abs(arr.real).sum())
+    print("imag sum %0.2e"%np.abs(arr.imag).sum())
+    pnz(arr)
+    mask = nz(arr)
 
-#k[1,2] = 1+0j
-#khat = np.fft.ifft(k)
-#x
-"""
+    if twod:
+        k_nonzero = zip(kall[0,...][mask],kall[1,...][mask])
+    else:
+        k_nonzero = zip(kall[0,...][mask],kall[1,...][mask],kall[2,...][mask])
+    print k_nonzero
+rhohat_full=np.fft.fftn(rho)
+rhohat_real=np.fft.rfftn(rho)
+rhohat_len=np.fft.rfftn(rho,rho.shape)
+#i still don't understand what this does.
+back_nolen = np.fft.irfftn(rhohat_real)
+back_len = np.fft.irfftn(rhohat_real,rho.shape)
+
+do_more_stuff("full fft",rhohat_full)
+do_more_stuff("real fft",rhohat_real)
+do_more_stuff("real fft, len",rhohat_len)

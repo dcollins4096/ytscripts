@@ -24,7 +24,7 @@ def prnt2b(thing):
 
 reload(p49_eigen)
 
-if 0:
+if 1:
     #r701 r701_rb_fft_f-
     directory = '/Users/dcollins/scratch/Paper49b_play/Eigen/r701_rb96_fft_f-'
     name = 'r701'
@@ -32,6 +32,8 @@ if 0:
     ts701 = p49_eigen.waves(hx=1.0,hy=1.41421,hz=0.5,p=0.6,this_wave=wave, form='rb96')
     #ts701 = p49_eigen.waves(hx=1.0,hy=1.0,hz=1.0,p=0.6,this_wave=wave, form='rb96')
     k_test = nar([[1.,0.],[0.,0.],[0.,1]])
+    print('kludge; using questionable vector')
+    k_test = nar([[3.,3.],[2.,5.],[0.,1]])
     ratio = ts701.speeds['cf']/ts701.speeds['aa']
     ampl = nar([1e-6*ratio,2.3])
     ampl = nar([1,0.2])
@@ -46,7 +48,7 @@ if 0:
     ts701.check_orthonormality()
 if 0:
     #rotation check; dummy is dumb, rotten rotates, stillrotten is dummy back again.
-    dummy={'vx':0.1,'vy':0.2,'vz':0.3,'hx':0,'hy':0,'hz':0}
+    dummy={'vx':0.1,'vy':0.2,'vz':0.3,'hx':101.,'hy':1e3,'hz':1e4}
     rotten = ts701.rotate_to_xyz(dummy)
     stillrotten = ts701.rotate_to_abc(rotten)
     print("=== original ===")
@@ -55,7 +57,7 @@ if 0:
     prnt2(rotten)
     print("=== rotated back ===")
     prnt2(stillrotten)
-
+ 
 if 0:
     #rot is the eigen vectors along k_test, rotated to physics.
     #Successfully extracts just the f- wave.
@@ -82,7 +84,43 @@ if 0:
     # 2.) given k, rotate back, project.
 
 
-if 1:
+
+if 0:
+    #Work In Progress:  Two waves.
+    #Successfully extracts just the f- wave.
+    ts22 = p49_eigen.waves(hx=1.0,hy=1.41421,hz=0.5,p=0.6, form='rb96', HydroMethod=4)
+    ts22 = p49_eigen.waves(form=ts701.form,**ts701.quan)
+    ratio = 1.0# ts22.speeds['cf']/ts22.speeds['aa']
+
+    ampl = nar([1e-6*ratio,0])
+    size = nar([4]*3)
+    ts22.rot_write(pert_shape='fft',base_size=size,pert=ampl,directory=directory,
+                          wave='f-',k_rot=nar([[1.,0.],[0.,0.],[0.,1]]),start=True)
+    #ts22.rot_write(pert_shape='fft',base_size=size,pert=ampl,directory=directory,
+    #                      wave='s+',k_rot=nar([[3,4],[2,4],[0,1]]),start=False)
+    ts22.fields_to_wave_frame(k_test,ts701.rot)
+    
+    print("=== eigen: truth ===")
+    prnt1b(ts701.right[wave])
+    print("=== real space: along k ===")
+    prnt2b(ts701.rot)
+    print("=== wave space: these should match ===")
+    prnt2b(ret701.wave_frame)
+
+
+    #ret701.project_to_waves(k_test, ts701.rot)
+    zero = {}
+    for frame in ts701.rot:
+        zero[frame] = 0.
+    ret701.project_to_waves(k_test, ts701.rot, means=zero)
+    print("=== wave content: ===")
+    for wave in ret701.wave_content:
+        print("%5s "%wave, ret701.wave_content[wave])
+    # 1.) start with rotated field; t701.rot, real space.
+    # 2.) given k, rotate back, project.
+
+
+if 0:
     field_list = ['d','vx','vy','vz','hx','hy','hz','p']
     def nz(field):
         nz = np.abs(field) > 1e-12

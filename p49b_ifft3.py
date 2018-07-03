@@ -11,19 +11,25 @@ def symmetric(v):
     return s2
 
 size = nar([64,64,64])
+N = 32
+size = nar([N,N,N//2+1])
 k = np.zeros(size)*1j
-k[mask]=1
+#k[mask]=1 #this comes from the fft prior
+k[5,2,4] = 1+0.2j
 
+#How do yu convert compressible to solenoidal?
 ##k[[ 5, 59], [14, 50],[ 8, 56]] = 1
 
 #k[14,8] = -2048j #does what the other thing does.
 #k[-14,-8]=2048j  #
 #k[-14,8] = 2048j # pi rotation
 #k[14,-8] = -2048j# pi rotation
-khathat = np.fft.ifftn(k).real
+#khathat = np.fft.ifftn(k).real
+khathat = np.fft.irfftn(k).real
+dumbhat = np.fft.fftn(khathat)
 cutname = '_y0'
 def cut(arr):
-    return arr[:,0,:].reshape(64,64)
+    return arr[:,0,:].reshape(N,N)
 def nz(arr):
     return  np.where(np.abs(arr) > 1e-9)
 def nonzero(arr):
