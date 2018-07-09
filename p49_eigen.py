@@ -1,16 +1,21 @@
+from go_lite_pyt3 import *
 import pdb
 import numpy as np 
 import copy
 nar=np.array
 import enzo_write
 reload(enzo_write)
+if 'thresh' not in dir():
+    thresh = 1e-11
+def nzwww(thing):
+    return thing[ np.abs(thing) > 1e-13]
 def nz(arr):
-    return  np.where(np.abs(arr) > 1e-12)
+    return  np.where(np.abs(arr) > thresh)
 def nonzero(arr):
     return arr[ nz(arr)]
 def pnz(arr):
-    print arr[ nz(arr)]
-    print nz(arr)
+    print(arr[ nz(arr)])
+    print(nz(arr))
 def is_iterable(thing):
     if hasattr(thing,'__getitem__') and type(thing) not in [np.float64]:
         return True
@@ -115,6 +120,16 @@ def make_k_freqs(nk,real=True):
     k_freq[1,...]=y
     k_freq[2,...]=z
     return k_freq
+def make_k_freqs_and_int(nk,real=True):
+    k_freq = make_k_freqs(nk,real=real)
+    nk1 = nk
+    nk2 = nk
+    nk3 = nk
+    if real:
+        nk3 = nk3//2+1
+
+    k_int = np.mgrid[0:nk1,0:nk2,0:nk3]
+    return {'k_freq':k_freq,'k_int':k_int}
 def rotate_back(ffts,means, real=True):
 
     this_system = waves(form='rb96',**means)
@@ -451,7 +466,7 @@ class waves():
         #    print("keys",self.cubes.keys())
         pass
     def rot_write(self,k_rot=None,base_size=None,pert=1e-6,directory=".", write=True, wave=None, pert_shape='fft',
-                   start=True, real_fft=True):
+                  start=True, real_fft=True,blah=True):
         #if self.cubes is None:
         #    print("no cubes")
         #else:
@@ -479,17 +494,6 @@ class waves():
         map_to_label ={'d':'density','vx':'x-velocity','vy':'y-velocity','vz':'z-velocity',
                        'hx':'Bx','hy':'By','hz':'Bz','e':'TotalEnergy','p':'GasPressure'}
 
-        if 'thresh' not in dir():
-            thresh = 1e-11
-        def nzwww(thing):
-            return thing[ np.abs(thing) > 1e-13]
-        def nz(arr):
-            return  np.where(np.abs(arr) > thresh)
-        def nonzero(arr):
-            return arr[ nz(arr)]
-        def pnz(arr):
-            print arr[ nz(arr)]
-            print nz(arr)
 
         if pert_shape == 'fft':
             self.wave_to_fields(k_rot, wave)
@@ -500,13 +504,19 @@ class waves():
                 else:
                     this_size=base_size #np.array([base_size[0],base_size[1],base_size[2]//2+1])
                 self.all_hats[f]=np.zeros(this_size)*1j
-                self.all_hats[f][kint[0,...],kint[1,...],kint[2,...]] = self.rot[f]*pert
-                #print("ug %s "%f + str(nz(self.all_hats[f])))
+                if blah:
+                    self.all_hats[f][kint[0,...],kint[1,...],kint[2,...]] = self.rot[f]*pert
+                else:
+                    self.all_hats[f] = self.rot[f]*pert
+                print("ug %s "%f + str(nz(self.all_hats[f])))
                 #pdb.set_trace()
                 #print( "put %s %0.2e"%(f,(self.rot[f]*pert)[0]))
                 if not real_fft:
                     #self.all_hats[f][kint[0,...],kint[1,...],-kint[2,...]] = (self.all_hats[f][kint[0,...],kint[1,...],kint[2,...]] ).conj()
-                    self.all_hats[f][-kint[0,...],-kint[1,...],-kint[2,...]] = (self.all_hats[f][kint[0,...],kint[1,...],kint[2,...]] ).conj()
+                    if kint is not None:
+                        self.all_hats[f][-kint[0,...],-kint[1,...],-kint[2,...]] = (self.all_hats[f][kint[0,...],kint[1,...],kint[2,...]] ).conj()
+                    else:
+                        print("Shoot, i haven't sorted the conjugation yet.  I hope you did.")
                     #print("wtf",kint[0,...],kint[1,...],-kint[2,...])
                 #print("make hats ROT: %3s %s"%(f,str(self.rot[f]*pert)))
                 #print("make hats fld: %3s %s"%(f,str(nz(self.all_hats[f]))))
@@ -519,17 +529,17 @@ class waves():
                 if 'tmp' in dir():
                     del tmp
                 if real_fft:
-                    #tmp=np.fft.irfftn(self.all_hats[f])
-                    np.fft.irfftn(self.all_hats[f])
+                    tmp=np.fft.irfftn(self.all_hats[f])
+                    #np.fft.irfftn(self.all_hats[f])
                 else:
                     tmp=np.fft.ifftn(self.all_hats[f])
                 print("=== pos %3s "%f+str(len(nonzero(self.all_hats[f]))))
-#               real_mean = np.mean(np.abs(tmp.real))
-#               imag_mean = np.mean(np.abs(tmp.imag))
-#               if (real_mean+imag_mean)>1e-16:
-#                   if imag_mean/(real_mean+imag_mean) > 1e-9:
-#                       print("Warning: large imaginary component")
-#               self.all_p[f]+=tmp.real*tmp.size*0.5 
+                real_mean = np.mean(np.abs(tmp.real))
+                imag_mean = np.mean(np.abs(tmp.imag))
+                if (real_mean+imag_mean)>1e-16:
+                    if imag_mean/(real_mean+imag_mean) > 1e-9:
+                        print("Warning: large imaginary component")
+                self.all_p[f]+=tmp.real*tmp.size*0.5 
         elif pert_shape == 'square_x':
             size = base_size #+face_offset.get(f,0)
             amplitude = np.zeros(size)
@@ -561,7 +571,8 @@ class waves():
         for field in field_list:
             size = base_size+face_offset.get(field,0)
             self.cubes[map_to_label[field]][cube_slice] += self.all_p[field] 
-            self.temp_right_back[field]=np.fft.fftn(self.cubes[map_to_label[field]][cube_slice] )
+            #self.temp_right_back[field]=np.fft.fftn(self.cubes[map_to_label[field]][cube_slice] )
+            self.temp_right_back[field]=np.fft.rfftn(self.cubes[map_to_label[field]][cube_slice] )
             #self.cubes_test[field]  =  self.cubes[map_to_label[field]][cube_slice] - self.quan[field]
         for field in field_list:
             #self.cubes[map_to_label[field]] = wrap_faces(self.cubes[map_to_label[field]], field)

@@ -3,6 +3,7 @@
 #    execfile('go')
 #    for i in range(3):
 #        print("====================")
+from go_lite_pyt3 import *
 import enzo_write
 reload(enzo_write)
 import p49_eigen
@@ -202,12 +203,14 @@ if 0:
 
 if 1:
     #rB01 rB01_rb_several
+    #messing around with rotated vectors.
     directory = '/Users/dcollins/scratch/Paper49b_play/Eigen/rB01_rb_several'
     name = 'rB01'
     wave='s-'
     #k_test = nar([[1.,0.],[0.,0.],[0.,1]])
     k_test = nar([[3.,0.],[2.,0.],[0.,1]])
     ratio = 1.0# ts.speeds['cf']/ts.speeds['aa']
+    size=32
     ampl = nar([1e-6*ratio,0])
     def rot(a,b,theta):
         ahat = np.cos(theta)*a-np.sin(theta)*b
@@ -216,6 +219,7 @@ if 1:
     old_b   = rot(1.0, 1.41421, 0)
     old_bz = 0.5
     old_K   = rot(5, 0, 0)
+    old_K   = rot(5, 8, 0)
     k1 = nar([[old_K[0],0.],[old_K[1],0.],[0.,1.]])
 #   ts1 = p49_eigen.waves(hx=old_b[0],hy=old_b[1],hz=old_bz,p=0.6,this_wave=wave, form='rb96', HydroMethod=4)
 #   ts1.rot_write(pert_shape='fft',base_size=nar([32]*3),pert=ampl,directory=directory,
@@ -223,13 +227,15 @@ if 1:
 #                            start=True,write=False)
     this_theta = 0.0 #np.arctan(3./4)
     new_b   = rot(1.0, 1.41421, this_theta)
-    new_K   = rot(1, 0, this_theta)
+    new_K   = rot(-1, -1, this_theta)
     new_bz = old_bz
     k2 = nar([[new_K[0],0.],[new_K[1],0.],[0.,1.]])
+    k2 = nar([[5,1],[7,0],[8,0]])
     ts2 = p49_eigen.waves(hx=new_b[0],hy=new_b[1],hz=new_bz,p=0.6,this_wave=wave, form='rb96', HydroMethod=4)
-    ts2.rot_write(pert_shape='fft',base_size=nar([5]*3),pert=ampl,directory=directory,
+    directory = '/Users/dcollins/scratch/Paper49b_play/Spectral/s01_k53_f+'
+    ts2.rot_write(pert_shape='fft',base_size=nar([size]*3),pert=ampl,directory=directory,
                          wave='s-',k_rot=k2,
-                             start=True,write=False)
+                             start=True,write=True)
     #ts1.rot_write(pert_shape='fft',base_size=nar([32]*3),pert=ampl,directory=directory,
     #                     wave='s-',k_rot=k2,
     #                         start=False,write=False)
@@ -260,8 +266,8 @@ def nz(arr):
 def nonzero(arr):
     return arr[ nz(arr)]
 def pnz(arr):
-    print arr[ nz(arr)]
-    print nz(arr)
+    print(arr[ nz(arr)])
+    print(nz(arr))
 cf = '({0.real:5.2e} + {0.imag:5.2e}i)'
 def ampl_str(arr):
     out = ""
@@ -303,16 +309,20 @@ if 0:
 
 if 1:
     #check the content of the ffts.
-    field_list=['d']
+    #field_list=['d']
     for field in field_list:
-        if 1:
+        if 0:
             print("=== %s xyz ==="%field)
             target_value =  (ampl*ts2.rot[field])[0]
             the_fft = stuff2['ffts'][field]
-        if 1:
-            print("=== %s xyz ==="%field)
+        if 0:
+            print("=== %s FT xyz ==="%field)
             target_value =  (ampl*ts2.rot[field])[0]
             the_fft = ts2.all_hats[field]
+        if 1:
+            print("=== %s FT^-1(FT) ==="%field)
+            target_value =  (ampl*ts2.rot[field])[0]
+            the_fft = ts2.temp_right_back[field]
         if 0:
             print("=== %s abc ==="%field)
             #target_value = ts2.hat_system.quan[field]
@@ -325,9 +335,15 @@ if 1:
         nozo=nonzero(the_fft)
 
         print(sfrm%"+++target+++" + " %s"%cf.format(target_value))
-        if 1:
-            print(sfrm%"Nk" + " %d"%nozo.size)
         if 0:
+            #number of non-zero k
+            print(sfrm%"Nk" + " %d"%nozo.size)
+        if 1:
+            print(sfrm%"size " + str(the_fft.shape))
+            for n ,k in enumerate(kvec):
+                print(sfrm%"k  "+str(k))
+        if 0:
+            #diagnostics about non-zero k, values, and expected values
             for n ,k in enumerate(kvec):
                 is_mean = False
                 if (nar(k) == 0 ).all():

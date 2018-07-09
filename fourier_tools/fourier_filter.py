@@ -41,7 +41,7 @@ class FourierFilter(object):
 
         shortind = (na.array([a.size for a in self._kk])).argmin()
         self.bins = self._kk[shortind].flatten()
-        self.nx = self.bins.size/2
+        self.nx = int(self.bins.size/2)
         self.dk = self.bins[1] - self.bins[0]
 
     def get_shell_k(self, dx=0):

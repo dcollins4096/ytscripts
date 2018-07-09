@@ -1,33 +1,68 @@
 import numpy as np
 import h5py
 from davetools import rainbow_map
+Lb ='None'
+Le ='None'
+Mb = '*'
+Me = '+'
+marker_dict  =  {'x':'x','y':'*','z':'+'}
+labels={}
 nominal = { }
-nominal['aa19']=  dict(zip(['mach','field_cgs','AlfMach','beta','logbeta'],[1  ,11.82  ,0.300 , 0.180 , -0.7]))
-nominal['aa20']=  dict(zip(['mach','field_cgs','AlfMach','beta','logbeta'],[3  ,10.6347,1.000 , 0.222 , -0.7]))
-nominal['aa21']=  dict(zip(['mach','field_cgs','AlfMach','beta','logbeta'],[0.6,7.089815,   0.300 , 0.500 , -0.3]))
-nominal['aa22']=  dict(zip(['mach','field_cgs','AlfMach','beta','logbeta'],[3  ,35.4   ,0.300 , 0.020 , -1.7]))
-nominal['ab19']=  dict(zip(['mach','field_cgs','AlfMach','beta','logbeta'],[1  ,11.82  ,0.300 , 0.180 , -0.7]))
-nominal['ab22']=  dict(zip(['mach','field_cgs','AlfMach','beta','logbeta'],[3  ,35.4   ,0.300 , 0.020 , -1.7]))
-nominal['ab23']=  dict(zip(['mach','field_cgs','AlfMach','beta','logbeta'],[6  ,70.8   ,0.300 , 0.005 , -2.3]))
-nominal['ab24']=  dict(zip(['mach','field_cgs','AlfMach','beta','logbeta'],[1  ,330.82 ,0.011 , 0.000 , -3.6]))
-nominal['ab26']=  dict(zip(['mach','field_cgs','AlfMach','beta','logbeta'],[0.1,0.07   ,5.064 , 5129.131  , 3.7]))
-nominal['ac19']=  dict(zip(['mach','field_cgs','AlfMach','beta','logbeta'],[1  ,11.82  ,0.300 , 0.180 , -0.7]))
-nominal['ac22']=  dict(zip(['mach','field_cgs','AlfMach','beta','logbeta'],[3  ,35.4   ,0.300 , 0.020 , -1.7]))
-nominal['ac23']=  dict(zip(['mach','field_cgs','AlfMach','beta','logbeta'],[6  ,70.8   ,0.300 , 0.005 , -2.3]))
-nominal['ac25']=  dict(zip(['mach','field_cgs','AlfMach','beta','logbeta'],[0.1,0.7, 0.506,  51.291, 1.7]))
-nominal['ac26']=  dict(zip(['mach','field_cgs','AlfMach','beta','logbeta'],[0.1,0.07   ,5.064 , 5129.131  , 3.7]))
-nominal['ax19']=  dict(zip(['mach','field_cgs','AlfMach','beta','logbeta'],[1  ,11.82  ,0.300 , 0.180 , -0.7]))
-nominal['ax20']=  dict(zip(['mach','field_cgs','AlfMach','beta','logbeta'],[3  ,10.6347,1.000 , 0.222 , -0.7]))
-nominal['ax21']=  dict(zip(['mach','field_cgs','AlfMach','beta','logbeta'],[0.6,7.089815,   0.300 , 0.500 , -0.3]))
-nominal['ax22']=  dict(zip(['mach','field_cgs','AlfMach','beta','logbeta'],[3  ,11.82  ,0.900 , 0.180 , -0.7]))
-nominal['az19']=  dict(zip(['mach','field_cgs','AlfMach','beta','logbeta'],[1  ,11.82  ,0.300 , 0.180 , -0.7]))
-nominal['az20']=  dict(zip(['mach','field_cgs','AlfMach','beta','logbeta'],[3  ,10.6347,1.000 , 0.222 , -0.7]))
-nominal['az21']=  dict(zip(['mach','field_cgs','AlfMach','beta','logbeta'],[0.6,7.089815,   0.300 , 0.500 , -0.3]))
-nominal['az22']=  dict(zip(['mach','field_cgs','AlfMach','beta','logbeta'],[3  ,35.4   ,0.300 , 0.020 , -1.7]))
-nominal['b02_512']=dict(zip(['mach','field_cgs','AlfMach','beta','logbeta'],[9  ,11.20998314,2.846  ,0.200 , -0.7]))
-nominal['b2_512'] =dict(zip(['mach','field_cgs','AlfMach','beta','logbeta'],[9  ,3.544907702,9.000  ,2.000 , 0.3]))
-nominal['b20_512']=dict(zip(['mach','field_cgs','AlfMach','beta','logbeta'],[9  ,1.120998314,28.460 ,20.000, 1.3]))
-#nominal = {} 
+class om_nominal():
+    def __init__(self,mach=-1,field_cgs=-1,AlfMach=-1,beta=-1,logbeta=-1):
+        self.mach=mach
+        self.field_cgs=field_cgs
+        self.AlfMach=AlfMach
+        self.beta=beta
+        self.logbeta=logbeta
+        self.fields = ['mach','field_cgs','AlfMach','beta','logbeta']
+    def __getitem__(self,key):
+        if key in self.fields:
+            return self.__dict__[key]
+        else:
+            print("not an allowed key right now", key)
+            raise
+    def __setitem__(self,key,value):
+        if key in self.fields:
+            self.__dict__[key] = value
+        else:
+            print("not an allowed key right now", key)
+            raise
+
+nominal['aa19']=   om_nominal(1  ,11.82  ,0.300 , 0.180 , -0.7)
+nominal['aa20']=   om_nominal(3  ,10.6347,1.000 , 0.222 , -0.7)
+nominal['aa21']=   om_nominal(0.6,  7.09 ,  0.300,  0.500 , -0.3 )
+nominal['aa22']=   om_nominal(3  ,35.4   ,0.300 , 0.020 , -1.7)
+nominal['ab19']=   om_nominal(1  ,11.82  ,0.300 , 0.180 , -0.7)
+nominal['ab22']=   om_nominal(3  ,35.4   ,0.300 , 0.020 , -1.7)
+nominal['ab23']=   om_nominal(6  ,70.8   ,0.300 , 0.005 , -2.3)
+nominal['ab24']=   om_nominal(1  ,330.82 ,0.011 , 0.000 , -3.6)
+nominal['ab26']=   om_nominal(0.1,0.07   ,5.064 , 5129.131  , 3.7)
+nominal['ac19']=   om_nominal(1  ,11.82  ,0.300 , 0.180 , -0.7)
+nominal['ac22']=   om_nominal(3  ,35.4   ,0.300 , 0.020 , -1.7)
+nominal['ac23']=   om_nominal(6  ,70.8   ,0.300 , 0.005 , -2.3)
+nominal['ac25']=   om_nominal(0.1,0.7, 0.506,  51.291, 1.7)
+nominal['ac26']=   om_nominal(0.1,0.07   ,5.064 , 5129.131  , 3.7)
+nominal['ax19']=   om_nominal(1  ,11.82  ,0.300 , 0.180 , -0.7)
+nominal['ax20']=   om_nominal(3  ,10.6347,1.000 , 0.222 , -0.7)
+nominal['ax21']=   om_nominal(0.6,7.089815,   0.300 , 0.500 , -0.3)
+nominal['ax22']=   om_nominal(3  ,11.82  ,0.900 , 0.180 , -0.7)
+nominal['az19']=   om_nominal(1  ,11.82  ,0.300 , 0.180 , -0.7)
+nominal['az20']=   om_nominal(3  ,10.6347,1.000 , 0.222 , -0.7)
+nominal['az21']=   om_nominal(0.6,7.089815,   0.300 , 0.500 , -0.3)
+nominal['az22']=   om_nominal(3  ,35.4   ,0.300 , 0.020 , -1.7)
+nominal['b02_512']=om_nominal(9  ,11.20998314,2.846  ,0.200 , -0.7)
+nominal['b2_512'] =om_nominal(9  ,3.544907702,9.000  ,2.000 , 0.3)
+nominal['b20_512']=om_nominal(9  ,1.120998314,28.460 ,20.000, 1.3)
+
+nominal['ab25'] =om_nominal(0.1,0.70   ,0.506 , 51.291, 1.7)
+nominal['ab27'] =om_nominal(0.1,0.07   ,5.064 , 5129.131,   3.7)
+nominal['ab28'] =om_nominal(1  ,3.54   ,1.000 , 2.001,  0.3)
+nominal['ab29'] =om_nominal(4  ,14.18  ,1.000 , 0.125,  -0.9)
+labels['ab25'] = "summer ab25"
+labels['ab27'] = "summer ab27"
+labels['ab28'] = "summer ab28"
+labels['ab29']= "summer ab29"
 #nominal['ax19']= dict(zip(['mach','AlfMach','logbeta','field_cgs'],[1.0, 0.3,np.log10(2*(0.3/1.0)**2),11.82]))
 #nominal['ax20']= dict(zip(['mach','AlfMach','logbeta','field_cgs'],[3.0, 1.0,np.log10(2*(1.0/3.0)**2),10.6347]))
 #nominal['ax21']= dict(zip(['mach','AlfMach','logbeta','field_cgs'],[0.6, 0.3,np.log10(2*(0.3/0.6)**2),7.089815 ]))
@@ -60,12 +95,6 @@ sqrtfourpi=np.sqrt(4*np.pi)
 #nominal['ab26'] = dict(zip(['mach','AlfMach','logbeta','field_cgs'],[0.1, 5,np.log10(2*(0.1/5)**2),0.07]))
 #nominal['ac26'] = dict(zip(['mach','AlfMach','logbeta','field_cgs'],[0.1, 5,np.log10(2*(0.1/5)**2),0.07]))
 
-Lb ='None'
-Le ='None'
-Mb = '*'
-Me = '+'
-marker_dict  =  {'x':'x','y':'*','z':'+'}
-labels={}
 #labels['axb19']=r'$\rm{%s}\ M=%0.1f\ Ma=%0.1f\ \log_{10}\beta=%0.1f\ \hat{%s}$'%('ax19', 1.0, 0.3,np.log10(2*(0.3/1.0)**2),'x')
 #labels['axb20']=r'$\rm{%s}\ M=%0.1f\ Ma=%0.1f\ \log_{10}\beta=%0.1f\ \hat{%s}$'%('ax20', 3.0, 1.0,np.log10(2*(1.0/3.0)**2),'x')
 #labels['axb21']=r'$\rm{%s}\ M=%0.1f\ Ma=%0.1f\ \log_{10}\beta=%0.1f\ \hat{%s}$'%('ax21', 0.6, 0.3,np.log10(2*(0.3/0.6)**2),'x')
@@ -186,6 +215,7 @@ series['ax']= ['ax19', 'ax20', 'ax21','ax22']
 series['az']= ['az19', 'az20', 'az21','az22'] 
 series['b']= [ 'b02_512', 'b20_512', 'b2_512']
 series['22']= [ 'aa22','ab22','ac22','ax22','az22']
+series['summer']= ['ab25','ab27','ab28','ab29']
 series['all'] = all_sims
 series['alive'] = series['ac']+series['b']
 all_series=['aa','ab','ac','ax','az','ab']
