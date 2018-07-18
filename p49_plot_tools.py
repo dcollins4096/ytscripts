@@ -4,7 +4,7 @@ import p49_eigen
 reload(p49_eigen)
 import fourier_tools_py3.fourier_filter as Filter
 reload(Filter)
-from p49_stuff import *
+from p49_print_tools import *
 ##
 field_list_prim = ['d','vx','vy','vz','hx','hy','hz','p']
 field_list_enzo = ['d','vx','vy','vz','hx','hy','hz','e']

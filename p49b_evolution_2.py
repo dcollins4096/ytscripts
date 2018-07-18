@@ -7,7 +7,7 @@ import p49_eigen
 reload(p49_eigen)
 import p49_plot_tools
 reload(p49_plot_tools)
-from p49_stuff import *
+from p49_print_tools import *
 plt.close('all')
 frame_list=[0]#,50]#range(0,60,10)
 this_formt = 'png'
