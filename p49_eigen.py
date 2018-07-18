@@ -5,17 +5,8 @@ import copy
 nar=np.array
 import enzo_write
 reload(enzo_write)
-if 'thresh' not in dir():
-    thresh = 1e-11
-def nzwww(thing):
-    return thing[ np.abs(thing) > 1e-13]
-def nz(arr):
-    return  np.where(np.abs(arr) > thresh)
-def nonzero(arr):
-    return arr[ nz(arr)]
-def pnz(arr):
-    print(arr[ nz(arr)])
-    print(nz(arr))
+from p49_stuff import *
+debug = 1
 def is_iterable(thing):
     if hasattr(thing,'__getitem__') and type(thing) not in [np.float64]:
         return True
@@ -24,6 +15,8 @@ def is_iterable(thing):
 class fieldthing():
     def __init__(self):
         self.stuff={}
+    def get(self,key,default):
+        return self.stuff.get(key,default)
     def update(self,other_dict):
         if type(other_dict) is dict:
             self.stuff.update(other_dict)
@@ -72,7 +65,7 @@ def get_cubes_cg(ds,mean={}):
     map_to_label ={'d':'density','vx':'x-velocity','vy':'y-velocity','vz':'z-velocity',
                    'hx':'Bx','hy':'By','hz':'Bz','e':'TotalEnergy','p':'pressure'}
     cubes=fieldthing()
-    means=fieldthing
+    means=fieldthing()
     for field in field_list:
         cubes[field] = cg[map_to_label[field] ].v
         means[field] = np.mean( cubes[field])
@@ -122,7 +115,7 @@ def make_k_freqs_2d(nk):
     k_freq[0,...]=x
     k_freq[1,...]=y
     return k_freq
-def make_k_freqs(nk,real=True):
+def make_k_freqs(nk,real=True, d=1):
 
     ny = nk
     nz = nk
@@ -130,7 +123,7 @@ def make_k_freqs(nk,real=True):
         nz = nk//2+1
 
     k_freq = np.zeros([3,nk,ny,nz])
-    k1=np.fft.fftfreq(nk,d=1)
+    k1=np.fft.fftfreq(nk,d=d)
     #kx, ky, kz = np.meshgrid(k1,k1,k1)
     #k_freq[0,...]=kx
     #k_freq[1,...]=ky
@@ -153,25 +146,22 @@ def make_k_freqs(nk,real=True):
     return k_freq
 def make_k_freqs_and_int(nk,real=True):
     k_freq = make_k_freqs(nk,real=real)
-    nk1 = nk
-    nk2 = nk
-    nk3 = nk
-    if real:
-        nk3 = nk3//2+1
-
-    k_int = np.mgrid[0:nk1,0:nk2,0:nk3]
+    k_int = make_k_freqs(nk,real=real,d=1./nk)
     return {'k_freq':k_freq,'k_int':k_int}
 def rotate_back(ffts,means, real=True):
 
-    this_system = waves(form='rb96',**means)
+    the_means = means
+    if hasattr(the_means,'stuff'):
+        the_means=means.stuff
+    this_system = waves(form='rb96',**the_means)
     size = nar(ffts['d'].shape)
     #k_all = np.mgrid[:size[0],:size[1],:size[2]]
     k_all = make_k_freqs(size[0], real=real)
     
     #rotate from xyz to abc
-    #this_system.fields_to_wave_frame(k_all, ffts)
-    this_system.project_to_waves(k_all, ffts=ffts, means={})
-    this_system.dumb=ffts
+    #this_system.fields_to_wave_frame(k_all, ffts,means={})
+    #this_system.project_to_waves(k_all, ffts=ffts, means={})
+    this_system.project_to_waves(k_all, ffts, means={})
 
     return k_all, this_system
 
@@ -253,20 +243,26 @@ class waves():
         self.B0hat=B0hat
 
     def fields_to_wave_frame(self,k_all_in, fields):
+        """compute eigen vectors for each k_all_in.
+        Creates:
+                self.wave_frame
+                self.a_unit, b_unit, c_unit, B0hat
+                hat_system (rotated)
+                """
 
         self.compute_unit_vectors(k_all_in)
 
         scalars={}
-        for field in ['d','p','e', 'vx','vy','vz']:
+        for field in ['d','p','e', 'px','py','pz']:
             scalars[field]=np.zeros_like(self.B0hat[0,...])+self.quan[field]
 
         hat_system = waves(hx=self.B0hat[0,...], hy=self.B0hat[1,...], hz=self.B0hat[2,...],
                            Gamma=self.Gamma,form=self.form,**scalars)
         self.hat_system = hat_system
-        self.wave_frame={}
+        self.wave_frame=fieldthing()
         def newer():
             return np.zeros_like(self.a_unit[0,...])
-        for f in ['vx','vy','vz','hx','hy','hz']:
+        for f in ['px','py','pz','hx','hy','hz']:
             self.wave_frame[f]=np.zeros_like(self.a_unit[0,...])
 
         self.wave_frame['d'] = fields['d']
@@ -278,7 +274,7 @@ class waves():
 
     #def check_orthonormality(self,k_all_in,fields, means=None):
     def check_orthonormality(self, right=None,left=None):
-        field_list = ['d','vx','vy','vz','hx','hy','hz','p']
+        field_list = ['d','px','py','pz','hx','hy','hz','p']
         if left is None:
             left = self.left
         if right is None:
@@ -326,21 +322,24 @@ class waves():
             print("betay**2+betaz**2 = 1; %0.2e"%(self.betay**2+self.betaz**2))
         #print(tensor)
 
-    def project_to_waves(self,k_all_in,fields=None, ffts=None, means=None):
-        field_list = ['d','vx','vy','vz','hx','hy','hz','p']
-        if ffts is None:
-            ffts = self.get_ffts(fields,means=means)
-        self.fields_to_wave_frame(k_all_in,ffts)
+    def project_to_waves(self,k_all_in,fields, means=None):
+        field_list = ['d','px','py','pz','hx','hy','hz','p']
+        self.fields_to_wave_frame(k_all_in,fields)
         if means is None:
             means = self.quan
 
-        self.wave_content = {}
+        self.wave_content=self.to_waves(self.wave_frame,self.hat_system.left,means)
+
+    def to_waves(self,fields,lefts,means={}):
+        wave_content = {}
+        field_list = ['d','px','py','pz','hx','hy','hz','p']
         #print("Means in project", means)
         for wave in ['f-', 'a-','s-','c','f+','a+','s+']:
-            self.wave_content[wave] = np.zeros_like(self.wave_frame['d'])
+            wave_content[wave] = np.zeros_like(fields['d'])
             for field in field_list:
                 #self.wave_content[wave] += (fields[field]-means[field])*self.left[wave][field]
-                self.wave_content[wave] += (self.wave_frame[field]-means.get(field,0))*self.hat_system.left[wave][field]
+                wave_content[wave] += (fields[field]-means.get(field,0))*lefts[wave][field]
+        return wave_content
 
                 
 
@@ -350,20 +349,20 @@ class waves():
 
     def rotate_to_abc(self,fields):
         """from xyz to abc, where abc is defined by the wave vector and the field."""
-        back = {}
-        for f in ['vx','vy','vz','hx','hy','hz']:
+        back = fieldthing()
+        for f in ['px','py','pz','hx','hy','hz']:
             back[f]=np.zeros_like(self.a_unit)
-        back['vx']  = self.a_unit[0,...]*fields['vx']
-        back['vx'] += self.a_unit[1,...]*fields['vy']
-        back['vx'] += self.a_unit[2,...]*fields['vz']
+        back['px']  = self.a_unit[0,...]*fields['px']
+        back['px'] += self.a_unit[1,...]*fields['py']
+        back['px'] += self.a_unit[2,...]*fields['pz']
 
-        back['vy']  = self.b_unit[0,...]*fields['vx']
-        back['vy'] += self.b_unit[1,...]*fields['vy']
-        back['vy'] += self.b_unit[2,...]*fields['vz']
+        back['py']  = self.b_unit[0,...]*fields['px']
+        back['py'] += self.b_unit[1,...]*fields['py']
+        back['py'] += self.b_unit[2,...]*fields['pz']
 
-        back['vz']  = self.c_unit[0,...]*fields['vx']
-        back['vz'] += self.c_unit[1,...]*fields['vy']
-        back['vz'] += self.c_unit[2,...]*fields['vz']
+        back['pz']  = self.c_unit[0,...]*fields['px']
+        back['pz'] += self.c_unit[1,...]*fields['py']
+        back['pz'] += self.c_unit[2,...]*fields['pz']
 
         back['hx']  = self.a_unit[0,...]*fields['hx']
         back['hx'] += self.a_unit[1,...]*fields['hy']
@@ -485,9 +484,10 @@ class waves():
 
 
         field_list = ['d','px','py','pz','hx','hy','hz','e']
+        enzo_field_list = ['d','vx','vy','vz','hx','hy','hz','e_specific']
         if self.form =='rb96':
             field_list = ['d','px','py','pz','hx','hy','hz','p']
-        enzo_field_list = ['d','vx','vy','vz','hx','hy','hz','e_specific']
+            enzo_field_list = ['d','vx','vy','vz','hx','hy','hz','p']
         if self.HydroMethod == 6:
             face_offset = {'hx':nar([1,0,0]),'hy':nar([0,1,0]),'hz':nar([0,0,1])}
         else:
@@ -519,7 +519,8 @@ class waves():
                     self.all_hats[f][kint[0,...],kint[1,...],kint[2,...]] = self.rot[f]*pert
                 else:
                     self.all_hats[f] = self.rot[f]*pert
-                print("ug %s "%f + str(nz(self.all_hats[f])))
+                    #print("shapes: rot    %s pert %s"%(str(self.rot[f].shape),str(pert.shape)))
+                #print(    "N nonzero K %s "%f + str(nz(self.all_hats[f])))
                 #pdb.set_trace()
                 #print( "put %s %0.2e"%(f,(self.rot[f]*pert)[0]))
                 if not real_fft:
@@ -528,15 +529,10 @@ class waves():
                         self.all_hats[f][-kint[0,...],-kint[1,...],-kint[2,...]] = (self.all_hats[f][kint[0,...],kint[1,...],kint[2,...]] ).conj()
                     else:
                         print("Shoot, i haven't sorted the conjugation yet.  I hope you did.")
-                    #print("wtf",kint[0,...],kint[1,...],-kint[2,...])
-                #print("make hats ROT: %3s %s"%(f,str(self.rot[f]*pert)))
-                #print("make hats fld: %3s %s"%(f,str(nz(self.all_hats[f]))))
-                #print("make hats prt: %3s %s"%(f,str(pert)))
-            for f in  field_list:
-                print("=== pre %3s "%f+str(len(nonzero(self.all_hats[f]))))
+#            for f in  field_list: #there is a bug in an earlier numpy.
+#                print("=== pre %3s "%f+str(len(nonzero(self.all_hats[f]))))
 #                print("=== pre %3s "%f+str(nz(self.all_hats[f])))
             for f in  field_list:
-#                print("=== two %3s "%f+str(len(nonzero(self.all_hats[f]))))
                 if 'tmp' in dir():
                     del tmp
                 if real_fft:
@@ -544,13 +540,14 @@ class waves():
                     #np.fft.irfftn(self.all_hats[f])
                 else:
                     tmp=np.fft.ifftn(self.all_hats[f])
-                print("=== pos %3s "%f+str(len(nonzero(self.all_hats[f]))))
+                #for the bug.
+                #print("=== pos %3s "%f+str(len(nonzero(self.all_hats[f]))))
                 real_mean = np.mean(np.abs(tmp.real))
                 imag_mean = np.mean(np.abs(tmp.imag))
                 if (real_mean+imag_mean)>1e-16:
                     if imag_mean/(real_mean+imag_mean) > 1e-9:
                         print("Warning: large imaginary component")
-                self.all_p[f]+=tmp.real*tmp.size
+                self.all_p[f]+=tmp.real*tmp.size*0.5
         elif pert_shape == 'square_x':
             size = base_size #+face_offset.get(f,0)
             amplitude = np.zeros(size)
@@ -595,7 +592,8 @@ class waves():
             #    self.cubes[map_to_label[vel_field]] = self.cubes[map_to_label['d']]self.cubes[map_to_label['d']]
             if write:
                 enzo_write.dump_h5(self.cubes[field],this_filename)
-                print("wrote "+this_filename + " with shape "+str(self.cubes[field].shape))
+                if debug >  0:
+                    print("wrote "+this_filename + " with shape "+str(self.cubes[field].shape))
 
 
 
