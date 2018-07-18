@@ -9,10 +9,11 @@ reload(p49_plot_tools)
 from p49_print_tools import *
 plt.close('all')
 
-#size = 128
-size = 32
+size = 128
+#size = 32
 blah=False
-if 0:
+
+if 1:
     #setup FFT init
     blah=False
     #Target woodshed
@@ -31,39 +32,39 @@ old_b   = nar([1.0, 1.41421, 0.5])
 if 0:
     #single wave.  Works, man.
     ampl[2,0,2]=amplitude
-    directory = '/Users/dcollins/scratch/Paper49b_play/Spectral/rx01_202'
+    out_dir_s = '/Users/dcollins/scratch/Paper49b_play/Spectral/rx01_202'
 
 if 0:
     #reverse wave.  Works.
     ampl[-2,0,2]=amplitude
-    directory = '/Users/dcollins/scratch/Paper49b_play/Spectral/rx02_-202'
+    out_dir_s = '/Users/dcollins/scratch/Paper49b_play/Spectral/rx02_-202'
 
 if 0:
     #single wave, different angle.  Works fine.
     ampl[2,2,0]=amplitude
-    directory = '/Users/dcollins/scratch/Paper49b_play/Spectral/rx03_220'
+    out_dir_s = '/Users/dcollins/scratch/Paper49b_play/Spectral/rx03_220'
 
 if 0:
     #single wave, more angle.  Generates even odd.  fascinating.
     #Seems to get corrugated in Vz and Bz first.
     ampl[2,2,1]=amplitude
-    directory = '/Users/dcollins/scratch/Paper49b_play/Spectral/rx04_221'
+    out_dir_s = '/Users/dcollins/scratch/Paper49b_play/Spectral/rx04_221'
 
 if 0:
     #single wave, more angle, rotated.  Hx gets corrugated first?
     ampl[2,1,2]=amplitude
-    directory = '/Users/dcollins/scratch/Paper49b_play/Spectral/rx05_212'
+    out_dir_s = '/Users/dcollins/scratch/Paper49b_play/Spectral/rx05_212'
 
-if 1:
+if 0:
     #single wave, more even-odd hunting.  Even-odd in y? Yes, probably.
     old_b   = nar([1.0, 0.5, 1.41421])
     ampl[2,1,2]=amplitude
-    directory = '/Users/dcollins/scratch/Paper49b_play/Spectral/rx06_212_b2'
+    out_dir_s = '/Users/dcollins/scratch/Paper49b_play/Spectral/rx06_212_b2'
 
     #kludge to track down a typo somewhere
-    #directory= '/Users/dcollins/scratch/Paper49b_play/Spectral/rx08_k-53'
+    #out_dir_s= '/Users/dcollins/scratch/Paper49b_play/Spectral/rx08_k-53'
 
-if 0:
+if 1:
     if size != 128:
         print("SIZE ERROR THIS ONE NEEDS TO BE LARGE")
         print("SIZE ERROR THIS ONE NEEDS TO BE LARGE")
@@ -72,10 +73,12 @@ if 0:
     #single wave, more even-odd hunting.  
     #WITH RiemannSolver=1, this is a horrid even-odd. 
     #RiemannSolver =6 works nicely.
+    wave='f-'
     old_b   = nar([1.0, 0.5, 1.41421])
     ampl[2,1,2]=amplitude
-    directory = '/Users/dcollins/scratch/Paper49b_play/Spectral/rx07_212_128'
-    directory = '/Users/dcollins/scratch/Paper49b_play/Spectral/rx07b_212_128_HLLD'
+    out_dir_s = '/Users/dcollins/scratch/Paper49b_play/Spectral/rx07_212_128'
+    out_dir_s = '/Users/dcollins/scratch/Paper49b_play/Spectral/rx07b_212_128_HLLD'
+    out_dir_s = '/Users/dcollins/scratch/Paper49b_play/Spectral/rx07b_212_128_HLLD_check'
 else:
     if size != 32:
         print("SIZE ERROR needs to be 32")
@@ -91,7 +94,7 @@ if 0:
     ts_temp = p49_eigen.waves(hx=1.0,hy=1.41421,hz=0.5,p=0.6,this_wave=wave, form='rb96')
     ratio = ts_temp.speeds['cf']/ts_temp.speeds['aa']
     ampl[1,0,0]=1e-6*ratio
-    directory = '/Users/dcollins/scratch/Paper49b_play/Spectral/r701c_32'
+    out_dir_s = '/Users/dcollins/scratch/Paper49b_play/Spectral/r701c_32'
 
 
 if 0:
@@ -106,7 +109,6 @@ if 0:
     ampl[bmask]=0.
     ampl[:]=0.
     ampl[1,5,7] = amplitude
-directory = '/Users/dcollins/scratch/Paper49b_play/Spectral/rx08_k-53'
 
 if 0:
     #test the constituents
@@ -154,20 +156,23 @@ if 'ts1' not in dir() or unlazy:
                       wave=wave, start=True,write=WRITE, blah=blah_good)
 
     if 'directory' not in dir():
-        directory = '/Users/dcollins/scratch/Paper49b_play/Spectral/test_new'
+        out_dir_s = '/Users/dcollins/scratch/Paper49b_play/Spectral/test_new'
     ts2 = p49_eigen.waves(hx=old_b[0],hy=old_b[1],hz=old_b[2],p=0.6,
                           this_wave=wave, form='rb96', HydroMethod=4)
     print("wrtie the what?")
     ts2.rot_write(pert_shape='fft',base_size=nar([size]*3),
-                  pert=ampl,directory=directory,
+                  pert=ampl,directory=out_dir_s,
                   k_rot=kint,
                   wave=wave, start=True,write=WRITE, blah=blah)
 
-directory = '/Users/dcollins/scratch/Paper49b_play/Spectral/rx08_k-53'
-sn = p49_plot_tools.chomp(directory)
+in_dir = out_dir_s
+out_prefix_analysis = "should_work"
+out_dir_analysis="./AAA"
+out_name = "%s/%s"%(out_dir_analysis,out_prefix_analysis)
+sn = p49_plot_tools.chomp(in_dir)
 
 analysis={'print_wave':True,
-          'plot_fields':0,
-          'k_mag':0,
-          'k_proj':0}
-p49_plot_tools.do_stuff(stuff=sn,outdir="%s/test_new"%od,**analysis)
+          'plot_fields':1,
+          'k_mag':1,
+          'k_proj':1}
+p49_plot_tools.do_stuff(stuff=sn,outdir=out_name,**analysis)
