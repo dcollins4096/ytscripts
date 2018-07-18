@@ -34,6 +34,7 @@ def uniform(ds=None,cg=None,axis=0,fields=['By'] ):
     
 print("\ncg, this_std,total = uniform(r701.ds, axis=1, fields=['density','Bx','By','Bz','TotalEnergy','x-velocity','y-velocity','z-velocity'])\n")
 def eigen_taxi(this_system, name='p49b_eigen_car', directory=None):
+    return None
     if directory is None:
         directory = this_system.directory
     temp_taxi = taxi.taxi(directory=directory, name = name, frames=[0,50],axis=[0,1,2])
@@ -52,11 +53,11 @@ if 0:
     directory = '/Users/dcollins/scratch/Paper49b_play/Eigen/r401_rj95_sq_f-'
     name = 'r401'
     wave='f-'
-    this_system = p49_eigen.waves(hx=1.0,hy=1.41421,hz=0.5,p=0.6,this_wave=wave) #, form='rb96')
+    this_system = p49_eigen.waves(hx=1.0,hy=1.41421,hz=0.5,p=0.6,this_wave=wave, HydroMethod = 6) #, form='rb96')
     ampl = nar([1e-6,0])
     this_system.rot_write(pert_shape='square_x',base_size=nar([16]*3),pert=ampl,directory=directory,
                           wave=wave)
-    r401=eigen_taxi(this_system,name)
+    #r401=eigen_taxi(this_system,name)
     
 if 0:
     #r501 r501_rj95_fft_f-
@@ -75,19 +76,32 @@ if 0:
     directory = '/Users/dcollins/scratch/Paper49b_play/Eigen/r601_rb96_sq_f-'
     name = 'r601'
     wave='f-'
-    ts = p49_eigen.waves(hx=1.0,hy=1.41421,hz=0.5,p=0.6,this_wave=wave, form='rb96')
+    ts = p49_eigen.waves(hx=1.0,hy=1.41421,hz=0.5,p=0.6,this_wave=wave, form='rb96',HydroMethod=6)
     k_test = nar([[1.,1.],[0.,0.],[0.,1]])
     ratio = ts.speeds['cf']/ts.speeds['aa']
     ampl = nar([1e-6*ratio,0])
     ts.rot_write(pert_shape='square_x',base_size=nar([16]*3),pert=ampl,directory=directory,
                           wave=wave,k_rot=k_test)
     r601=eigen_taxi(ts,name)
+
 if 0:
     #r701 r701_rb_fft_f-
     directory = '/Users/dcollins/scratch/Paper49b_play/Eigen/r701_rb96_fft_f-'
     name = 'r701'
     wave='f-'
     ts = p49_eigen.waves(hx=1.0,hy=1.41421,hz=0.5,p=0.6,this_wave=wave, form='rb96')
+    k_test = nar([[1.,1.],[0.,0.],[0.,1]])
+    ratio = ts.speeds['cf']/ts.speeds['aa']
+    ampl = nar([1e-6*ratio,0])
+    ts.rot_write(pert_shape='fft',base_size=nar([16]*3),pert=ampl,directory=directory,
+                          wave=wave,k_rot=k_test)
+    r701=eigen_taxi(ts,name)
+if 1:
+    #r701b Hydro 4
+    directory = '/Users/dcollins/scratch/Paper49b_play/Eigen/r701b_hydro4'
+    name = 'r701'
+    wave='f-'
+    ts = p49_eigen.waves(hx=1.0,hy=1.41421,hz=0.5,p=0.6,this_wave=wave, form='rb96',HydroMethod=4)
     k_test = nar([[1.,1.],[0.,0.],[0.,1]])
     ratio = ts.speeds['cf']/ts.speeds['aa']
     ampl = nar([1e-6*ratio,0])
@@ -201,7 +215,7 @@ if 0:
     #rA01
     directory = '/Users/dcollins/scratch/Paper49b_play/Eigen/rA01_rb96_110_f-'
 
-if 1:
+if 0:
     #rB01 rB01_rb_several
     #messing around with rotated vectors.
     directory = '/Users/dcollins/scratch/Paper49b_play/Eigen/rB01_rb_several'
@@ -259,23 +273,8 @@ if 0:
     for wave in ['f-', 'a-','s-','c','f+','a+','s+']:
         print("=== W %3s %s %s"%(wave,slim(ts1.wave_content[wave]), slim(ts2.wave_content[wave])))
 
-if 'thresh' not in dir():
-    thresh = 1e-11
-def nz(arr):
-    return  np.where(np.abs(arr) > thresh)
-def nonzero(arr):
-    return arr[ nz(arr)]
-def pnz(arr):
-    print(arr[ nz(arr)])
-    print(nz(arr))
-cf = '({0.real:5.2e} + {0.imag:5.2e}i)'
-def ampl_str(arr):
-    out = ""
-    for v in arr:
-        out += cf.format(v)
-    return out
 
-if 1:
+if 0:
     field_list = ['d','vx','vy','vz','hx','hy','hz','p']
     kall,mwut=p49_eigen.rotate_back(stuff2['ffts'],stuff2['means'])
     sfrm = "%12s"
@@ -307,7 +306,7 @@ if 0:
         #print("%5s %s"%(wave,kvec))
         #print("%5s %s"%("",str(nozo)))
 
-if 1:
+if 0:
     #check the content of the ffts.
     #field_list=['d']
     for field in field_list:
@@ -372,7 +371,7 @@ if 1:
                         print(sfrm%"ratio" + " %s"%cf.format(nozo[n]/target_value))
                     else:
                         print(sfrm%"ratio (zero) "+ "%s"%cf.format(nozo[n]))
-if 1:
+if 0:
     def maxer(arr):
         out = "-"
         themax = np.abs(arr).max() 
