@@ -44,7 +44,8 @@ if 0:
 field1 = 'mach'
 field2 = 'AlfMach'
 labels_2d={'AlfMach':r'$M_A = \frac{V_{\rm{rms}}}{B/\sqrt{rho}}$', 'mach':r'$M_s=V_{\rm{rms}}/C_{\rm{sound}}$'}
-limits = {'mach':[0.05,10.0],'AlfMach':[0.0,50]}
+#limits = {'mach':[0.05,10.0],'AlfMach':[0.0,50]}
+limits = {'mach':[0.02,10.0],'AlfMach':[0.0,50]}
 if field1 == 'mach' and field2 == 'AlfMach':
     for nb, beta in enumerate([0.01,0.1, 0.5, 1.0,  2,  10, 100, 1000]):
         Ms = nar(limits['mach'])
@@ -118,7 +119,7 @@ if 'which_series' in dir():
     figb.suptitle(title)
 #color_sim_dict = color_sim_dict_2
 color_sim_dict = color_sim_dict_hsv
-axis_list = 'xyz'
+axis_list = 'yz'
 means = False
 do_MaMs = True
 modifier = 'EB_RGB_%s_'%axis_list

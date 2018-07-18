@@ -26,10 +26,11 @@ these_sims += ['ax19','ax20','ax21','ax22']
 #these_sims = ['ax22','aa22','az22']
 #these_sims = ['ax19','aa19','az19']
 #these_sims = ['ax21','aa21','az21']
-these_sims = ['ax22','aa22','az22']
+#these_sims = ['ax22','aa22','az22']
 #these_sims = ['ab19','aa19','ax19','az19']
 #these_sims = ['b02','b2','b20']
 #these_sims = all_sims
+these_sims = series['summer']
 
 if 'which_series' in dir():
     these_sims = series[which_series]
@@ -162,7 +163,7 @@ ext_horz    = collect_extrema(horz, None)
 
 if 1:
     #nominal values
-    xlim_this=bump2(ext_horz,log=True)
+    xlim_this=bump2(ext_horz,log=False)
     this_min, this_max = xlim_this
     if field == 'AlfMach':
         xlim_this = [5e-3, 5e1]
