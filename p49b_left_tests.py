@@ -1,12 +1,12 @@
 
-if 'ef' not in dir():
-    execfile('go')
-    for i in range(3):
-        print("====================")
+from go_lite_pyt3 import *
 import enzo_write
 reload(enzo_write)
 import p49_eigen
 reload(p49_eigen)
+import p49_plot_tools
+reload(p49_plot_tools)
+from p49_stuff import *
 
 
 def prnt1(thing):
@@ -16,7 +16,7 @@ def prnt2(thing):
     for field in ['vx','vy','vz','hx','hy','hz']:
         print("%4s %5.2f %5.2f"%(field,thing[field][0],thing[field][1]))
 def prnt1b(thing):
-    for field in ['d','p','vx','vy','vz','hx','hy','hz']:
+    for field in ['d','p','px','py','pz','hx','hy','hz']:
         print("%4s %5.2f"%(field,thing[field]))
 def prnt2b(thing):
     for field in ['d','p','vx','vy','vz','hx','hy','hz']:
@@ -32,8 +32,8 @@ if 1:
     ts701 = p49_eigen.waves(hx=1.0,hy=1.41421,hz=0.5,p=0.6,this_wave=wave, form='rb96')
     #ts701 = p49_eigen.waves(hx=1.0,hy=1.0,hz=1.0,p=0.6,this_wave=wave, form='rb96')
     k_test = nar([[1.,0.],[0.,0.],[0.,1]])
-    print('kludge; using questionable vector')
-    k_test = nar([[3.,3.],[2.,5.],[0.,1]])
+    #print('kludge; using questionable vector')
+    #k_test = nar([[3.,3.],[2.,5.],[0.,1]])
     ratio = ts701.speeds['cf']/ts701.speeds['aa']
     ampl = nar([1e-6*ratio,2.3])
     ampl = nar([1,0.2])
@@ -48,9 +48,12 @@ if 0:
     ts701.check_orthonormality()
 if 0:
     #rotation check; dummy is dumb, rotten rotates, stillrotten is dummy back again.
-    dummy={'vx':0.1,'vy':0.2,'vz':0.3,'hx':101.,'hy':1e3,'hz':1e4}
+    dummy={'vx':0.1,'vy':0.2,'vz':0.3,'hx':101.,'hy':1e3,'hz':1e4,
+           'px':0.1,'py':0.2,'pz':0.3,'d':1.}
     rotten = ts701.rotate_to_xyz(dummy)
+    rotten['d']=1.
     stillrotten = ts701.rotate_to_abc(rotten)
+    stillrotten['d']=1
     print("=== original ===")
     prnt1(dummy)
     print("=== two rotated ===")
@@ -58,7 +61,7 @@ if 0:
     print("=== rotated back ===")
     prnt2(stillrotten)
  
-if 0:
+if 1:
     #rot is the eigen vectors along k_test, rotated to physics.
     #Successfully extracts just the f- wave.
     ret701 = p49_eigen.waves(form=ts701.form,**ts701.quan)
@@ -74,9 +77,14 @@ if 0:
 
     #ret701.project_to_waves(k_test, ts701.rot)
     zero = {}
-    for frame in ts701.rot:
-        zero[frame] = 0.
+    for field in ts701.rot.stuff:
+        zero[field] = 0.
     ret701.project_to_waves(k_test, ts701.rot, means=zero)
+    print("=== wave content: direct (only f-) ===")
+    wave_content_plain = ret701.to_waves(ret701.right['f-'],ret701.left)
+    for wave in wave_content_plain:
+        print("%5s "%wave, wave_content_plain[wave])
+
     print("=== wave content: ===")
     for wave in ret701.wave_content:
         print("%5s "%wave, ret701.wave_content[wave])
