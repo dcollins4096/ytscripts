@@ -9,10 +9,11 @@ reload(p49_plot_tools)
 from p49_print_tools import *
 plt.close('all')
 
-size = 128
-#size = 32
-blah=False
+#size = 128
+size = 32
+sim = 'rx10'
 
+blah=False
 if 1:
     #setup FFT init
     blah=False
@@ -29,42 +30,39 @@ if 1:
 amplitude=1e-3
 ampl=np.zeros_like(k_norm)*(1+0j)
 old_b   = nar([1.0, 1.41421, 0.5])
-if 0:
+if sim=='rx01':
     #single wave.  Works, man.
     ampl[2,0,2]=amplitude
     out_dir_s = '/Users/dcollins/scratch/Paper49b_play/Spectral/rx01_202'
 
-if 0:
+if sim=='rx02':
     #reverse wave.  Works.
     ampl[-2,0,2]=amplitude
     out_dir_s = '/Users/dcollins/scratch/Paper49b_play/Spectral/rx02_-202'
 
-if 0:
+if sim=='rx03':
     #single wave, different angle.  Works fine.
     ampl[2,2,0]=amplitude
     out_dir_s = '/Users/dcollins/scratch/Paper49b_play/Spectral/rx03_220'
 
-if 0:
+if sim=='rx04':
     #single wave, more angle.  Generates even odd.  fascinating.
     #Seems to get corrugated in Vz and Bz first.
     ampl[2,2,1]=amplitude
     out_dir_s = '/Users/dcollins/scratch/Paper49b_play/Spectral/rx04_221'
 
-if 0:
+if sim=='rx05':
     #single wave, more angle, rotated.  Hx gets corrugated first?
     ampl[2,1,2]=amplitude
     out_dir_s = '/Users/dcollins/scratch/Paper49b_play/Spectral/rx05_212'
 
-if 0:
+if sim=='rx06':
     #single wave, more even-odd hunting.  Even-odd in y? Yes, probably.
     old_b   = nar([1.0, 0.5, 1.41421])
     ampl[2,1,2]=amplitude
     out_dir_s = '/Users/dcollins/scratch/Paper49b_play/Spectral/rx06_212_b2'
 
-    #kludge to track down a typo somewhere
-    #out_dir_s= '/Users/dcollins/scratch/Paper49b_play/Spectral/rx08_k-53'
-
-if 1:
+if sim=='rx07':
     if size != 128:
         print("SIZE ERROR THIS ONE NEEDS TO BE LARGE")
         print("SIZE ERROR THIS ONE NEEDS TO BE LARGE")
@@ -87,7 +85,7 @@ else:
         print("SIZE ERROR needs to be 32")
 
 
-if 0:
+if sim=='r701':
     #like r701.  Good.
     ampl=np.zeros_like(k_norm)*(1+0j)
     wave='f-'
@@ -96,19 +94,56 @@ if 0:
     ampl[1,0,0]=1e-6*ratio
     out_dir_s = '/Users/dcollins/scratch/Paper49b_play/Spectral/r701c_32'
 
+if sim=='rx09':
+    #rx09: two waves.
+    theta = np.pi*2*np.random.random(ampl.shape)
+    theta = 0.
+    phase = np.exp(theta*1j)
+    mask=ok
+    #mask = np.logical_and(mask,k3[0,...]>0)
+    #mask = np.logical_and(mask,k3[1,...]>0)
+    #mask = np.logical_and(mask,k3[2,...]>0)
 
-if 0:
-    #ensemble In progress
-    theta = np.pi*2*np.random.random(ok.sum())
-    phase = 1.# np.exp(theta*1j)
-    ampl[ok] = k_norm[ok]**(-5./3)*phase
-    mask = k3[0,...]>0
-    mask = np.logical_and(mask,k3[1,...]>0)
-    mask = np.logical_and(mask,k3[2,...]>0)
-    bmask = mask == False
-    ampl[bmask]=0.
-    ampl[:]=0.
-    ampl[1,5,7] = amplitude
+    mask[:]=False
+    mask[2,1,2]=True
+    #mask[1,:,7]=True
+    mask[5,1,7]=True
+    phase=1.0#phase[mask]
+    ampl[mask] = k_norm[mask]**(-5./3)*phase
+    ampl[mask] *= 1e-3/ampl[mask].max()
+    wave='s-'
+    out_dir_s= '/Users/dcollins/scratch/Paper49b_play/Spectral/rx09_two_wves_212_517_s-'
+
+
+if sim=='rx08':
+    #rx08: ensemble of waves. Fixed 
+    theta = 0. #np.pi*2*np.random.random(ampl.shape)
+    phase = np.exp(theta*1j)
+    mask=ok
+
+    phase=1.0
+    mask = np.logical_and(mask, kint[2,...]>0)
+    ampl[mask] = k_norm[mask]**(-5./3)*phase
+    ampl[mask] *= 1e-3/ampl[mask].max()
+    out_dir_s= '/Users/dcollins/scratch/Paper49b_play/Spectral/rx08_k-53'
+
+if sim=='rx08_seg_test':
+    #this is actually rx06, enzo threw a seg-fault.  It works
+    old_b   = nar([1.0, 0.5, 1.41421])
+    ampl[2,1,2]=amplitude
+    out_dir_s= '/Users/dcollins/scratch/Paper49b_play/Spectral/rx08_k-53'
+
+if sim=='rx10':
+    #rx10: ensemble of waves, random phase.
+    theta = np.pi*2*np.random.random(ampl.shape)
+    phase = np.exp(theta*1j)
+    mask=ok
+
+    mask = np.logical_and(mask, kint[2,...]>0)
+    ampl[mask] = k_norm[mask]**(-5./3)*phase[mask]
+    ampl[mask] *= 1e-3/ampl[mask].max()
+    out_dir_s= '/Users/dcollins/scratch/Paper49b_play/Spectral/rx10_k-53_phase'
+
 
 if 0:
     #test the constituents
@@ -166,13 +201,24 @@ if 'ts1' not in dir() or unlazy:
                   wave=wave, start=True,write=WRITE, blah=blah)
 
 in_dir = out_dir_s
-out_prefix_analysis = "should_work"
-out_dir_analysis="./AAA"
+out_prefix_analysis = "%s_"%sim
+sim_full=out_dir_s.split('/')[-1]
+out_dir_analysis="/Users/dcollins/RESEARCH2/Paper49_EBQU/2018-06-12-p49b/EigenTests_PostFFT/%s/InitialPass"%sim_full
 out_name = "%s/%s"%(out_dir_analysis,out_prefix_analysis)
 sn = p49_plot_tools.chomp(in_dir)
+def maxis(inarr,dim):
+    arr=np.zeros_like(inarr)
+    ok =  inarr>1e-13
+    arr[ok] = inarr[ok]
+    out = np.log(np.max(np.abs(arr),axis=dim))
+
+    #out = np.sum(np.abs(inarr),axis=dim)
+    #out[ out==0] == -1
+    return out
 
 analysis={'print_wave':True,
           'plot_fields':1,
           'k_mag':1,
+          'k_func':maxis,
           'k_proj':1}
 p49_plot_tools.do_stuff(stuff=sn,outdir=out_name,**analysis)

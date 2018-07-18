@@ -1,6 +1,8 @@
 
 from go_lite_pyt3 import *
 import yt
+from yt.funcs import mylog
+mylog.setLevel(50)
 import enzo_write
 reload(enzo_write)
 import p49_eigen
@@ -9,7 +11,8 @@ import p49_plot_tools
 reload(p49_plot_tools)
 from p49_print_tools import *
 plt.close('all')
-frame_list=[0]#,50]#range(0,60,10)
+frame_list=range(0,60,10)
+#frame_list=[0,50]
 this_formt = 'png'
 get_from='yt'
 if 1:
@@ -41,12 +44,15 @@ if 1:
         #run = 'rx05_212'; directory=directory_s
         #run = 'rx06_212_b2'; directory=directory_s
         #run = 'rx07_212_128'; directory=directory_s
-        run = 'rx07b_212_128_HLLD'; directory=directory_s
+        #run = 'rx07b_212_128_HLLD'; directory=directory_s
+        #run = 'rx08_k-53'; directory=directory_s
+        #run = 'rx09_two_wves_212_517_s-'; directory=directory_s
+        run = 'rx10_k-53_phase'; directory=directory_s
 
         directory = "%s/%s"%(directory,run)
         outdir = '/Users/dcollins/RESEARCH2/Paper49_EBQU/2018-06-12-p49b/EigenTests_PostFFT/'+run
         #outdir = "./AAA/%s"%run
-        outdir += "_repeat"
+        #outdir += "_repeat"
         prefix=run
         if True: #frame not in lazy_ds
             if get_from=='yt':

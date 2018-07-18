@@ -31,7 +31,11 @@ if 1:
     wave='f-'
     ts701 = p49_eigen.waves(hx=1.0,hy=1.41421,hz=0.5,p=0.6,this_wave=wave, form='rb96')
     #ts701 = p49_eigen.waves(hx=1.0,hy=1.0,hz=1.0,p=0.6,this_wave=wave, form='rb96')
-    k_test = nar([[1.,0.],[0.,0.],[0.,1]])
+    if 0:
+        #straight forward, works.
+        k_test = nar([[1.,0.],[0.,0.],[0.,1]])
+    if 1:
+        k_test = nar([[1.,0.],[1.,0.],[1.,1]])
     #print('kludge; using questionable vector')
     #k_test = nar([[3.,3.],[2.,5.],[0.,1]])
     ratio = ts701.speeds['cf']/ts701.speeds['aa']

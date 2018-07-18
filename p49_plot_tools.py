@@ -283,21 +283,23 @@ def plot_k_proj(wut=None,stuff=None,prefix="THING", this_format='png', func=defa
         kall,wut=p49_eigen.rotate_back(these_ffts, these_means)
     setup = False
     for wave in ['f-', 'a-','s-','c','f+','a+','s+']:
-        for dim in [0,1,2]:
-            this_fft = func(wut.wave_content[wave],dim)
-            nonzero = np.logical_and(np.abs(this_fft)>0, np.isnan(this_fft)==False)
-            nonzero = np.logical_and(nonzero, np.isinf(this_fft)==False)
-            if nonzero.sum() < 1:
-                continue
-            this_fft=this_fft[nonzero]
-            if not setup:
-                all_max=max([this_fft.real.max()])
-                nonzero_min = min([this_fft.real.min()])
-                setup=True
-            else:
-                all_max=max([all_max,this_fft.real.max()])
-                nonzero_min = min([nonzero_min,this_fft.real.min()])
-            #print("range ",all_max, nonzero_min)
+        cube =wut.wave_content[wave] 
+        for cube_part in [cube.real,cube.imag]:
+            for dim in [0,1,2]:
+                this_fft = func(cube_part,dim=dim)
+                nonzero = np.logical_and(np.abs(this_fft)>0, np.isnan(this_fft)==False)
+                nonzero = np.logical_and(nonzero, np.isinf(this_fft)==False)
+                if nonzero.sum() < 1:
+                    continue
+                this_fft=this_fft[nonzero]
+                if not setup:
+                    all_max=max([this_fft.real.max()])
+                    nonzero_min = min([this_fft.real.min()])
+                    setup=True
+                else:
+                    all_max=max([all_max,this_fft.real.max()])
+                    nonzero_min = min([nonzero_min,this_fft.real.min()])
+                #print("range ",all_max, nonzero_min)
 
     for wave in ['f-', 'a-','s-','c','f+','a+','s+']:
         this_fft = wut.wave_content[wave]
