@@ -12,6 +12,7 @@ plt.close('all')
 #size = 128
 size = 32
 sim = 'rx10'
+sim = 'rx06b_s-'
 
 blah=False
 if 1:
@@ -61,6 +62,13 @@ if sim=='rx06':
     old_b   = nar([1.0, 0.5, 1.41421])
     ampl[2,1,2]=amplitude
     out_dir_s = '/Users/dcollins/scratch/Paper49b_play/Spectral/rx06_212_b2'
+
+if sim=='rx06b_s-':
+    #single wave, more even-odd hunting.  Even-odd in y? Yes, probably.
+    old_b   = nar([1.0, 0.5, 1.41421])
+    ampl[2,1,2]=amplitude
+    wave='s-'
+    out_dir_s = '/Users/dcollins/scratch/Paper49b_play/Spectral/rx06b_212_s-'
 
 if sim=='rx07':
     if size != 128:
@@ -190,8 +198,6 @@ if 'ts1' not in dir() or unlazy:
                       k_rot=kint_good,
                       wave=wave, start=True,write=WRITE, blah=blah_good)
 
-    if 'directory' not in dir():
-        out_dir_s = '/Users/dcollins/scratch/Paper49b_play/Spectral/test_new'
     ts2 = p49_eigen.waves(hx=old_b[0],hy=old_b[1],hz=old_b[2],p=0.6,
                           this_wave=wave, form='rb96', HydroMethod=4)
     print("wrtie the what?")
