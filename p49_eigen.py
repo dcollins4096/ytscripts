@@ -7,6 +7,7 @@ import enzo_write
 reload(enzo_write)
 from p49_print_tools import *
 debug = 1
+should_i_half = 1.0
 def is_iterable(thing):
     if hasattr(thing,'__getitem__') and type(thing) not in [np.float64]:
         return True
@@ -95,7 +96,7 @@ def get_ffts(cubes, means={}, real=True):
         #    this_cube *= cubes['d']
         #kludge[field]=this_cube
 
-        ffts[field] = the_fft(this_cube)/(0.5*np.size(this_cube))
+        ffts[field] = the_fft(this_cube)/(np.size(this_cube))/should_i_half #half?
 
     return ffts
 
@@ -212,8 +213,8 @@ class waves():
         self.c_unit_norm=c_unit_norm
         self.c_unit=c_unit
 
-        if (ok==False).any():
-            print("Warning: Degenerate system, k||B0. ||c(kpq)||=0 for some kpq Please check corner cases.")
+        #if (ok==False).any():
+        #    print("Warning: Degenerate system, k||B0. ||c(kpq)||=0 for some kpq Please check corner cases.")
 
         b_unit = np.zeros_like(a_unit)
         b_unit[0,...] = c_unit[1,...]*a_unit[2,...]-c_unit[2,...]*a_unit[1,...]
@@ -492,20 +493,23 @@ class waves():
             face_offset = {'hx':nar([1,0,0]),'hy':nar([0,1,0]),'hz':nar([0,0,1])}
         else:
             face_offset={}
-        if start:
             self.all_hats = {}
+        if start:
             #self.cubes_test={}
             self.all_p = {}
             self.temp_right_back={}
             for f in field_list:
                 self.all_p[f]=0.
         cube_slice=[slice(0,base_size[0]),slice(0,base_size[1]),slice(0,base_size[2])]
-        print("Eigenvector formulation %s"%self.form)
+        #print("Eigenvector formulation %s"%self.form)
         self.directory=directory
         map_to_label ={'d':'density','vx':'x-velocity','vy':'y-velocity','vz':'z-velocity',
                        'hx':'Bx','hy':'By','hz':'Bz','e_specific':'TotalEnergy','p':'GasPressure'}
 
 
+        if not hasattr(self,'hat_box'):
+            self.hat_box={}
+            print("make hat box")
         if pert_shape == 'fft':
             self.wave_to_fields(k_rot, wave) #breadcrum 1
             kint = k_rot.astype(int)
@@ -520,6 +524,7 @@ class waves():
                 else:
                     self.all_hats[f] = self.rot[f]*pert
                     #print("shapes: rot    %s pert %s"%(str(self.rot[f].shape),str(pert.shape)))
+
                 #print(    "N nonzero K %s "%f + str(nz(self.all_hats[f])))
                 #pdb.set_trace()
                 #print( "put %s %0.2e"%(f,(self.rot[f]*pert)[0]))
@@ -532,6 +537,11 @@ class waves():
 #            for f in  field_list: #there is a bug in an earlier numpy.
 #                print("=== pre %3s "%f+str(len(nonzero(self.all_hats[f]))))
 #                print("=== pre %3s "%f+str(nz(self.all_hats[f])))
+            self.hat_box[wave] = self.all_hats
+            print("wave",wave)
+            for mw in self.hat_box:
+                print(' -- %s -- '%mw)
+                print_nz_2(self.hat_box[mw]['d'])
             for f in  field_list:
                 if 'tmp' in dir():
                     del tmp
@@ -547,7 +557,7 @@ class waves():
                 if (real_mean+imag_mean)>1e-16:
                     if imag_mean/(real_mean+imag_mean) > 1e-9:
                         print("Warning: large imaginary component")
-                self.all_p[f]+=tmp.real*tmp.size*0.5
+                self.all_p[f]+=tmp.real*tmp.size*should_i_half
         elif pert_shape == 'square_x':
             size = base_size #+face_offset.get(f,0)
             amplitude = np.zeros(size)
@@ -560,8 +570,11 @@ class waves():
             #
 
 
-        if self.cubes is None:
-            self.cubes=fieldthing()
+        #if self.cubes is None:
+        #cubes are always generated fresh.
+        #Perturbations are addative.
+
+        self.cubes=fieldthing() 
         for field in field_list:
             size = base_size+face_offset.get(field,0)
             if field in self.cubes:
