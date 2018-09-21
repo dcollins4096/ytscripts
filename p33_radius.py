@@ -1,0 +1,10 @@
+
+reload(taxi)
+i02 = taxi.taxi('i02')
+ai17 = taxi.taxi('ai17b')
+g02 = taxi.taxi('g02')
+fleet=taxi.fleet(['i02','ai17b','g02'])
+#fleet.profile(['radius','density'],weight_field = 'cell_volume', units=['Mpc','g/cm**3'],fractional=False)
+#reg = car.get_region()
+#R = (reg['cell_mass']*reg['radius']).sum()/reg['cell_mass'].sum()
+#print R.in_units('Mpc')
