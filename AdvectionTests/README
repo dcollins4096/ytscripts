@@ -1,0 +1,8 @@
+The *.enzo files should run out of the box.
+Use p36_t01_tube.py to analyze them.  
+Collision.enzo is a converging flow.  Makes the p36_U03* plots
+Square_Contact.enzo is a square wave advection.  Makes the p36_U02* plots
+
+FIRST use an undoctored copy of the enzo to make sure everything works.
+THEN  use your MC code to make sure you're getting something meaningful.  At least,
+not clearly wrong.
