@@ -23,13 +23,14 @@ if 1:
     analysis={'print_wave':True,
               'plot_fields':0,
               'k_mag':0,
-              'k_proj':0}
+              'k_func':maxis,
+              'k_proj':1}
     print("===== both =====")
     p49_plot_tools.do_stuff(stuff=sb,outdir=out_b,**analysis)
     print("===== fast =====")
-    p49_plot_tools.do_stuff(stuff=sf,outdir=out_s,**analysis)
+    p49_plot_tools.do_stuff(stuff=sf,outdir=out_f,**analysis)
     print("===== slow =====")
-    p49_plot_tools.do_stuff(stuff=ss,outdir=out_f,**analysis)
+    p49_plot_tools.do_stuff(stuff=ss,outdir=out_s,**analysis)
 
 if 0:
     field='d'

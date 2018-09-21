@@ -47,7 +47,10 @@ if 1:
         #run = 'rx07b_212_128_HLLD'; directory=directory_s
         #run = 'rx08_k-53'; directory=directory_s
         #run = 'rx09_two_wves_212_517_s-'; directory=directory_s
-        run = 'rx10_k-53_phase'; directory=directory_s
+        #run = 'rx10_k-53_phase'; directory=directory_s
+        #run = 'rx11_mixed_1'; directory=directory_s
+        #run = 'rx11_mixed_f-'; directory=directory_s
+        run = 'rx11_mixed_s+'; directory=directory_s
 
         directory = "%s/%s"%(directory,run)
         outdir = '/Users/dcollins/RESEARCH2/Paper49_EBQU/2018-06-12-p49b/EigenTests_PostFFT/'+run

@@ -93,6 +93,7 @@ def plot_wave_mag(mwut=None,stuff=None,output_name="thig.png", nbins=None):
     p1d={}
     p1d['dig']=dig
     p1d['bins']=bins
+    p1d['bin_center']=bin_center
     p1d['kmag']=kmag
     
     print("==== wave power ====")
