@@ -1,5 +1,6 @@
 # use glob syntax.
 Paper04_Scripts
+.DS_Store
 syntax: glob
 DATA
 Paper23
