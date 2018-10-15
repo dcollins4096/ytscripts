@@ -1,8 +1,10 @@
 # use glob syntax.
+TEMP
 Paper04_Scripts
 .DS_Store
 syntax: glob
 DATA
+trash
 Paper23
 CLEAN/*
 figs
