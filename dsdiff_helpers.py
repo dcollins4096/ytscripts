@@ -11,11 +11,11 @@ def get_ds_name(directory, frame):
         lines = fptr.readlines()
         fptr.close()
         if frame >= len(lines):
-            print "Dataset %d not found"%frame
+            print( "Dataset %d not found"%frame)
             raise NotImplementedError
         setname = lines[frame].split(' ')[2]
         name = "%s/%s"%(directory,setname)
-    print name
+    print( name)
     return name
 def find_grid_filename(directory, frame, grid):
     ds_name = get_ds_name(directory,frame)
@@ -89,7 +89,7 @@ class fake_grid():
 def read_grid(directory, frame, grid, field):
     #pdb.set_trace()
     fname = find_grid_filename(directory,frame,grid)
-    print fname
+    print(fname)
     h5ptr = h5py.File(fname)
     dset = None
     try:

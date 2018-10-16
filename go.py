@@ -2,6 +2,9 @@ import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 from GL import *
+path_list = ['yt_things']
+for directory in path_list:
+    sys.path.append(directory)
 import yt
 yt.config.ytcfg['yt','loglevel']="50"
 #yt.enable_plugins()
