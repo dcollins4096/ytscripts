@@ -1,4 +1,3 @@
-execfile('go_lite')
 import taxi
 import p49_fields
 import p49_labels
@@ -85,7 +84,7 @@ class quan_box():
         if len(glob.glob(pickle_name)):
             self.stuff = fPickle.load(pickle_name)
         else:
-            print "NO SUCH FILE", pickle_name
+            print("NO SUCH FILE", pickle_name)
 
     def __getitem__(self,key):
         return self.__dict__[key]
@@ -95,8 +94,8 @@ class quan_box():
         if hasattr(self,'Bx'):
             keys_to_print += self.magkeys
         for key in keys_to_print:
-            print "%5s"%key,
-            print format*N%tuple(self[key])
+            print("%5s"%key,)
+            print(format*N%tuple(self[key]))
 
 
 
@@ -182,19 +181,19 @@ class quan_box():
             #    ds = self.car.load(frame)
             #    res = ds.parameters['TopGridDimensions'][2 + ord('x') - ord(axis)] # zyx order
             if os.access(outfile, os.F_OK) and not self.clobber:
-                print "FRB exists: %s"%outfile
+                print("FRB exists: %s"%outfile)
             else:
                 if ds is None:
                     ds = self.car.load(frame)
                     res = ds.parameters['TopGridDimensions'][2 + ord('x') - ord(axis)] # zyx order
-                print "FRB being produced: %s"%outfile
+                print("FRB being produced: %s"%outfile)
                 res = ds.parameters['TopGridDimensions'][2 + ord('x') - ord(axis)]
                 proj = ds.proj(field,axis)
                 frb = proj.to_frb(1,res)
                 hdu = pyfits.PrimaryHDU(frb[field])
                 hdulist = pyfits.HDUList([hdu])
                 hdulist.writeto(outfile,clobber=True)
-                print "wrote", outfile
+                print("wrote", outfile)
 
 
 
@@ -206,7 +205,7 @@ class quan_box():
             self.quadratic(self.car,frame,tdyn)
         #car.plot()
     def quadratic(self,car, frame, tdyn=1):
-        print car.name
+        print(car.name)
 
         for field in self.all_fields:
             if not self.stuff.has_key(field):
@@ -229,7 +228,9 @@ class quan_box():
             car.ds.create_field_info()
             self.potential_written = 'PotentialField' in [k[1] for k in car.ds.field_info.keys()]
 
-        print "QUAN ON ", car.name, frame
+        if frame in self.stuff['frames'] and self.clobber == False:
+            return
+        print("QUAN ON ", car.name, frame)
         self.stuff['frames'].append(frame)
         self.stuff['t'].append(car.ds['InitialTime']/(tdyn) )
         reg = car.get_region(frame)
@@ -281,7 +282,7 @@ class quan_box():
 
 
     def plot(self, HydroMethod = None):
-        print "Hydro Method", HydroMethod
+        print( "Hydro Method", HydroMethod)
         def nom_string(val):
             if val > 10 or val < 0.1:
                 return "%0.1e"%val
@@ -331,7 +332,7 @@ class quan_box():
             plt.ylabel('MagneticField'); plt.xlabel(time_label)
             outname = '%s_quan_field_strength.%s'%(car.name,self.plot_format)
             plt.savefig(outname)
-            print outname
+            print(outname)
 
             plt.clf()
             c='r'
@@ -354,11 +355,11 @@ class quan_box():
             plt.legend(loc=0)
             outname = '%s_quan_MaM.%s'%(car.name,self.plot_format)
             plt.savefig(outname)
-            print outname
+            print(outname)
             plt.yscale('log')
             outname = '%s_quan_MaM_log.%s'%(car.name,self.plot_format)
             plt.savefig(outname)
-            print outname
+            print(outname)
 
         plt.clf()
         plt.plot(times,self.stuff['ex'],label='ex')
@@ -368,7 +369,7 @@ class quan_box():
         plt.legend(loc=0)
         outname = '%s_quan_eng.%s'%(car.name,self.plot_format)
         plt.savefig(outname)
-        print outname
+        print(outname)
 
         plt.clf()
         plt.plot(times,self.stuff['px'],label='px')
@@ -378,7 +379,7 @@ class quan_box():
         outname = '%s_quan_mom.%s'%(car.name,self.plot_format)
         plt.ylabel('Momentum'); plt.xlabel(time_label)
         plt.savefig(outname)
-        print outname
+        print(outname)
 
         plt.clf()
         plt.plot(times,self.stuff['vx'],label='vx',c='r')
@@ -392,7 +393,7 @@ class quan_box():
         plt.legend(loc=0)
         outname = '%s_quan_vel.%s'%(car.name,self.plot_format)
         plt.savefig(outname)
-        print outname
+        print(outname)
 
         plt.clf()
         plt.plot(times,self.stuff['ke_tot'],label='ke_tot')
@@ -404,4 +405,4 @@ class quan_box():
         plt.legend(loc=0)
         outname = '%s_quan_energy.%s'%(car.name,self.plot_format)
         plt.savefig(outname)
-        print outname
+        print(outname)
