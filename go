@@ -1,22 +1,21 @@
 import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
+from GL import *
 import yt
 yt.config.ytcfg['yt','loglevel']="50"
 #yt.enable_plugins()
-if 1:
-    not_in_yt3 = False #a universal flag to indicate things that need to be ported.
-    execfile('go_lite')
 #dummy
 #Stuff I wrote that I like
 #import davecallback
-    import dsdiff_helpers
-    import fPickle
-    execfile('xtra_fields_always.py')
+import dsdiff_helpers
+import fPickle
+from davetools import * #as needed, no more execfile.  
+import taxi
+if 0:
+    #execfile('xtra_fields_always.py')
     #execfile('xtra_fields.py')
     #execfile('xtra_energy_fields.py')
-    execfile('davetools.py') #as needed, no more execfile.  
-    import taxi
     if  not_in_yt3:
       import better_cbar
       #GET from img_region import * 
