@@ -192,7 +192,7 @@ class fleet():
         """Min and max for all fields in self.fields.
         Field list overridden by *fields*.
         *Norm* subtracts off the volume-weighted mean."""
-        print fields
+        print(fields)
         for frame in frames:
             if fields is None:
                 fields = self.fields
@@ -207,11 +207,11 @@ class fleet():
                     avg =  0
                     if Norm.has_key(field):
                         avg = Norm[field]
-                        print field,avg
+                        print(field,avg)
                     out[n] = out[n][0]-avg, out[n][1]-avg
             format_string = "%s %s %s"%(format,format,"%s")
             for n, field in enumerate(fields):
-                print format_string%(out[n][0], out[n][1], field)
+                print(format_string%(out[n][0], out[n][1], field))
 
     def find_extrema(self,fields=None,frames=None, manual_positive=False):
         all_fields = []
@@ -844,14 +844,14 @@ class taxi:
                         
         self.plotted_dict = plotted_dict
         if not plot_exists:
-            print "NEW PLOT", check_frame, check_field, check_axis, check_operation, self.outname
+            print("NEW PLOT", check_frame, check_field, check_axis, check_operation, self.outname)
             if store_plot:
                 fptr.write("%s %s %s %s\n"%(check_frame,check_field,check_axis,check_operation))
         else:
-            print "PLOT EXISTS", check_frame, check_field, check_axis, check_operation, self.outname, "CLOBBER", self.clobber_plot
+            print("PLOT EXISTS", check_frame, check_field, check_axis, check_operation, self.outname, "CLOBBER", self.clobber_plot)
             
         if not self.clobber_plot and plot_exists:
-            print "PLOT EXISTS, SKIPPING", check_frame, check_field, check_axis, check_operation, self.outname
+            print("PLOT EXISTS, SKIPPING", check_frame, check_field, check_axis, check_operation, self.outname)
             return True
         return False
                
@@ -1561,7 +1561,7 @@ class taxi:
             mass_delta.append( (total_mass - mass[0])/mass[0] )
 
         mass=nar(mass); mass_delta=nar(mass_delta); time=nar(time); volume=nar(volume)
-        print "total mass deviation = sum(|delta|)", np.abs(mass_delta).sum()
+        print("total mass deviation = sum(|delta|)", np.abs(mass_delta).sum())
         return {'time':time,'mass':mass,'volume':volume, 'mass_delta':mass_delta}
 class other_horsecrap():
 ######################### stuff not ported

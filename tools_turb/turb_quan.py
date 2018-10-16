@@ -62,7 +62,7 @@ class quan_box():
         lock_name = pickle_name + ".lock"
         counter = 0
         while os.path.exists(lock_name) and counter < 5:
-            print lock_name, "exists"
+            print(lock_name, "exists")
             counter += 1
             time.sleep(1)
         if counter > 15:
@@ -288,7 +288,7 @@ class quan_box():
                 return "%0.1e"%val
             else:
                 return "%0.1f"%val
-        print "here's the thing"
+        print("here's the thing")
 
         car = self.car
         if HydroMethod is None:
