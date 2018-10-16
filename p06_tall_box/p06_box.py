@@ -1,4 +1,4 @@
-
+from go import *
 
 if 0:
     car=taxi.taxi('fg02')
@@ -8,12 +8,13 @@ if 0:
     ds.print_stats()
     ad=ds.all_data()
     grid=ds.index.grids[0]
-    print "density", ad.quantities['Extrema']('density')
-    print "Tempera", ad.quantities['Extrema']('Temperature')
-    print "TE", ad.quantities['Extrema']('TotalEnergy')
+    print("density", ad.quantities['Extrema']('density'))
+    print("Tempera", ad.quantities['Extrema']('Temperature'))
+    print("TE", ad.quantities['Extrema']('TotalEnergy'))
 
 if 1:
-    car=taxi.taxi('fg05')
+    #car=taxi.taxi('fg05')
+    car=taxi.taxi('fgd01')
     car.frames=range(0,21,5) #21)
     car.frames=[0,5,20]
     rm = rainbow_map(21)
@@ -69,7 +70,7 @@ if 0:
         if line.startswith("CLOWNc"):
             match= m1.match(line)
             if match is  None:
-                print "Shoot, must have broken something."
+                print( "Shoot, must have broken something.")
                 raise
             else:
                 vals = match.group(1).split(",")
@@ -98,7 +99,7 @@ if 0:
     ax_rho.set_ylim(min(rho),max(rho))
     outname = 'p06_dumb1.pdf'
     fig.savefig(outname)
-    print outname
+    print( outname)
 
 
 

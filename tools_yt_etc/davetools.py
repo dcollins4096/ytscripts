@@ -1,5 +1,5 @@
 import matplotlib.pyplot as plt
-import numpy as na
+import numpy as np
 import matplotlib as mpl
 import types
 import glob
@@ -17,10 +17,10 @@ def dumb_plt(plot,X,Y,xlabel,ylabel,outname,scale=('linear','linear'), clobber=F
         verb= plot.plot
     if clobber:
         plot.clf()
-        print "butts"
 
     if X is None:
         X = np.arange(Y.size)
+    print("WTF")
     if hasattr(plot,'savefig'):
         output=verb(X,Y,**kwargs)
         plot.xscale(scale[0])
@@ -29,14 +29,15 @@ def dumb_plt(plot,X,Y,xlabel,ylabel,outname,scale=('linear','linear'), clobber=F
         plot.ylabel(ylabel)
         plot.savefig(outname)
     else:
-        print "wtf"
         output=verb(X,Y,**kwargs)
         plot.set_xscale(scale[0])
         plot.set_yscale(scale[1])
         plot.set_xlabel(xlabel)
         plot.set_ylabel(ylabel)
         plot.figure.savefig(outname)
-    print outname
+    print(scale)
+    plot.yscale('log')
+    print(outname)
     return output
     #return line
 def collect_extrema(a,b=None):
@@ -56,36 +57,36 @@ def ensure_list(obj):
     """
     if obj is None:
         return [obj]
-    if not isinstance(obj, types.ListType):
+    if type(obj) is not list:
         return [obj]
     return obj
 
 def quarts(array, lower=0.25, upper=0.75, take_log=True):
-    print "quarts doesn't work"
+    print("quarts doesn't work")
     ok = array >0
     pdb.set_trace()
     if take_log:
-        hist_for_cbar = na.histogram( na.log10( array[ok].flatten() ),bins=100, normed=True )
+        hist_for_cbar = np.histogram( np.log10( array[ok].flatten() ),bins=100, normed=True )
     else:
-        hist_for_cbar = na.histogram( array[ok].flatten() ,bins=100, normed=True )
+        hist_for_cbar = np.histogram( array[ok].flatten() ,bins=100, normed=True )
 
-    cum = na.cumsum(hist_for_cbar[0])/hist_for_cbar[0].sum()
+    cum = np.cumsum(hist_for_cbar[0])/hist_for_cbar[0].sum()
     first_quart = cum-lower
     if (first_quart == 0).any():
-        first_ind = na.where( first_quart == 0 ) [0]
+        first_ind = np.where( first_quart == 0 ) [0]
     else:
-        first_ind = na.where( first_quart[:-1]*first_quart[1:] <= 0 ) [0]
+        first_ind = np.where( first_quart[:-1]*first_quart[1:] <= 0 ) [0]
     last_quart = cum-upper
     if (last_quart == 0).any():
-        last_ind = na.where(last_ind == 0 )[0]
+        last_ind = np.where(last_ind == 0 )[0]
     else:
-        last_ind = na.where( last_quart[:-1]*last_quart[1:] < 0 ) [0]
+        last_ind = np.where( last_quart[:-1]*last_quart[1:] < 0 ) [0]
     if take_log:
-        low_value = 10**na.floor( hist_for_cbar[1][first_ind] )
-        high_value = 10**na.ceil(  hist_for_cbar[1][last_ind] )
+        low_value = 10**np.floor( hist_for_cbar[1][first_ind] )
+        high_value = 10**np.ceil(  hist_for_cbar[1][last_ind] )
     else:
-        low_value  = na.floor( hist_for_cbar[1][first_ind] )
-        high_value = na.ceil(  hist_for_cbar[1][last_ind] )
+        low_value  = np.floor( hist_for_cbar[1][first_ind] )
+        high_value = np.ceil(  hist_for_cbar[1][last_ind] )
     return low_value, high_value
 
 
@@ -93,7 +94,7 @@ def tff(g_code=None,pf=None):
     if pf is not None:
         g_code = pf['GravitationalConstant']
 
-    return na.sqrt(3.*na.pi*4*na.pi/(32*g_code))
+    return np.sqrt(3.*np.pi*4*np.pi/(32*g_code))
 
 def sci(number):
     return "%0.2e"%(number)
@@ -159,7 +160,7 @@ def rainbow_01():
 
 def rainbow_map(n):
     norm = mpl.colors.Normalize()
-    norm.autoscale(na.arange(n))
+    norm.autoscale(np.arange(n))
     #cmap = mpl.cm.jet
     color_map = mpl.cm.ScalarMappable(norm=norm,cmap='jet')
     return  color_map.to_rgba
@@ -170,7 +171,7 @@ except:
     pass
 def algae_map(n):
     norm = mpl.colors.Normalize()
-    norm.autoscale(na.arange(n))
+    norm.autoscale(np.arange(n))
     #cmap = mpl.cm.__dict__['algae']
     color_map = mpl.cm.ScalarMappable(norm=norm,cmap='algae')
     return  color_map.to_rgba
@@ -190,7 +191,7 @@ def relerr0(a,b):
     return (b-a)/a
 
 def psave(ax,name):
-    print name
+    print( name)
     ax.savefig(name)
 
 def dsave(ax,name,field_name=None,pf_list=None,tar=True,script_name=None,plt_format='dave'):
@@ -211,7 +212,7 @@ def dsave(ax,name,field_name=None,pf_list=None,tar=True,script_name=None,plt_for
         format = 'whatever'
 
     if format not in ['png','pdf','eps','whatever','dave']:
-        print "Unclear format string:",format
+        print("Unclear format string:",format)
     directory = "figs/"+basename
     if field_name is not None:
         directory += "_%s"%field_name
@@ -231,8 +232,8 @@ def dsave(ax,name,field_name=None,pf_list=None,tar=True,script_name=None,plt_for
             ax.save("%s/%s"%(directory,basename), format=form)
 
     d_html(directory,basename,field_name,pf_list,script_name)
-    print "open %s/%s.png"%(directory,basename)
-    print "get %s.tar"%(directory)
+    print("open %s/%s.png"%(directory,basename))
+    print("get %s.tar"%(directory))
     to_tar_gz(directory,directory+".tar")
 
 
@@ -246,7 +247,7 @@ def d_html(directory,basename,field_name,pf_list=None,script_name=None):
     hname = basename+field_to_add+".html"
     dname = directory
     full_hname = "%s/%s"%(dname,hname)
-    print full_hname
+    print(full_hname)
 
     hptr = open(full_hname,"w")
     hptr.write("<html><br>\n")
@@ -273,7 +274,7 @@ def dpy(filename,fields):
     """Open hdf5 file *filename* and return *field*, then close the file.
     Collapses 3 function calls into 1."""
     if glob.glob(filename) == []:
-        print "No such file", filename
+        print("No such file", filename)
         return None
     fptr = h5py.File(filename,'r')
     output = []
@@ -285,7 +286,7 @@ def dpy(filename,fields):
 
         for field in ensure_list(fields):
             if field not in field_list:
-                print "No field", field, "in file",filename
+                print("No field", field, "in file",filename)
                 return None
             else:
                 if len(fptr[field].shape) > 0:
@@ -333,25 +334,25 @@ def grep(lookfor,obj):
         my_list = obj
     else: my_list = dir(obj)
     for i in my_list:
-        if lookfor.upper() in i.upper(): print i
+        if lookfor.upper() in i.upper(): print(i)
 
 def stat(array,strin='', format='%0.16e'):
     template = '['+format+','+format+'] %s %s'
-    print template%(array.min(),array.max(),array.shape,strin)
+    print(template%(array.min(),array.max(),array.shape,strin))
 
 def nonzerostat(array,strin=''):
 
-    print '[%0.4e,%0.4e] %s %s'%(array[array>0].min(),array[array>0].max(),array.shape,strin)
+    print('[%0.4e,%0.4e] %s %s'%(array[array>0].min(),array[array>0].max(),array.shape,strin))
 
 def morestat(array,strin='',log=False):
     if log:
-        mean = 10**(meanRMS(na.log10(array)))
+        mean = 10**(meanRMS(np.log10(array)))
     else:
         mean = meanRMS(array)
-    print '[%0.4e,%0.4e \pm %0.4e, %0.4e] %s %s'%(array.min(),mean[0],mean[1],array.max(),array.shape,strin)
+    print('[%0.4e,%0.4e \pm %0.4e, %0.4e] %s %s'%(array.min(),mean[0],mean[1],array.max(),array.shape,strin))
 
 def psave(ax,name):
-    print name
+    print(name)
     ax.savefig(name)
 
 def plave(array,filename,axis=None,colorbar=True,clf=True, zlim=None, label="Value"):
@@ -363,20 +364,20 @@ def plave(array,filename,axis=None,colorbar=True,clf=True, zlim=None, label="Val
         array_2d = array
     else:
         if axis == None:
-            print "Must provide an axis: 3d array"
+            print("Must provide an axis: 3d array")
             return
-        #array_2d = na.flipud(na.sum( array , axis=axis).transpose())
-        array_2d = na.sum( array , axis=axis)
+        #array_2d = np.flipud(np.sum( array , axis=axis).transpose())
+        array_2d = np.sum( array , axis=axis)
 
 
-    #plt.imshow(na.flipud(array_2d.transpose()), interpolation='nearest')#, origin='lower')
+    #plt.imshow(np.flipud(array_2d.transpose()), interpolation='nearest')#, origin='lower')
     if zlim is not None:
         plot = plt.imshow(array_2d, interpolation='nearest', origin='lower', vmin=zlim[0], vmax=zlim[1])
     else:
         plot = plt.imshow(array_2d, interpolation='nearest', origin='lower')
     plt.yticks(range(0,array_2d.shape[0],5))
     plt.xticks(range(0,array_2d.shape[1],5))
-    print filename
+    print(filename)
     norm = None
     if zlim is not None:
         norm=mpl.colors.Normalize(vmin=zlim[0], vmax=zlim[1])
@@ -386,7 +387,7 @@ def plave(array,filename,axis=None,colorbar=True,clf=True, zlim=None, label="Val
         if zlim is not None:
             colorbar.set_clim(zlim[0], zlim[1])
     plt.savefig(filename)
-    print filename
+    print(filename)
 
 def wp(axes,number,index_only=False):
     """Which Plot.  Takes 2d list *axes* and returns the row-major *number* element.
@@ -403,7 +404,7 @@ def wp(axes,number,index_only=False):
 
 def meanRMS(F):
     M = F.sum()/(F.size)
-    rms = na.sqrt(( ( F - M )**2 ).sum()/F.size)
+    rms = np.sqrt(( ( F - M )**2 ).sum()/F.size)
     return nar([M,rms])
 
 
@@ -411,10 +412,10 @@ def meanRMS(F):
 
 def morestat(array,strin='',log=False):
     if log:
-        mean = 10**(meanRMS(na.log10(array)))
+        mean = 10**(meanRMS(np.log10(array)))
     else:
         mean = meanRMS(array)
-    print '[%0.4e,%0.4e \pm %0.4e, %0.4e] %s %s'%(array.min(),mean[0],mean[1],array.max(),array.shape,strin)
+    print('[%0.4e,%0.4e \pm %0.4e, %0.4e] %s %s'%(array.min(),mean[0],mean[1],array.max(),array.shape,strin))
 
 def powerline(this_plt,x1,x2,y1,power,log=True,**kwargs):
     """Plot a powerlaw on the current plot in matplot lib instance *plt*.
@@ -429,8 +430,8 @@ def powerline(this_plt,x1,x2,y1,power,log=True,**kwargs):
         yf = x2**power*b
         y = [y1, yf]
         if True:
-            x1 = na.log10(x1)
-            x2 = na.log10(x2)
+            x1 = np.log10(x1)
+            x2 = np.log10(x2)
     if log:
         x = [x1,x2]
         yf = x2**power*x1**(-power)*y1
@@ -479,8 +480,8 @@ def phist(array,width = 8, format = 'f', plot=plt,**kwargs):
     for n in range(len(val)):
         vformat += vbase
         bformat += bbase
-    print vformat%tuple(val)
-    print bformat%tuple(bin)
+    print(vformat%tuple(val))
+    print(bformat%tuple(bin))
     return hist
 
 class ParameterException(Exception):

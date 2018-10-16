@@ -2,7 +2,7 @@ import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 from GL import *
-path_list = ['yt_things']
+path_list = ['tools_yt_etc']
 for directory in path_list:
     sys.path.append(directory)
 import yt

@@ -1,13 +1,14 @@
 
 
 import numpy as na
+import imp
 nar = na.array
 import pdb
 import yt
 import copy
 import FindOverlap
 import types
-reload(FindOverlap)
+imp.reload(FindOverlap)
 from davetools import *
 import re
 import h5py
@@ -73,12 +74,12 @@ class udiff():
         """Compare kwargs to the current dict.
         If self.p (the parameter set) already has the key, update.
         Otherwise, issue warning and proceed as normal."""
-        pkeys = self.p.keys()
-        for key in kwargs.keys():
+        pkeys = list(self.p.keys())
+        for key in list(kwargs.keys()):
             if key in pkeys:
                 self.p[key] = kwargs[key]
             else:
-                print "Unknown keyword: (%s) ignoring."%key
+                print("Unknown keyword: (%s) ignoring."%key)
 #       for f in ['frames','grids','fields']:
 #           self.p[f] = ensure_list(self.p[f])
     def __call__(self,**kwargs):
@@ -111,7 +112,7 @@ class udiff():
 
         skipping = ""
 
-        for p in self.p.keys():
+        for p in list(self.p.keys()):
             """Set the value in the local namespace,
             using the value in kwargs first, self.p second"""
             string = "%s = kwargs.get('%s',self.p['%s'])"%(p,p,p)
@@ -147,8 +148,8 @@ class udiff():
                     grid1=g
                     grid2=g
                 for field in fields:
-                    print "=================",field,"================="
-                    if isinstance(field, types.ListType):
+                    print("=================",field,"=================")
+                    if isinstance(field, list):
                         field1 = field[0]
                         field2 = field[1]
                     else:
@@ -162,13 +163,13 @@ class udiff():
                         #Slice1 = slice(None)
                         #Slice2 = slice(None)
                     except FindOverlap.OverlapException as e:
-                        print e
+                        print(e)
                         continue
                     except Exception as e:
                         raise
                     if self.p['grid_direct']:
-                        g1_full = read_grid(self.dir1,n1,grid1,field1)
-                        g2_full = read_grid(self.dir2,n2,grid2,field2)
+                        g1_full=  read_grid(self.dir1,n1,grid1,field1).swapaxes(0,2)
+                        g2_full = read_grid(self.dir2,n2,grid2,field2).swapaxes(0,2)
                         if len(g1_full.shape) == 3:
                             g1_full = g1_full.swapaxes(0,2)
                             g2_full = g2_full.swapaxes(0,2)
@@ -184,7 +185,7 @@ class udiff():
                         g1_full = self.p['unit_function'](g1_full)
                         g2_full = ds2.index.grids[grid2-1][field2]
                         g2_full = self.p['unit_function'](g2_full)
-                        print "DIRECT"
+                        print("DIRECT")
                         #self.uber1.verbose, self.uber2.verbose = verbose_save 
                         g1 = g1_full[Slice1].v
                         g2 = g2_full[Slice2].v
@@ -194,11 +195,11 @@ class udiff():
                     self.Slice1=Slice1; self.Slice2=Slice2
 
                     if g1.shape != g2.shape:
-                        print "Shape difference: g1", g1.shape, "g2", g2.shape
-                        print "Shape difference: g1", g1.shape, "g2", g2.shape
-                        print "Shape difference: g1", g1.shape, "g2", g2.shape
-                        print "Shape difference: g1", g1.shape, "g2", g2.shape
-                        print "Shape difference: g1", g1.shape, "g2", g2.shape
+                        print("Shape difference: g1", g1.shape, "g2", g2.shape)
+                        print("Shape difference: g1", g1.shape, "g2", g2.shape)
+                        print("Shape difference: g1", g1.shape, "g2", g2.shape)
+                        print("Shape difference: g1", g1.shape, "g2", g2.shape)
+                        print("Shape difference: g1", g1.shape, "g2", g2.shape)
                         continue
 
                     self.diff = (g1-g2)
@@ -236,7 +237,7 @@ class udiff():
                             stat(d2,"   %s %d"%(raster,x))
                             max_raster = max(max_raster,na.abs(d2).max())
                             max_this = max(max_this,na.abs(d2).max())
-                        print "max_raster_this",max_this
+                        print("max_raster_this",max_this)
 
                     if output:
                         if self.p['diff_extents'] is not None:
@@ -252,10 +253,10 @@ class udiff():
                                 all_max = na.array(na.where(na.abs(self.diff)==na.abs(self.diff).max()))
                                 first_max = [stripe[0] for stripe in all_max]
                                 local_output_range=[first_max[index]]
-                                print "Peak difference at ", output_range
+                                print("Peak difference at ", output_range)
                             if self.p['output_at_half']:
                                 local_output_range=[self.diff.shape[index]/2]
-                                print output_range
+                                print(output_range)
                             if len(self.p['output_range'] ) > 0:
                                 local_output_range = copy.copy(self.p['output_range'])
                         else:
@@ -274,6 +275,6 @@ class udiff():
                             plave((diff)[subset],self.output_format%(output_prefix,\
                                                                n1,grid1,diff_out,output,x,'diff'), label = difflabel)
 
-                    print "total =",total, "max", maxdiff
+                    print("total =",total, "max", maxdiff)
                     if raster:
-                        print "max_raster",max_raster
+                        print("max_raster",max_raster)
