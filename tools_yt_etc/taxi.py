@@ -38,7 +38,7 @@ class fleet():
         self.taxi_list = []
         self.next_taxi_index=0
         for car in taxi_list:
-            if isinstance(car,types.StringType):
+            if type(car) is str:
                 self.taxi_list.append(taxi(car))
             else:
                 self.taxi_list.append(car)
@@ -55,11 +55,11 @@ class fleet():
         return self
     def __getitem__(self,item):
         out = []
-        if isinstance(item,types.IntType):
+        if type(item) is int: #isinstance(item,types.IntType):
             out = self.taxi_list[item]
         else:
             for car in self.taxi_list:
-                print self.nt%car.name, car.__dict__[item]
+                print(self.nt%car.name, car.__dict__[item])
                 out.append(car.__dict__[item])
         return out
     def __setitem__(self,item,value ):
@@ -97,7 +97,7 @@ class fleet():
     def plot(self,*args, **kwargs):
         #check for fixed colorbars.
         prior_zlim=None
-        if kwargs.has_key('prefix'):
+        if 'prefix' in kwargs:
             self.outname(kwargs.pop('prefix'))
 
         for car in self.taxi_list:
@@ -153,7 +153,7 @@ class fleet():
                 plot_args['label']='%s %04d'%(car.name,frame)
                 if prior_y is not None:
                     l1norm = np.mean(np.abs( they - prior_y ))/np.mean(they)
-                    print l1norm
+                    print(l1norm)
                     prior_y = they
                     if l1norm > 1e-8:
                         they *= 1.1
@@ -177,7 +177,7 @@ class fleet():
         plt.legend(loc=0)
         frame_name = "_%04d"*len(all_frames)%tuple(all_frames)
         profname = '%s_prof_%s_%s_n%s.pdf'%(self.allnames(), car.profile_data['fields'][0], car.profile_data['fields'][1], frame_name)
-        print profname
+        print(profname)
         plt.savefig(profname)
 
     def stat(self,field,frame=None):
@@ -269,8 +269,9 @@ class dummy_YTArray():
         if hasattr(value,'units'):
             self.value=value.v
             self.units=value.units
-        elif isinstance(value,types.TupleType) or isinstance(value,types.ListType):
-            if isinstance(value[-1], types.StringType):
+        #elif isinstance(value,types.TupleType) or isinstance(value,types.ListType)
+        elif type(value) is tuple or type(value) is list: #isinstance(value,types.TupleType) or isinstance(value,types.ListType):
+            if type( value[-1]) is str: #isinstance(value[-1], types.StringType)
                 self.value = value[:-1]
                 if len(self.value) == 1:
                     self.value=self.value[0]
@@ -335,7 +336,7 @@ def writefunction(thing):
 
         output += ", '%s')"%str(thing.units)
 
-    elif isinstance(thing, types.DictType):
+    elif type(thing) is dict: #isinstance(thing, types.DictType)
         output += "{"
         keys = sorted(thing.keys()); 
         if len(keys):
@@ -345,7 +346,7 @@ def writefunction(thing):
                 output += ',"%s":%s'%(key,writefunction(thing[key]))
         output += "}"
 
-    elif isinstance(thing, types.ListType):
+    elif type( thing) is list: #isinstance(thing, types.ListType)
         output += "["
         for L in thing:
             output += writefunction(L)
@@ -355,7 +356,7 @@ def writefunction(thing):
         if len(thing) > 0:
             output = output[0:-2]
         output += "]"
-    elif isinstance(thing, types.StringType):
+    elif type(thing) is str: #isinstance(thing, types.StringType)
         output += "'"+thing+"'"
     elif isinstance(thing, np.ndarray):
         output += "np.array("
@@ -574,13 +575,13 @@ class taxi:
         for i in self.WriteSpecial.keys():
             file.write( self.WriteSpecial[i]() )
         file.close()
-        print "saved", actual_filename
+        print("saved", actual_filename)
 
     def write_callbacks(self):
         """checkrel"""
         output = []
         for i in self.callbacks:
-            if isinstance(i,types.StringType):
+            if type(i) is str: #isinstance(i,types.StringType):
                 output.append(i)
         return "self.callbacks = " + writefunction(output)
 
@@ -609,7 +610,7 @@ class taxi:
         elif self.name_syntax == 'outputlog':
             self.set_filename_from_outputlog(frame)
         else:
-            print "set oober.name_syntax = 'preset'||'outputlog'"
+            print("set oober.name_syntax = 'preset'||'outputlog'")
 
 
     def return_filename(self,frame=None):
@@ -630,12 +631,12 @@ class taxi:
                                      + self.name_files + "%04i"
             self.basename = self.basename_template %(frame,frame)
         if self.verbose == True:
-            print "==== %s ===="%(self.basename)
+            print("==== %s ===="%(self.basename))
 
     def print_frames(self):
         self.get_frames()
         if self.name_syntax == 'preset':
-            print "oober.name_syntax == 'preset'.  Nothing to list"
+            print("oober.name_syntax == 'preset'.  Nothing to list")
         elif self.name_syntax == 'outputlog':
             self.get_frames()
             nframe = self.frame_dict.keys()
@@ -643,9 +644,9 @@ class taxi:
             output_format = "%s%d%s"%("%(dsname)",self.frame_dict_string_length ,"s %(cycle)d %(time)0.6e")
 
             for n in nframe:
-                print "%4d"%n, output_format%(self.frame_dict[n])
+                print("%4d"%n, output_format%(self.frame_dict[n]))
         else:
-            print "set oober.name_syntax = 'preset'||'outputlog'"
+            print("set oober.name_syntax = 'preset'||'outputlog'")
 
     def returnsetnumber(self,frame=None):
         return frame
@@ -670,15 +671,15 @@ class taxi:
             self.frame_dict = {}
             output_name = "%s/%s"%(self.directory , self.OutputLog)
             output_log = open(output_name, 'r')
-            print "OutputName", self.name, output_name
+            print("OutputName", self.name, output_name)
 
             if debug > 0:
-                print output_log
+                print(output_log)
             lines = output_log.readlines()
             self.frame_dict_string_length = 0
             for nframe,line in enumerate(lines):
                 if debug>0:
-                    print nframe, line[:-1]
+                    print(nframe, line[:-1])
                 linesplit = davetools.no_whites(line.split(" "))
                 self.frame_dict[ nframe ] = {}
                 self.frame_dict[ nframe ]['dsname'] = linesplit[2]
@@ -699,8 +700,8 @@ class taxi:
                     self.frame_dict[nframe]['name_files'] = match2.group(1)
                     self.frame_dict[nframe]['SetNumber'] = int(match2.group(2))
                 else:
-                    print "error in set parsing"
-                    print linesplit[2]
+                    print("error in set parsing")
+                    print(linesplit[2])
 
                     self.frame_dict[nframe]['DirPrefix']=None
                     self.frame_dict[nframe]['name_files']  =None
@@ -717,7 +718,7 @@ class taxi:
             frame = self.return_frames()[-1]
         self.basename = "%s/%s"%(self.directory,self.frame_dict[frame]['dsname'])
         if self.verbose == True:
-            print "==== %s ===="%(self.basename)
+            print("==== %s ===="%(self.basename))
 
     #def fill(self, frame=None):
     #    print "FILL IS DEPRECATED"
@@ -766,7 +767,7 @@ class taxi:
         if self.region_type.lower() in ['all','all_data']:
             reg = self.ds.all_data()
         if self.region_type.lower() in ['disk']:
-            print "OK!"
+            print("OK!")
             reg = self.ds.disk(self.center,self.normal,self.radius,self.height)
         if self.region_type.startswith('grid'):
             """gridN gets grid N."""
@@ -792,16 +793,15 @@ class taxi:
 
     def return_frames(self):
         if self.name_syntax == 'preset':
-            if not isinstance(self.frames, types.ListType) \
-               and not isinstance(self.frames, np.ndarray) :
-                print "With preset name syntax, frames must be a list of integers."
+            if type( self.frames) is not list: #isinstance(self.frames, types.ListType)
+                print("With preset name syntax, frames must be a list of integers.")
                 raise
             return self.frames
         if not hasattr(self,'frame_dict') or self.frame_dict is None:
             self.get_frames()
         all_frames = sorted(self.frame_dict.keys())
         return_frames = 'type error'
-        if isinstance(self.frames,types.StringType):
+        if type(self.frames) is str: #isinstance(self.frames,types.StringType):
             if self.frames=='all':
                 return_frames = all_frames
             elif self.frames.startswith('every'):
@@ -814,7 +814,7 @@ class taxi:
                 return_frames = all_frames[-1:]
             elif self.frames == 'all_reverse':
                 return_frames = all_frames[::-1]
-        elif isinstance(self.frames, types.SliceType):
+        elif type(self.frames) is slice: # isinstance(self.frames, types.SliceType):
             return_frames = all_frames[self.frames]
         else:
             return_frames = self.frames
@@ -861,8 +861,8 @@ class taxi:
         self.arg_setter(kwargs)
         if 'new_particles' in self.callbacks:
             if len(self.axis) *len(self.fields) > 1:
-                print "WARNING: new__particles callbacks does not work with multiple axes or fields."
-        print self.zlim
+                print("WARNING: new__particles callbacks does not work with multiple axes or fields.")
+        print(self.zlim)
         """Makes the uber plot.  Options for plot can be found in the uber description,
         plot operations can be found by typing uber.operations()"""
         start_time = time.time()    
@@ -877,12 +877,12 @@ class taxi:
 
             self.load(frame=frame)
 
-            print "==== %s ===="%(self.basename)
-            print "== %i time elapsed %f =="%(frame, time.time()-start_time)
+            print("==== %s ===="%(self.basename))
+            print("== %i time elapsed %f =="%(frame, time.time()-start_time))
 
             #Find the density peak for all field,axis plots for this snapshot.
             if self.operation == 'DensityPeakSlice':
-                print "getting peak"
+                print("getting peak")
                 value,center = self.ds.find_max('Density')
                 self.center = np.array(center)
 
@@ -905,7 +905,7 @@ class taxi:
                         continue
                     plot_or_fig = self.do_plots(field,axis,FirstOne)
 
-                    if self.set_log.has_key(field):
+                    if field in self.set_log: #.has_key(field):
                         plot_or_fig.set_log( field, self.set_log[field])
 
                     if hasattr(plot_or_fig,'savefig'):
@@ -920,20 +920,20 @@ class taxi:
                             filename += "."+self.format
                         else:
                             filename += ".png"
-                        print filename
+                        print(filename)
                         #fig.savefig(filename)
                         #dsave(fig,filename,field_name=field,ds_list=[self.basename],script_name='uber')
                         plot_or_fig.savefig(filename)
-                        print filename
+                        print(filename)
                     else:
                         plot_or_fig.set_origin('domain')
                         if self.zoom_sequence is not None:
                             for nz,width in enumerate(self.zoom_sequence):
                                 plot_or_fig.set_width(width)
                                 this_frame_template = frame_template + "_zoom%02d"%nz
-                                print plot_or_fig.save(this_frame_template%frame)
+                                print(plot_or_fig.save(this_frame_template%frame))
                         else:
-                            print plot_or_fig.save(frame_template%frame)
+                            print(plot_or_fig.save(frame_template%frame))
     def set_center_max(self,field='density', frame=None):
         if self.ds is None or frame is not None:
             self.load(frame)
@@ -956,7 +956,7 @@ class taxi:
             use_colorbar = False 
             extra_args = {'figure':fig,'axes':0}
         for num, field in enumerate(sub_field_list):
-            if extra_args.has_key('axes'):
+            if 'axes' in extra_args: #.has_key('axes'):
                 #extra_args['axes'] = axes[wp(num)[0]][wp(num)[1]]
                 extra_args['axes'] = wp(axes,num) #axes[wp(num)[0]][wp(num)[1]]
 
@@ -987,7 +987,7 @@ class taxi:
             #this is to clean up old implementations
             if not self.cmap:
                 self.cmap = {'default':None}
-            if not self.cmap.has_key(field):
+            if field not in self.cmap:#.has_key(field):
                 self.cmap[field] = self.cmap['default']
 
             the_plot.set_cmap( field, self.cmap[field] )
@@ -1011,13 +1011,13 @@ class taxi:
                         self.zlim[field_with_weight][0] = min([self.zlim[field_with_weight][0],this_min])
                         self.zlim[field_with_weight][1] = max([self.zlim[field_with_weight][1],this_max])
                     if self.verbose:
-                        print "set lim", self.zlim[field_with_weight]
+                        print("set lim", self.zlim[field_with_weight])
                 elif self.Colorbar in  ['Fixed', 'fixed'] :
-                    if not self.zlim.has_key(field_with_weight):
+                    if field_with_weight not in  self.zlim:#.has_key(field_with_weight)
                         do_log = True #please get this from the yt object.
                         self.zlim[field_with_weight] = [this_min,this_max]
                     if self.verbose:
-                        print "set lim", self.zlim[field_with_weight]
+                        print("set lim", self.zlim[field_with_weight])
 
                 if hasattr(self.zlim[field_with_weight][0],'v'):
                     the_plot.set_zlim(field, self.zlim[field_with_weight][0].v, self.zlim[field_with_weight][1].v)
@@ -1069,7 +1069,7 @@ class taxi:
     def pdir_old(self,frame):
         """Finds .products directores in self.directory.  
         Makes the questionable assumption that directories are uniquely numbered."""
-        print "old style pdir needs to be checked."
+        print("old style pdir needs to be checked.")
         raise PortException("old style product directory")
         if hasattr(self,'pdirdict'):
             return self.pdirdict[frame]
@@ -1112,7 +1112,7 @@ class taxi:
         directory = self.product_dir(frame)
         filename_no_ghost = "%s/cube_%s.%s"%(directory,field,dtype)
         if debug > 0:
-            print filename_no_ghost
+            print(filename_no_ghost)
         remove_gz = False
         if num_ghost_zones >= 0:
             filename = "%s.%d"%(filename_no_ghost,num_ghost_zones)
@@ -1127,28 +1127,28 @@ class taxi:
                     ngz = min(ghost_zones_available)
                     filename = "%s.%d"%(filename_no_ghost, ngz)
                     if debug>0:
-                        print "Found",filename, "with ngz",ngz
+                        print("Found",filename, "with ngz",ngz)
                     remove_gz = True
 
         if glob.glob(filename):
             if debug > 0:
-                print "open set from disk"
+                print("open set from disk")
             file = h5py.File(filename,'r')
             set = file[field][:]
             file.close()
             if remove_gz:
                 if debug>0:
-                    print "stripping"
+                    print("stripping")
                 set = set[ngz:-ngz,ngz:-ngz,ngz:-ngz]
         else:
             if glob.glob(directory) == []:
-                print "making directory",directory
+                print("making directory",directory)
                 os.mkdir(directory)
             if debug > 0:
-                print "Create set"
+                print("Create set")
             if make_cg or self.cg == None:
                 if debug > 0:
-                    print "make cg"
+                    print("make cg")
                 self.make_cg(frame,field,num_ghost_zones)
             set = self.cg[field]
             file = h5py.File(filename,'w')
@@ -1165,7 +1165,7 @@ class taxi:
         elif dtype == 'float64':
             fft_dtype = 'complex128'
         elif dtype not in ['complex64','complex128']:
-            print "Can't cast type ",dtype, "to a complex type."
+            print("Can't cast type ",dtype, "to a complex type.")
             return None
         if frame == None:
             frame = self.return_frames()[0]
@@ -1174,28 +1174,28 @@ class taxi:
         directory = self.product_dir(frame) #"%s/%s%04d.products/"%(self.directory,self.name_dir,frame)
         filename = "%s/fft_%s.%s"%(directory,field,dtype)
         if debug > 0:
-            print filename
+            print(filename)
         if glob.glob(filename):
             if debug > 0:
-                print "open FFT from disk"
+                print("open FFT from disk")
             file = h5py.File(filename,'r')
             fft = file[field][:]
             file.close()
         else:
             if glob.glob(directory) == []:
-                print "making directory",directory
+                print("making directory",directory)
                 os.mkdir(directory)
             if debug > 0:
-                print "Create FFT"
+                print("Create FFT")
             if data == None:
                 this_set = self.extract_root(frame,field,make_cg,num_ghost_zones,dtype)
             else:
                 this_set = data
             if debug > 0:
-                print "Do fft."
+                print("Do fft.")
             fft = fft_func(this_set)/this_set.size
             if debug > 0:
-                print "save"
+                print("save")
             fptr = h5py.File(filename,'w')
 
             fptr.create_dataset(field,fft.shape, data=fft, dtype=fft_dtype)
@@ -1223,7 +1223,7 @@ class taxi:
                     this_extrema[1] = vals[positive].max()
                 else:
                     this_extrema = reg.quantities['Extrema'](field,non_zero=True)
-                if not self.extrema.has_key(field):
+                if field not in self.extrema:
                     self.extrema[field] = [this_extrema[0].v, this_extrema[1].v]
                 else:
                     self.extrema[field][0] = min([this_extrema[0].v, self.extrema[field][0]])
@@ -1268,11 +1268,11 @@ class taxi:
             profname = '%s_prof_%s_%s_n%04d.pdf'%(self.outname, fields[0], fields[1], frame)
             plt.legend(loc=0)
             plt.savefig(profname)
-            print profname
+            print(profname)
             if True:
                 if glob.glob(self.ProfileDir) == []:
                     os.mkdir(self.ProfileDir)
-                    print "made directory", self.ProfileDir
+                    print("made directory", self.ProfileDir)
                 filename = "%s/%s_%s_%s"%(self.ProfileDir,frame_template%(self.returnsetnumber(frame)),fields[0],fields[1])
                 all_files = glob.glob(filename+"*")
                 filename += "_%d.h5"%(len(all_files))
@@ -1284,7 +1284,7 @@ class taxi:
                 fptr.create_dataset('InitialCycle',data=self.ds['InitialCycleNumber'])
                 fptr.close()
                 if self.verbose:
-                    print "wrote profile file ",filename
+                    print("wrote profile file ",filename)
         ntotal = len(self.return_frames())
         rm = davetools.rainbow_map(ntotal)
         plt.clf()
@@ -1296,7 +1296,7 @@ class taxi:
         plt.legend(loc=0)
         allframes = "_%04d"*ntotal%tuple(self.return_frames())
         profname = '%s_prof_%s_%s_%sn%s.pdf'%(self.outname, fields[0], fields[1],weight_name, allframes)
-        print profname
+        print(profname)
         plt.savefig(profname)
         self.profile_data={'all_xbins':all_xbins,'all_profiles':all_profiles, 'scales':scales, 'fields':fields}
 
@@ -1311,7 +1311,7 @@ class taxi:
         Run all callbacks on the plot.
         *save* pickles the region in PhaseFiles"""
         if len(fields) != 3:
-            print "wrong number of fields: needs 3.", fields
+            print("wrong number of fields: needs 3.", fields)
             return
         frame_template = self.outname + "_%04i"
         phase_list = []
@@ -1319,12 +1319,12 @@ class taxi:
             reg = self.get_region(frame)
             local_extrema = None
             if self.Colorbar in ['fixed', 'monotonic']:
-                if self.extrema.has_key(fields[0]) and self.extrema.has_key(fields[1]):
+                if fields[0] in self.extrema and fields[1] in self.extrema:
                     local_extrema = {fields[0]:self.extrema[fields[0]], fields[1]:self.extrema[fields[1]]}
                 else:
                     local_extrema = None
 
-            print "LOCAL", local_extrema
+            print("LOCAL", local_extrema)
             phase_args['bin_fields']=[fields[0],fields[1]]
             phase_args['fields']=[fields[2]]
             phase_args['weight_field']=weight_field
@@ -1335,7 +1335,7 @@ class taxi:
             pp = yt.PhasePlot.from_profile(phase)
             pp.set_xlabel(fields[0])
             pp.set_ylabel(fields[1])
-            #print pp.save('derp3.png')
+            #print(pp.save('derp3.png'))
             outname = "%s_%04d"%(self.outname,frame)
 
             if self.Colorbar in ['fixed','monotonic']:
@@ -1343,18 +1343,18 @@ class taxi:
                 xmax=phase.x_bins[-1]
                 ymin=phase.y_bins[0]
                 ymax=phase.y_bins[-1]
-                if self.extrema.has_key(fields[0]) and self.Colorbar == 'monotonic':
+                if fields[0] in self.extrema and self.Colorbar == 'monotonic':
                     xmin=min([self.extrema[fields[0]][0], phase.x_bins[0]])
                     xmax=max([self.extrema[fields[0]][1], phase.x_bins[-1]])
-                if self.extrema.has_key(fields[1]) and self.Colorbar == 'monotonic':
+                if fields[1] in self.extrema and self.Colorbar == 'monotonic':
                     ymin=min([self.extrema[fields[1]][0], phase.y_bins[0]])
                     ymax=max([self.extrema[fields[1]][1], phase.y_bins[-1]])
                 if self.Colorbar in ['fixed', 'monotonic']:
-                    if not self.extrema.has_key(fields[0]):
+                    if fields[0] not in self.extrema:
                         self.extrema[fields[0]] = [xmin,xmax]
-                    if not self.extrema.has_key(fields[1]):
+                    if fields[1] not in self.extrema:
                         self.extrema[fields[1]] = [ymin,ymax]
-                print "extrema, post", self.extrema
+                print("extrema, post", self.extrema)
                 pp.set_xlim( lim_down(self.extrema[fields[0]][0]), lim_up(self.extrema[fields[0]][1]))
                 pp.set_ylim( lim_down(self.extrema[fields[1]][0]), lim_up(self.extrema[fields[1]][1]))
 
@@ -1368,13 +1368,13 @@ class taxi:
                 #pp.save('derp.png')
 
             phase_list.append(pp)
-            print pp.save(outname)
+            print(pp.save(outname))
             #
             # some old hdf5 and callback code. Harvest later.
             #
             if 0:
                 filename += "_%d.h5"%(len(all_files))
-                print "Writing H5 file",filename
+                print("Writing H5 file",filename)
                 fptr = h5py.File(filename,"w")
                 the_dict = self.pc.plots[0].data.field_data
                 for fld in the_dict.keys():
@@ -1422,7 +1422,7 @@ class taxi:
             mykwargs=args.get('kwargs',{})
             print("my args",myargs)
             print("my kwargs", mykwargs)
-            if isinstance(callback,types.StringType):
+            if type( callback) is str: #isinstance(callback,types.StringType):
                 if callback == 'stokes_angles':
                     self.kludge_my_package={}
                     the_plot.annotate_stokes_angles(kludge_my_package=self.kludge_my_package)
@@ -1450,7 +1450,7 @@ class taxi:
                     circle_args = self.callback_args['halos'].get('circle_args',{})
                     text_args = self.callback_args['halos'].get('text_args',{})
                     id_offset = self.callback_args['halos'].get('id_offset',0)
-                    if not text_args.has_key('color') and circle_args.has_key('color'):
+                    if 'color' not in text_args.has_key() and 'color' in  circle_args:
                         text_args['color']=circle_args['color']
 
                     for halo in halos:
@@ -1501,10 +1501,12 @@ class taxi:
                         pkwargs=self.callback_args['nparticles']['kwargs']
                         the_plot.annotate_text(pargs[0],r'$n_{\rm{new}}=%d$'%these_indices.shape,**pkwargs)
 
+                elif callback == 'magnetic_field':
+                    the_plot.annotate_magnetic_field()
                 else:
                     raise PortError("Callback %s not supported"%callback)
             else:
-                print "Where the heck did you get that callback at?"
+                print("Where the heck did you get that callback at?")
 
     def stat(self,field,frame=None):
         """print min and max of *field*"""
@@ -1517,7 +1519,7 @@ class taxi:
         """Min and max for all fields in self.fields.
         Field list overridden by *fields*.
         *Norm* subtracts off the volume-weighted mean."""
-        print fields
+        print(fields)
         for frame in frames:
             if fields is None:
                 fields = self.fields
@@ -1532,11 +1534,14 @@ class taxi:
                     avg =  0
                     if Norm.has_key(field):
                         avg = Norm[field]
-                        print field,avg
+                        print(field,avg)
                     out[n] = out[n][0]-avg, out[n][1]-avg
+            else:
+                print( "python 3 check")
+                raise
             format_string = "%s %s %s"%(format,format,"%s")
             for n, field in enumerate(fields):
-                print format_string%(out[n][0], out[n][1], field)
+                print(format_string%(out[n][0], out[n][1], field))
 
     def conservation(self, frames=None, field='density', units='code_mass'):
         """This should be done in a more general manner, later."""
@@ -1578,7 +1583,7 @@ class other_horsecrap():
             raise PortError('callbacks')
         
         for i,callback in enumerate(self.callbacks):
-            if isinstance(callback,types.StringType):
+            if type( callback ) is str: #isinstance(callback,types.StringType):
                 if 'Subgrids' in self.callbacks:
                     for p in self.pc:
                         try:
@@ -1595,24 +1600,24 @@ class other_horsecrap():
                         p.modify['time'](unit_mult=self.UnitMultiplier, unit= self.UnitName)
                         #annotate_text([0.05,0.05],r'$t=0.5 t_{\rm{ff}}$',text_args={'color':(1.0,1.0,1.0,0.5),'fontsize':31})
                 if 'Size' in self.callbacks:
-                    print "NO SIZE CALLBACK FOR UBER"
+                    print("NO SIZE CALLBACK FOR UBER")
                     continue
-                    print "Nope. Define callback"
+                    print("Nope. Define callback")
                     raise ZeroDivisionError
                     for p in self.pc.plots:
                         p.add_callback(dave_callback.SizeMarker())    
                 if 'Zoom' in self.callbacks:
-                    print "NO ZOOM CALLBACK FOR UBER"
+                    print("NO ZOOM CALLBACK FOR UBER")
                     continue
-                    print "Nope. Define callback"
+                    print("Nope. Define callback")
                     raise ZeroDivisionError
                     if self.width:
                         for p in self.pc.plots:
                             p.add_callback(dave_callback.BoxCallback(self.center,self.width))
                     else:
-                        print 'width not defined.'
+                        print('width not defined.')
                 if 'clumps' in self.callbacks:
-                    print "NO CLUMPS CALLBACK FOR UBER"
+                    print("NO CLUMPS CALLBACK FOR UBER")
                     continue
                     for p in self.pc.plots:
                         if not self.callback_args.has_key('clumps'):
@@ -1638,7 +1643,7 @@ class other_horsecrap():
                         #args['axis'] = axis
                         p.annotate_particles( **args)
                 if 'Velocity' in self.callbacks:
-                    print "NO VELOCITy CALLBACK FOR UBER"
+                    print("NO VELOCITy CALLBACK FOR UBER")
                     continue
                     for p in self.pc.plots:
                         try:
@@ -1648,7 +1653,7 @@ class other_horsecrap():
                         p.add_callback(VelocityCallback(**args))
 
             else:
-                print "No Callback For You"
+                print("No Callback For You")
 
     def slicer(self,n_slices):
         """Make n_slices.
@@ -1702,7 +1707,7 @@ class other_horsecrap():
         *use_cg* generates a covering grid and uses that, instead."""
         raise PortException('profiles')
         if len(fields) != 2:
-            print "wrong number of fields: needs 2."
+            print("wrong number of fields: needs 2.")
             return
         frame_template = self.outname + "_%04i"
         frame_template += "_%s"%weight
@@ -1718,7 +1723,7 @@ class other_horsecrap():
                 obj_string=''
 
             if davetools.ImRoot():
-                print 'ugly', fields, weight
+                print('ugly', fields, weight)
             profile = self.pc.add_profile_object(obj,fields, lazy_reader=lazy_reader,weight=weight,**profile_args)
             if davetools.ImRoot():
                 if self.mark_time:
@@ -1726,7 +1731,7 @@ class other_horsecrap():
                 if save:
                     if glob.glob(self.ProfileDir) == []:
                         os.mkdir(self.ProfileDir)
-                        print "made directory", self.ProfileDir
+                        print("made directory", self.ProfileDir)
                     filename = "%s/%s_%s_%s%s"%(self.ProfileDir,frame_template%(self.returnsetnumber(frame)),fields[0],fields[1],obj_string)
                     all_files = glob.glob(filename+"*")
                     filename += "_%d.h5"%(len(all_files))
@@ -1739,7 +1744,7 @@ class other_horsecrap():
                     file.create_dataset('InitialCycle',data=self.ds['InitialCycleNumber'])
                     file.close()
                     if self.verbose:
-                        print "wrote profile file ",filename
+                        print("wrote profile file ",filename)
             del obj
             if callbacks:
                 for call in ensure_list(callbacks):
@@ -1749,10 +1754,10 @@ class other_horsecrap():
                     title += " %0.2e %s"%(self.ds.parameters['InitialTime']*\
                                         self.UnitMultiplier,self.UnitName)
                 self.pc.plots[-1]._axes.set_title(title)
-                print title
+                print(title)
                 profile.add_callback(dave_callback.title(title))
             if self.format == None:
-                print self.pc.save(frame_template%(self.returnsetnumber(frame)))
+                print(self.pc.save(frame_template%(self.returnsetnumber(frame))))
             elif self.format == 'dave':
                 n_fields=len(fields)
                 dsave(self.pc,frame_template%(self.returnsetnumber(frame)),
@@ -1760,13 +1765,13 @@ class other_horsecrap():
                       ds_list=[self.basename],
                       script_name='uber')
             else:
-                print self.pc.save(frame_template%(self.returnsetnumber(frame)), format = self.format)
-                #print frame_template%(frame)
+                print(self.pc.save(frame_template%(self.returnsetnumber(frame)), format = self.format))
+                #print(frame_template%(frame))
 
     def read_clumps_2(self):
         """second implementation of read clumps, to work with Paper14 needs"""
         if self.clump_prefix == None:
-            print "please define clump_prefix; not this should have frame info"
+            print("please define clump_prefix; not this should have frame info")
             return
         if self.clumps == None:
             self.clumps = {}
@@ -1775,7 +1780,7 @@ class other_horsecrap():
         t0 = time.time()
         for i in self.return_frames():
             if self.clumps.has_key(i):
-                print "Has Key %d"%i
+                print("Has Key %d"%i)
                 continue
             self.clumps[i] = {}
             self.load(i,get_region=False)
@@ -1783,14 +1788,14 @@ class other_horsecrap():
             file.write('%d reading\n %f'%(i,time.time()-t0))
             file.close()
             to_glob = "%s/%s"%(self.directory,self.clump_prefix%i)
-            print to_glob
+            print(to_glob)
             all_clumps = glob.glob(to_glob)
             for clump_name in all_clumps:
-                print "read", clump_name
+                print("read", clump_name)
                 try:
                     clump_ind = int(clump_name[-4:])
                 except:
-                    print "skip"
+                    print("skip")
                     continue
                 self.clumps[i][clump_ind] = clump_stuff.load(clump_name)
 
@@ -1799,7 +1804,7 @@ class other_horsecrap():
     def read_clumps(self):
         """reads self.fields clumps from self.directory + self.clump_prefix"""
         if self.clump_prefix == None:
-            print "please define clump_prefix"
+            print("please define clump_prefix")
             return
         if self.clumps == None:
             self.clumps = {}
@@ -1809,30 +1814,30 @@ class other_horsecrap():
         t0 = time.time()
         for i in self.return_frames():
             if self.clumps.has_key(i):
-                print "Has Key %d"%i
+                print("Has Key %d"%i)
                 continue
             ds = self.load(i,get_region=False)
             #basename = "%s/DD%04d/data%04d"%(self.directory,i,i)
             #exec("ds = %s('%s')"%(self.OutputName,basename))
-            print "CURRENT HASH:",ds._hash()
+            print("CURRENT HASH:",ds._hash())
             file = open('stuff_monitor.txt','a')
             file.write('%d reading\n %f'%(i,time.time()-t0))
             file.close()
             filename = "%s/%s_%04d"%(self.directory,self.clump_prefix,i)
-            print "=============== %s ==============="%filename
+            print("=============== %s ==============="%filename)
             if glob.glob(filename) == []:
-                print "File not found!", filename
+                print("File not found!", filename)
                 continue
             try:
                 self.clumps[i] = clump_stuff.load(filename)
             except KeyError as e:
-                print "Key Error:  Probably a bad hash.  Get CTID in the dang code."
-                print "You might want to try:"
-                print "sed -i 's,%s,%s,g' %s"%(e.args[0][0],ds._hash(),filename)
+                print("Key Error:  Probably a bad hash.  Get CTID in the dang code.")
+                print("You might want to try:")
+                print("sed -i 's,%s,%s,g' %s"%(e.args[0][0],ds._hash(),filename))
                 raise
             except:
-                print "Probably the module error."
-                print "sed -i 's,lagos.BaseDataTypes,data_objects.data_containers,g' "
+                print("Probably the module error.")
+                print("sed -i 's,lagos.BaseDataTypes,data_objects.data_containers,g' ")
                 raise
 
             self.clumps[i].add_subset(clump_subset.alpha_bound)
@@ -1894,7 +1899,7 @@ class other_horsecrap():
         """Min and max for all fields in self.fields.
         Field list overridden by *fields*.
         *Norm* subtracts off the volume-weighted mean."""
-        print fields
+        print(fields)
         for frame in frames:
             if fields is None:
                 fields = self.fields
@@ -1909,11 +1914,11 @@ class other_horsecrap():
                     avg =  0
                     if Norm.has_key(field):
                         avg = Norm[field]
-                        print field,avg
+                        print(field,avg)
                     out[n] = out[n][0]-avg, out[n][1]-avg
             format_string = "%s %s %s"%(format,format,"%s")
             for n, field in enumerate(fields):
-                print format_string%(out[n][0], out[n][1], field)
+                print(format_string%(out[n][0], out[n][1], field))
 
     def vstat(self,field,frame=None, grid_list=None):
         """Prints stats on each grid.  For the impatient."""
@@ -1928,7 +1933,7 @@ class other_horsecrap():
                 maximum = this_max
             minimum = min(this_min, minimum)
             maximum = max(this_max, maximum)
-            print "%4d, (%0.2e, %0.2e) (%0.2e, %0.2e)"%(g,this_min,this_max,minimum,maximum)
+            print("%4d, (%0.2e, %0.2e) (%0.2e, %0.2e)"%(g,this_min,this_max,minimum,maximum))
 
 
     def save_set(self,set,frame=None,field=None,prefix="cube", num_ghost_zones=0, debug=0, dtype='float32'):
@@ -1940,7 +1945,7 @@ class other_horsecrap():
         directory = self.product_dir(frame)
         filename= "%s/%s_%s.%s.%d"%(directory,prefix,field,dtype,num_ghost_zones)
         if debug > 0:
-            print "saving", filename
+            print("saving", filename)
         file = h5py.File(filename,'w')
         file.create_dataset(field,set.shape, data=set, dtype=dtype)
         file.close()
