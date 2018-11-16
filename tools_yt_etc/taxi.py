@@ -28,7 +28,8 @@ if not_ported:
 import matplotlib.colorbar as cb
 import re
 import copy
-import turb_quan
+#import turb_quan
+
 #import QU_callback
 #reload(QU_callback)
 #import p49_fields

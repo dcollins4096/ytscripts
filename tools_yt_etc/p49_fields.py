@@ -74,7 +74,7 @@ def add_epsilon(n0,p):
   
         return  epsilon 
     
-    print 'adding yt field epsilon_n0-%04d_p-%d'%(n0,p)
+    print('adding yt field epsilon_n0-%04d_p-%d'%(n0,p))
     yt.add_field('epsilon_n0-%04d_p-%d'%(n0,p), function=_eps_local, force_override=True)
 def add_stokes(axis, n0, p):
     """makes a stokes field for yt.
@@ -100,7 +100,7 @@ def add_stokes(axis, n0, p):
         return ( epsilon * (((data[field_horizontal])**2.0) - ((data[field_vertical])**2.0))/B_sq )
     
     fname= 'Q%s_n0-%04d_p-%d'%(axis,n0,p)
-    print 'adding yt field %s'%fname
+    print('adding yt field %s'%fname)
     yt.add_field(fname, units='code_density', function=_Q_local, force_override=True)
 
     def _U_local(field,data):
@@ -116,7 +116,7 @@ def add_stokes(axis, n0, p):
         
         return  (2.0 * epsilon * ((data[field_horizontal]) * (data[field_vertical]))/B_sq)
 
-    print 'adding yt field U%s_n0-%04d_p-%d'%(axis,n0,p)
+    print('adding yt field U%s_n0-%04d_p-%d'%(axis,n0,p))
     yt.add_field('U%s_n0-%04d_p-%d'%(axis,n0,p), units='g/cm**3', function=_U_local, force_override=True)
 
 
@@ -135,7 +135,7 @@ def add_unweighted_stokes(axis):
         return (data[field_horizontal]**2.0 - data[field_vertical]**2.0)/B_sq
 
     fieldname = 'unweighted_Q%s'%axis
-    print "ADDING", fieldname
+    print("ADDING", fieldname)
     yt.add_field(fieldname, units='dimensionless', function=_unweighted_Q_local)
 
     def _unweighted_U_local(field,data):
@@ -145,7 +145,7 @@ def add_unweighted_stokes(axis):
         return 2*(data[field_horizontal]) * (data[field_vertical])/B_sq 
 
     fieldname = 'unweighted_U%s'%axis
-    print "Adding", fieldname
+    print("Adding", fieldname)
     yt.add_field(fieldname, units='dimensionless', function=_unweighted_U_local)
 
 def add_N2(axis, n0, p):
@@ -183,7 +183,7 @@ def add_N2(axis, n0, p):
        
     fieldname = 'N2%s_n0-%04d_p-%d'%(axis,n0,p)
     yt.add_field(fieldname, units='code_density', function=_N2_local)    
-    print "Added", fieldname
+    print("Added", fieldname)
 
 # Add yt fields for stokes and n2 along each axis with 
 # different cutoff density n0 and powerlaw index p
