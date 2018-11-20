@@ -128,9 +128,9 @@ all_sims += ['aa19','aa20','aa21','aa22']
 all_sims += ['az19','az20','az21','az22']
 all_sims += ['ab19','ab22','ab23']
 all_sims += ['ac19','ac22','ac23']
-all_all = []#np.unique(np.array(all_sims + labels.keys()+nominal.keys()))
+#all_all = []#np.unique(np.array(all_sims + labels.keys()+nominal.keys()))
 print("ALL_ALL NOT WORKING RIGHT")
-all_sims = all_all
+#all_sims = all_all
 rm = rainbow_map(len(all_sims))
 color_sim_dict = dict(zip(all_sims, [rm(i) for i in range(len(all_sims))]))
 color_sim_dict['aa22'] = [0.0,0.0,0.0,1.0]

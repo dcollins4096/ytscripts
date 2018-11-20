@@ -12,7 +12,7 @@ from pylab import *
 import re
 import glob
 
-
+frbname = "OH NO"
 #if len(sys.argv) > 1:
 #    rootdir = sys.argv[1]
 #    frame = int(sys.argv[2])
@@ -32,7 +32,7 @@ def QU2EB(rootdir,frame):
     QUlist = zip(Qlist,Ulist)
 
     for Qfile, Ufile in QUlist :
-        print "WORKING!", Qfile
+        print( "WORKING!", Qfile)
 
         Q = array(pyfits.open(Qfile)[0].data,dtype=double)
         U = array(pyfits.open(Ufile)[0].data,dtype=double)
@@ -74,7 +74,7 @@ def QU2EB(rootdir,frame):
         Clfile = outroot+'Cl'+outsuf+'.dat'
 
 
-        print Efile, Bfile, Clfile
+        print( Efile, Bfile, Clfile)
 
         hdu = pyfits.PrimaryHDU(E)
         hdulist = pyfits.HDUList([hdu])

@@ -1,4 +1,5 @@
 import taxi
+from GL import *
 import p49_fields
 import p49_labels
 import p49_QU2EB
@@ -56,6 +57,8 @@ class quan_box():
                 if frame not in dict1['EB']:
                     dict1['EB'][frame] = dict2['EB'][frame]
     def dump(self, pickle_name=None):
+        print("no loading/saving until fPickle is fixed.")
+        return
         #pdb.set_trace()
         if pickle_name is None:
             pickle_name = 'quan_box_%s.pickle'%self.car.outname
@@ -71,14 +74,16 @@ class quan_box():
         fptr.write("in use\n");
         fptr.close()
         if os.path.exists(pickle_name):
-            other_pickle = fPickle.load(pickle_name)
+            #other_pickle = fPickle.load(pickle_name)
             self.merge(other_pickle)
             
-        fPickle.dump(self.stuff,pickle_name)
+        #fPickle.dump(self.stuff,pickle_name)
         os.remove(lock_name)
 
 
     def load(self, pickle_name=None):
+        print("Quan: no loading/saving until fPickle is fixed")
+        return
         if pickle_name is None:
             pickle_name = 'quan_box_%s.pickle'%self.car.outname
         if len(glob.glob(pickle_name)):
@@ -101,12 +106,12 @@ class quan_box():
 
     def plot_eb_vs_stuff(self,eb_quantity, axis, other_quantity):
         quad_frames = self.stuff['frames']
-        eb_frames = self.stuff['EB'].keys()
+        eb_frames = list(self.stuff['EB'].keys())
         all_frames = np.unique(nar(quad_frames + eb_frames))
 
 
     def EBall(self,frames=None):
-        if not self.stuff.has_key('EB'):
+        if 'EB' not in self.stuff:
             self.stuff['EB']={}
         if frames is None:
             frames = self.car.return_frames()
@@ -118,7 +123,7 @@ class quan_box():
         self.dump()
     def EBslopes(self,frame):
         EBSlopePower=p49_QU2EB.slopes_powers(self.car,frame, plot_format=self.plot_format)
-        if not self.stuff.has_key('EB'):
+        if 'EB' not in self.stuff:
             self.stuff['EB']={}
         self.stuff['EB'][frame]=EBSlopePower
     def GetQUEB(self,frame):
@@ -208,12 +213,12 @@ class quan_box():
         print(car.name)
 
         for field in self.all_fields:
-            if not self.stuff.has_key(field):
+            if field not in self.stuff:
                 self.stuff[field] = []
 
         if frame in self.stuff['frames'] and self.clobber == False:
             return
-        if self.stuff.has_key('tdyn'):
+        if 'tdyn' in self.stuff:
             self.tdyn = self.stuff['tdyn']
         else:
             self.tdyn=tdyn
@@ -226,7 +231,7 @@ class quan_box():
         self.potential_written = False
         if car.ds['SelfGravity']:
             car.ds.create_field_info()
-            self.potential_written = 'PotentialField' in [k[1] for k in car.ds.field_info.keys()]
+            self.potential_written = 'PotentialField' in [k[1] for k in list(car.ds.field_info.keys())]
 
         if frame in self.stuff['frames'] and self.clobber == False:
             return

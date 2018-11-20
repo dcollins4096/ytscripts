@@ -2,7 +2,8 @@ import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 from GL import *
-path_list = ['tools_yt_etc', 'tools_turb']
+from importlib import reload
+path_list = ['tools_yt_etc', 'tools_turb', 'p49']
 for directory in path_list:
     sys.path.append(directory)
 import yt
