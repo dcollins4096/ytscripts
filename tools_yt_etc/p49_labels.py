@@ -1,4 +1,5 @@
 import numpy as np
+nar=np.array
 import h5py
 from davetools import rainbow_map
 Lb ='None'
@@ -128,9 +129,8 @@ all_sims += ['aa19','aa20','aa21','aa22']
 all_sims += ['az19','az20','az21','az22']
 all_sims += ['ab19','ab22','ab23']
 all_sims += ['ac19','ac22','ac23']
-#all_all = []#np.unique(np.array(all_sims + labels.keys()+nominal.keys()))
-print("ALL_ALL NOT WORKING RIGHT")
-#all_sims = all_all
+all_all = np.unique(np.array(list(all_sims) + list(labels.keys())+list(nominal.keys())))
+all_sims = all_all
 rm = rainbow_map(len(all_sims))
 color_sim_dict = dict(zip(all_sims, [rm(i) for i in range(len(all_sims))]))
 color_sim_dict['aa22'] = [0.0,0.0,0.0,1.0]
@@ -141,7 +141,30 @@ color_sim_dict['aa22'] = [0.0,0.0,0.0,1.0]
 color_sim_dict['b02_512']='r'
 color_sim_dict['b2_512']='g'
 color_sim_dict['b20_512']='b'
-def scrub_eb_vs_stuff(self,eb_quantity, axis, other_quantity, frames=[]):
+def scrub_eb_vs_stuff(self,eb_quantity, other_quantity, frames=[]):
+    quad_frames = list(self.stuff['frames'])
+    eb_frames = list(self.stuff['EBcycles'])
+    if len(frames) == 0:
+        frames = np.unique(nar(quad_frames + eb_frames+frames))
+        frames.sort()
+    ok_frames = []
+    t = []
+    this_quan = []
+    this_eb   = []
+    if other_quantity in ['brms_B']:
+        other_field=(nar(self.stuff['bx2'])+nar(self.stuff['by2'])+nar(self.stuff['bz2']))/nar(self.stuff['Bx'])**2
+    else:
+        other_field=self.stuff[other_quantity]
+    for frame in frames:
+        if frame in quad_frames  and frame in eb_frames:
+            ok_frames.append(frame)
+            loc = np.where(self.stuff['frames']==frame)[0][0]
+            loc_eb = np.where(self.stuff['EBcycles']==frame)[0][0]
+            t.append(self.stuff['t'][ loc ])
+            this_quan.append(other_field[loc])
+            this_eb.append( self.stuff[eb_quantity][loc_eb])
+    return nar(this_eb), nar(this_quan), nar(t)
+def scrub_eb_vs_stuff_old(self,eb_quantity, axis, other_quantity, frames=[]):
     quad_frames = self.stuff['frames']
     eb_frames = self.stuff['EB'].keys()
     if len(frames) == 0:

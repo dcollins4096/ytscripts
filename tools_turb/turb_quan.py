@@ -21,14 +21,18 @@ reload(xtra_energy_fields)
 frbname = p49_QU2EB.frbname
 #fleet = [aw11]
 class quan_box():
-    def __init__(self,car, plot_format='png'):
+    def __init__(self,car=None, plot_format='png'):
+        
         self.car = car
-        self.name = car.name
+        if car is not None:
+            self.name = car.name
+        else:
+            self.name='NAME'
         self.keys=['ex','ey','ez','vx','vy','vz','px','py','pz','mach']
         self.magkeys=['Bx','By','Bz','bx','by','bz','bx2','by2','bz2','beta','AlfMach','AlfvenSpeed']
         self.all_fields = ['vx','vy','vz','mach','px','py','pz','ex','ey','ez','t','bx','by','bz','bx2','by2','bz2']
         self.all_fields +=['Bx','By','Bz','Bfield_strength','AlfMach','beta','AlfvenSpeed','frames']
-        self.all_fields +=['ke_tot','ke_rel','grav_pot','grav_pot_2','gas_work']
+        self.all_fields +=['ke_tot','ke_rel','grav_pot','grav_pot_2','gas_work', 'density','density2']
         self.potential_written = False
         self.clobber=False
         self.stuff={}
@@ -81,15 +85,23 @@ class quan_box():
         os.remove(lock_name)
 
 
-    def load(self, pickle_name=None):
-        print("Quan: no loading/saving until fPickle is fixed")
-        return
-        if pickle_name is None:
-            pickle_name = 'quan_box_%s.pickle'%self.car.outname
-        if len(glob.glob(pickle_name)):
-            self.stuff = fPickle.load(pickle_name)
+    def load(self, h5_name=None):
+        if h5_name is None:
+            h5_name = 'quan_box_%s.pickle'%self.car.outname
+        if len(glob.glob(h5_name)):
+            #self.stuff = fPickle.load(h5_name)
+            self.stuff={}
+            fptr = h5py.File(h5_name,'r')
+            try:
+                for k in fptr:
+                    self.stuff[k]=copy.copy(fptr[k].value)
+            except:
+                pdb.set_trace()
+                raise
+            finally:
+                fptr.close()
         else:
-            print("NO SUCH FILE", pickle_name)
+            print("NO SUCH FILE", h5_name)
 
     def __getitem__(self,key):
         return self.__dict__[key]
@@ -203,14 +215,13 @@ class quan_box():
 
 
         #car.plot()
-    def __call__(self, tdyn=1, frames=None):
+    def __call__(self, ds=None, tdyn=1, frames=None):
         if frames is None:
             frames = self.car.return_frames()
-        for frame in self.car.return_frames():
-            self.quadratic(self.car,frame,tdyn)
+        for frame in frames:
+            self.quadratic(self.car,frame,tdyn,ds=ds)
         #car.plot()
-    def quadratic(self,car, frame, tdyn=1):
-        print(car.name)
+    def quadratic(self,car, frame, tdyn=1, ds=None):
 
         for field in self.all_fields:
             if field not in self.stuff:
@@ -225,24 +236,40 @@ class quan_box():
         self.stuff['tdyn']=self.tdyn
 
 
+        if ds is None:
+            print(car.name)
+            car.region_type='all'
+            ds=car.load(frame)
+            UseMHD = car.ds['HydroMethod'] in [4,6]
+            this_time=car.ds['InitialTime']/(tdyn) 
+        else:
+            UseMHD = True
+            this_time=frame
 
-        car.region_type='all'
-        ds=car.load(frame)
         self.potential_written = False
-        if car.ds['SelfGravity']:
-            car.ds.create_field_info()
-            self.potential_written = 'PotentialField' in [k[1] for k in list(car.ds.field_info.keys())]
+        try:
+            if car.ds['SelfGravity']:
+                car.ds.create_field_info()
+                self.potential_written = 'PotentialField' in [k[1] for k in list(car.ds.field_info.keys())]
+        except:
+            self.potential_written =False
 
         if frame in self.stuff['frames'] and self.clobber == False:
             return
-        print("QUAN ON ", car.name, frame)
         self.stuff['frames'].append(frame)
-        self.stuff['t'].append(car.ds['InitialTime']/(tdyn) )
-        reg = car.get_region(frame)
-        xtra_energy_fields.dave_add_field(car.ds) #adds many fields.
+        self.stuff['t'].append(this_time)
+        if ds is not None:
+            reg=ds.all_data()
+        else:
+            reg = car.get_region(frame)
+            ds = car.ds
+        xtra_energy_fields.dave_add_field(ds) #adds many fields.
         total_volume = reg['cell_volume'].sum()
         volume = reg['cell_volume']
+        print("volume", volume)
         #self.stuff['mass'].append( (reg.quantities['WeightedAverageQuantity']('density', 'cell_volume')*total_volume).in_units('code_mass'))
+        self.stuff['density'].append( reg.quantities['WeightedAverageQuantity']('density','cell_volume').in_units('code_density').v  )
+        self.stuff['density2'].append( ((( reg['density'].in_units('code_density').v-self.stuff['density'][-1])**2*reg['cell_volume']).sum()/total_volume)  )
         self.stuff['mach'].append( np.sqrt(reg.quantities['WeightedAverageQuantity']('mean_square_velocity','cell_volume').in_units('code_velocity**2').v ) )
         self.stuff['vx'].append(reg.quantities['WeightedAverageQuantity']('velocity_x','cell_volume').in_units('code_velocity').v)
         self.stuff['vy'].append(reg.quantities['WeightedAverageQuantity']('velocity_y','cell_volume').in_units('code_velocity').v)
@@ -260,7 +287,7 @@ class quan_box():
             self.stuff['grav_pot'].append(reg.quantities['WeightedAverageQuantity']('grav_pot','cell_volume').in_units('code_density*code_velocity**2').v)
         self.stuff['gas_work'].append(reg.quantities['WeightedAverageQuantity']('gas_work','cell_volume').in_units('code_density*code_velocity**2').v)
 
-        if car.ds['HydroMethod'] in [4,6]:
+        if UseMHD:
             self.stuff['Bx'].append( (reg['Bx']*volume).sum()/total_volume)
             self.stuff['By'].append( (reg['By']*volume).sum()/total_volume)
             self.stuff['Bz'].append( (reg['Bz']*volume).sum()/total_volume)

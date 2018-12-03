@@ -9,6 +9,7 @@ not_ported = False
     #import yt.lagos as lagos
 import matplotlib
 matplotlib.use('Agg')
+from importlib import reload
 import matplotlib.pyplot as plt
 import yt
 import numpy as np
@@ -29,6 +30,7 @@ import matplotlib.colorbar as cb
 import re
 import copy
 #import turb_quan
+#reload(turb_quan)
 
 #import QU_callback
 #reload(QU_callback)
@@ -1301,10 +1303,10 @@ class taxi:
         plt.savefig(profname)
         self.profile_data={'all_xbins':all_xbins,'all_profiles':all_profiles, 'scales':scales, 'fields':fields}
 
-    def qb_load(self,plot_format='png'):
+    def qb_load(self,h5_name=None,plot_format='png'):
         reload(turb_quan)
         self.qb=turb_quan.quan_box(self)
-        self.qb.load()
+        self.qb.load(h5_name=h5_name)
         self.qb.plot_format = plot_format
     def phase(self,fields, callbacks=None, weight_field=None, phase_args={},save=True, n_bins=[64,64], phase_callbacks=[]):
         """Uber wrapper for phase objects.

@@ -187,13 +187,13 @@ def add_N2(axis, n0, p):
 
 # Add yt fields for stokes and n2 along each axis with 
 # different cutoff density n0 and powerlaw index p
-for axis in ['x', 'y', 'z']:
-#   for n0 in [19,39,1945]:
-#       add_stokes(axis, n0, p=0)
-#       add_N2(axis, n0, p=0)
-    add_stokes(axis, n0=1, p=1)
-    add_N2(axis, n0=1, p=1)
-    #add_unweighted_stokes(axis)
+#for axis in ['x', 'y', 'z']:
+##   for n0 in [19,39,1945]:
+##       add_stokes(axis, n0, p=0)
+##       add_N2(axis, n0, p=0)
+#    add_stokes(axis, n0=1, p=1)
+#    add_N2(axis, n0=1, p=1)
+#    #add_unweighted_stokes(axis)
 
 
 

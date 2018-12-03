@@ -1,4 +1,5 @@
 import numpy as np
+nar=np.array
 from davetools import rainbow_map
 nominal = { }
 nominal['aa19']=  dict(zip(['mach','field_cgs','AlfMach','beta','logbeta'],[1  ,11.82  ,0.300 , 0.180 , -0.7]))
@@ -94,7 +95,7 @@ all_sims += ['aa19','aa20','aa21','aa22']
 all_sims += ['az19','az20','az21','az22']
 all_sims += ['ab19','ab22','ab23']
 all_sims += ['ac19','ac22','ac23']
-all_all = np.unique(np.array(all_sims + labels.keys()+nominal.keys()))
+all_all = np.unique(np.array(list(all_sims) + list(labels.keys())+list(nominal.keys())))
 all_sims = all_all
 rm = rainbow_map(len(all_sims))
 color_sim_dict = dict(zip(all_sims, [rm(i) for i in range(len(all_sims))]))
@@ -106,9 +107,9 @@ for a,b in zip(['ax19','ax20','ax21','ax22'],
 color_sim_dict['b02_512']='r'
 color_sim_dict['b2_512']='g'
 color_sim_dict['b20_512']='b'
-def scrub_eb_vs_stuff(self,eb_quantity, axis, other_quantity, frames=[]):
-    quad_frames = self.stuff['frames']
-    eb_frames = self.stuff['EB'].keys()
+def scrub_eb_vs_stuff(self,eb_quantity, other_quantity, frames=[]):
+    quad_frames = list(self.stuff['frames'])
+    eb_frames = list(self.stuff['EBcycles'])
     if len(frames) == 0:
         frames = np.unique(nar(quad_frames + eb_frames+frames))
         frames.sort()
@@ -124,9 +125,10 @@ def scrub_eb_vs_stuff(self,eb_quantity, axis, other_quantity, frames=[]):
         if frame in quad_frames  and frame in eb_frames:
             ok_frames.append(frame)
             loc = np.where(self.stuff['frames']==frame)[0][0]
+            loc_eb = np.where(self.stuff['EBcycles']==frame)[0][0]
             t.append(self.stuff['t'][ loc ])
             this_quan.append(other_field[loc])
-            this_eb.append( self.stuff['EB'][frame][eb_quantity][axis])
+            this_eb.append( self.stuff[eb_quantity][loc_eb])
     return nar(this_eb), nar(this_quan), nar(t)
 class field_stuff():
     def __init__(self,field,car):
