@@ -1,34 +1,15 @@
 """The taxi object, for keeping track of yt things."""
 """ used to be called uber, but that got taken. """
 #checkrel
+from GL import *
 import warnings
 not_ported = False
-#with warnings.catch_warnings():
-    #warnings.simplefilter("ignore")
-    #import yt.raven as raven
-    #import yt.lagos as lagos
-import matplotlib
-matplotlib.use('Agg')
-from importlib import reload
-import matplotlib.pyplot as plt
 import yt
-import numpy as np
-nar = np.array
 array=np.array
-import pdb
-import os
 #import h5py
 import types, time,weakref,davetools
 #import dave_callbacks
 from davetools import dsave, no_trailing_comments, ensure_list
-import time, fPickle, glob
-if not_ported:
-    import clump_stuff, clump_subset
-    from clump_list_sort import *
-    #reload(clump_stuff)
-import matplotlib.colorbar as cb
-import re
-import copy
 #import turb_quan
 #reload(turb_quan)
 

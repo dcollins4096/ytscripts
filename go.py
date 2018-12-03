@@ -1,8 +1,5 @@
-import matplotlib
-matplotlib.use('Agg')
-import matplotlib.pyplot as plt
 from GL import *
-from importlib import reload
+#dude.  All non-yt, non-my-dumb-stuff goes in GL
 path_list = ['tools_yt_etc', 'tools_turb', 'p49']
 for directory in path_list:
     sys.path.append(directory)
@@ -13,7 +10,7 @@ yt.config.ytcfg['yt','loglevel']="50"
 #Stuff I wrote that I like
 #import davecallback
 import dsdiff_helpers
-import fPickle
+#import fPickle
 from davetools import * #as needed, no more execfile.  
 import taxi
 if 0:
