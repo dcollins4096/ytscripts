@@ -10,12 +10,37 @@ array=np.array
 import types, time,weakref,davetools
 #import dave_callbacks
 from davetools import dsave, no_trailing_comments, ensure_list
-#import turb_quan
-#reload(turb_quan)
+import turb_quan
+reload(turb_quan)
 
 #import QU_callback
 #reload(QU_callback)
 #import p49_fields
+def load(filename):
+    try:
+        filename.index('/')
+        actual_filename = filename
+    except:
+        actual_filename = "taxi_stand/%s"%filename
+    fptr = open(actual_filename,'r')
+    taxi_type = "'yellow'"
+    for line in fptr:
+        a, b = line.split("=")
+        if a.strip() == 'self.taxi_type':
+            taxi_type = b.strip()
+    if taxi_type == "'yellow'":
+        this_taxi = taxi()
+        this_taxi.read(actual_filename)
+    elif taxi_type == "'bb'":
+        this_taxi = bb_taxi()
+        this_taxi.read(actual_filename)
+    else:
+        print("UNKNOWN TAXI TYPE %s"%taxi_type)
+        pdb.set_trace()
+        this_taxi=None
+    return this_taxi
+
+        
 
 class fleet():
     def __init__(self,taxi_list=[]):
@@ -23,7 +48,7 @@ class fleet():
         self.next_taxi_index=0
         for car in taxi_list:
             if type(car) is str:
-                self.taxi_list.append(taxi(car))
+                self.taxi_list.append(load(car))
             else:
                 self.taxi_list.append(car)
         self.namelength = max([len(t.name) for t in self.taxi_list])
@@ -371,13 +396,16 @@ class taxi:
         Either reads in taxifile *fileame* or just sets some defaults."""
 
         #List of members that will NOT be written.  
+
         self.ExcludeFromWrite = ['ExcludeFromWrite']
+        self.ExcludeFromWrite.append('data')
         
 
         #To make the file easier to use, some of the uber members are written first
+        self.taxi_type='yellow'
         self.WriteMeFirst = ['name','directory','outname','operation','frames','fields','axis',
                             'name_syntax', 'name_files','name_dir','GlobalParameters',
-                             'ProfileDir','ProfileName']
+                             'ProfileDir','ProfileName', 'taxi_type']
         self.ExcludeFromWrite.append('WriteMeFirst')
         self.ExcludeFromWrite.append('profile_data')
         self.ExcludeFromWrite.append('last_prof')
@@ -500,6 +528,7 @@ class taxi:
         self.particle_filter_names=[]  #Filters get added directly to the ds, e.g.
         #http://yt-project.org/doc/cookbook/calculating_information.html?highlight=formed_star
 
+        self.ExcludeFromWrite.append('derived_fields')
         self.derived_fields={} #Derived fields can also be added to the ds directly.
         #This is not fully developed, syntax should be sth like
         #self.derived_fields['field_name'] = {'function':{dict of args}}
@@ -511,6 +540,8 @@ class taxi:
 
 
         if filename != None:
+            print("USE THE MAIN taxi.load FUNCION")
+            return None
             #If no directories are mentioned, assume the actual file is ./taxi_stand/filename
             try:
                 filename.index('/')
@@ -775,15 +806,18 @@ class taxi:
                 self.__dict__[arg] = kwargs[arg]
 
 
+    def get_all_frames(self):
+        if not hasattr(self,'frame_dict') or self.frame_dict is None:
+            self.get_frames()
+        all_frames = sorted(self.frame_dict.keys())
+        return all_frames
     def return_frames(self):
         if self.name_syntax == 'preset':
             if type( self.frames) is not list: #isinstance(self.frames, types.ListType)
                 print("With preset name syntax, frames must be a list of integers.")
                 raise
             return self.frames
-        if not hasattr(self,'frame_dict') or self.frame_dict is None:
-            self.get_frames()
-        all_frames = sorted(self.frame_dict.keys())
+        all_frames=self.get_all_frames()
         return_frames = 'type error'
         if type(self.frames) is str: #isinstance(self.frames,types.StringType):
             if self.frames=='all':
@@ -1936,5 +1970,61 @@ class other_horsecrap():
 
 
 
+class bb_taxi(taxi):
+    ds_dict = {}
+    kill_old_data = False
+    def set_filename(self,frame=None):
+        if frame is None:
+            frame = self.frames[-1]
+        this_dir = "%s/t_%d"%(self.directory,frame)
+        self.frame_dict[frame]=this_dir
+        return this_dir
+    def __init__(self,*args,**kwargs):
+        taxi.__init__(self,*args,**kwargs)
+        self.taxi_type = 'bb'
+        self.frame_dict={}
 
-        
+    def return_all_frames(self):
+        return frames
+    def load(self,frame=None):
+        if frame in self.ds_dict:
+            self.ds = self.ds_dict[frame]
+        else:
+            fname = {}
+            this_dir=self.set_filename(frame)
+            fname['density']=this_dir+"/dens_t%d.fits"%frame
+            fname['magnetic_field_x']=this_dir+"/magx_t%d.fits"%frame
+            fname['magnetic_field_y']=this_dir+"/magy_t%d.fits"%frame
+            fname['magnetic_field_z']=this_dir+"/magz_t%d.fits"%frame
+            #fname['Bx']=this_dir+"/magx_t%d.fits"%frame
+            #fname['By']=this_dir+"/magy_t%d.fits"%frame
+            #fname['Bz']=this_dir+"/magz_t%d.fits"%frame
+            fname['velocity_x']=this_dir+"/velx_t%d.fits"%frame
+            fname['velocity_y']=this_dir+"/vely_t%d.fits"%frame
+            fname['velocity_z']=this_dir+"/velz_t%d.fits"%frame
+            self.data ={}
+            for f in fname:
+                self.data[f]= np.array(pyfits.open(fname[f])[0].data)
+                if f in ['magnetic_field_%s'%s for s in 'xyz']:
+                    self.data[f]/=np.sqrt(4*np.pi)
+            self.data['pressure'] = self.data['density']
+            self.data['Bx'] = self.data['magnetic_field_x']
+            self.data['By'] = self.data['magnetic_field_y']
+            self.data['Bz'] = self.data['magnetic_field_z']
+            bbox = np.array([[0.,1.]]*3) 
+            TopGridDimensions=self.data['density'].shape
+            self.ds = yt.load_uniform_grid(self.data,TopGridDimensions,length_unit='cm',bbox=bbox)
+            self.ds.parameters['HydroMethod'] = 9000
+            self.ds.parameters['InitialTime'] = frame
+            self.ds.parameters['TopGridDimensions'] = TopGridDimensions 
+            #self.ds_dict[frame]=self.ds
+        for field in self.derived_fields:
+            field_stuff = self.derived_fields[field]
+            print("LOADING FIELD",field)
+            if type(field_stuff) is dict:
+                self.ds.add_field(field,**self.derived_fields[field])
+            else:
+                field_stuff(self.ds)
+
+        return self.ds
+
