@@ -16,6 +16,21 @@ nar = np.array
 import xtra_energy_fields
 reload(xtra_energy_fields)
 
+def plotter(Q,U,E,B,fname,**args):
+    fig, axes = plt.subplots(2,2,sharex=True,sharey=True)
+    args['interpolation']='nearest'
+    args['origin']='lower'
+    axes[0][0].imshow(Q,**args)
+    axes[0][0].set_title('Q')
+    axes[1][0].imshow(U,**args)
+    axes[1][0].set_title("U")
+    oot=axes[0][1].imshow(E,**args)
+    fig.colorbar(oot)
+    axes[0][1].set_title("E")
+    axes[1][1].imshow(B,**args)
+    axes[1][1].set_title("B")
+    fig.savefig(fname)
+    plt.close(fig)
 
 frbname = p49_QU2EB.frbname
 #fleet = [aw11]
@@ -184,10 +199,38 @@ class quan_box():
             Efile = outroot+'E'+outsuf+'.fits'
             Bfile = outroot+'B'+outsuf+'.fits'
             Clfile = outroot+'Cl'+outsuf+'.dat'
-            self.QUEBarr['Q'][Qfile] = np.array(pyfits.open(Qfile)[0].data,dtype=np.double)
-            self.QUEBarr['U'][Ufile] = np.array(pyfits.open(Ufile)[0].data,dtype=np.double)
-            self.QUEBarr['E'][Efile] = np.array(pyfits.open(Efile)[0].data,dtype=np.double)
-            self.QUEBarr['B'][Bfile] = np.array(pyfits.open(Bfile)[0].data,dtype=np.double)
+            #self.QUEBarr['Q'][Qfile] = np.array(pyfits.open(Qfile)[0].data,dtype=np.double)
+            #self.QUEBarr['U'][Ufile] = np.array(pyfits.open(Ufile)[0].data,dtype=np.double)
+            #self.QUEBarr['E'][Efile] = np.array(pyfits.open(Efile)[0].data,dtype=np.double)
+            #self.QUEBarr['B'][Bfile] = np.array(pyfits.open(Bfile)[0].data,dtype=np.double)
+            self.QUEBarr['Q'][outsuf] = np.array(pyfits.open(Qfile)[0].data,dtype=np.double)
+            self.QUEBarr['U'][outsuf] = np.array(pyfits.open(Ufile)[0].data,dtype=np.double)
+            self.QUEBarr['E'][outsuf] = np.array(pyfits.open(Efile)[0].data,dtype=np.double)
+            self.QUEBarr['B'][outsuf] = np.array(pyfits.open(Bfile)[0].data,dtype=np.double)
+
+
+    def PlotQUEB(self,frame, style=1):
+        self.GetQUEB(frame)
+        if style == 0:
+            for field in 'QUEB':
+                for f in qb.QUEBarr[field]:
+                    oot = "%s_%s"%(selfcar.outname,f.split('/')[-1])
+                    plt.clf()
+                    f = plt.imshow(qb.QUEBarr[field][f],interpolation='nearest',origin='lower')
+                    plt.colorbar(f)
+                    print("did a color")
+                    plt.title(oot)
+                    plt.savefig(oot+".png")
+                    print(oot)
+        else:
+            for ax in 'xyz':
+                outname = 'P49_QUEB_4p_%s_%s.%s'%(self.car.outname,ax,self.plot_format)
+                plotter(self.QUEBarr['Q'][ax],
+                        self.QUEBarr['U'][ax],
+                        self.QUEBarr['E'][ax],
+                        self.QUEBarr['B'][ax],
+                        outname)
+                print("Save %s"%outname)
 
 
     def QUEB(self, frame):
