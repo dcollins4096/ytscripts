@@ -14,6 +14,8 @@ packrat
 ProfileFilesTrash
 fourier_tools
 *.png
+*.txt
+*.h5
 pickles/*
 LOGS/*
 taxi_stand/*
