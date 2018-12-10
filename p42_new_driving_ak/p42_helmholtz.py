@@ -4,7 +4,53 @@ Why were all the ghost zones set to -1?
 
 """
 mark_time = None
-import fourier_tools.fourier_filter as Filter
+from GL import *
+import fourier_tools_py3.fourier_filter as Filter
+
+class short_oober():
+    def __init__(self, directory="./STUFF/", frame=0):
+        self.frame=frame
+        self.directory=directory
+    def product_dir(self,frame):
+        return "%s/DD%04d.products"%(self.directory,frame)
+
+
+    def fft(self,frame=None,field=None,data=None,make_cg=True,num_ghost_zones=0,dtype='float32',debug=0,fft_func=np.fft.fftn):
+        if dtype == 'float32':
+            fft_dtype = 'complex64'
+        elif dtype == 'float64':
+            fft_dtype = 'complex128'
+        elif dtype not in ['complex64','complex128']:
+            print(("Can't cast type ",dtype, "to a complex type."))
+            return None
+        if frame == None:
+            frame = self.frame
+        directory = self.product_dir(frame) #"%s/%s%04d.products/"%(self.directory,self.name_dir,frame)
+        filename = "%s/fft_%s.%s"%(directory,field,dtype)
+        if glob.glob(filename):
+            if debug > 0:
+                print("open FFT from disk")
+            file = h5py.File(filename,'r')
+            fft = file[field][:]
+            file.close()
+        else:
+            if glob.glob(directory) == []:
+                print(("making directory",directory))
+                os.mkdir(directory)
+            if debug > 0:
+                print("Create FFT")
+            if data == None:
+                this_set = self.data[field]
+            else:
+                this_set = data
+            fft = fft_func(this_set)/this_set.size
+            if debug > 0:
+                print("save")
+            fptr = h5py.File(filename,'w')
+
+            fptr.create_dataset(field,fft.shape, data=fft, dtype=fft_dtype)
+            fptr.close()
+        return fft
 def do_log(f):
     return np.log10(f)
     #return f
@@ -53,7 +99,7 @@ def MakeHelmholz_2(oober,frame,field,debug=1,dtype='float32'):
         fptr = h5py.File(filename,'w')
         fptr.create_dataset('converging-%s'%(cmpt_name),this_set.shape,data=this_set)
         fptr.close()
-        print "Created",filename
+        print("Created",filename)
 
     for cmpt, cmpt_name in enumerate(fieldlist):
         vhat = oober.fft(frame,cmpt_name,debug=debug)
@@ -62,7 +108,7 @@ def MakeHelmholz_2(oober,frame,field,debug=1,dtype='float32'):
         fptr = h5py.File(filename,'w')
         fptr.create_dataset('solenoidal-%s'%(cmpt_name),this_set.shape,data=this_set)
         fptr.close()
-        print "Created",filename
+        print("Created",filename)
 
 def MakeHelmholz(oober,frame,field,debug=1,dtype='float32'):
     #mark_time=time_marker()
@@ -96,14 +142,14 @@ def MakeHelmholz(oober,frame,field,debug=1,dtype='float32'):
         fptr = h5py.File(filename,'w')
         fptr.create_dataset('converging-%s'%(cmpt_name),this_set.shape,data=this_set)
         fptr.close()
-        print "Created",filename
+        print("Created",filename)
         vhat = oober.fft(frame,cmpt_name,debug=debug)
         this_set = vhat - this_set
         filename = '%s/fft_solenoidal-%s.%s'%(oober.product_dir(frame),cmpt_name,dtype)
         fptr = h5py.File(filename,'w')
         fptr.create_dataset('solenoidal-%s'%(cmpt_name),this_set.shape,data=this_set)
         fptr.close()
-        print "Created",filename
+        print("Created",filename)
 
     #ConvergingPower(oobername,frame,field,debug,dtype)
     
@@ -152,7 +198,7 @@ def shell_average(power,oober,frame,field,debug=1,mark_time=None):
         mark_time('shell averages')
     filename = "%s/power_%s.h5"%(oober.product_dir(frame), field)
     if debug>0:
-        print "spectra saved in ", filename
+        print("spectra saved in ", filename)
     file = h5py.File(filename,'w')
     file.create_dataset('power',power_1d.shape,data=power_1d)
     kspace=ff.get_shell_k()
@@ -169,7 +215,7 @@ def spectra_filename(oober,frame,xfield,field):
     if field in ['Density','LogDensity','gx','gy','gz']:
         setname = 'power_%s-work.h5'%field
     outname= "%s/%s"%(dirname,setname)
-    print outname
+    print(outname)
     return outname
 
 def MinK(TheY):
@@ -189,7 +235,7 @@ def plot_helm(oober,frame,field):
     out_power = []
     for n,field in enumerate(fieldlist):
         filename = spectra_filename(oober,frame,None,field)
-        k,p = dpy(filename,['k','power'])
+        k,p = davetools.dpy(filename,['k','power'])
         out_power.append(p)
         plt.plot(MinK(k), p, label=['ud','us'][n])
 
@@ -198,7 +244,7 @@ def plot_helm(oober,frame,field):
     fname = '%s_%04d_Helmholtz_%s_ud_us.pdf'%(oober.outname,frame,field)
     plt.legend(loc=0)
     plt.savefig(fname)
-    print fname
+    print(fname)
     return k,out_power[0], out_power[1]
 
 mark_time = None
@@ -207,16 +253,17 @@ def MakeVelocitySpectra(oober,frame,density=0,debug=1):
     mark_time = None
     if mark_time is not None:
         mark_time = time_marker()
-    print "derp", density
-    needs_fft(oober,frame, ['%s-velocity'%s for s in 'xyz'])
+    print("derp", density)
+    #needs_fft(oober,frame, ['%s-velocity'%s for s in 'xyz'])
     power=0
     if mark_time:
         mark_time('Start Velocity Spectra')
+    setlist = ['velocity_%s'%s for s in 'xyz']
     for i,x in enumerate('xyz'):
         if mark_time:
             mark_time('Start loop %s'%x)
         if density == 0:
-            Vhat = oober.fft(frame,'%s-velocity'%x,num_ghost_zones=-1,debug=debug)
+            Vhat = oober.fft(frame,setlist[i],num_ghost_zones=-1,debug=debug)
             field_out = 'velocity'
         elif density == 1:
             Vhat = oober.fft(frame,'%s-velocity-dhalf'%x,num_ghost_zones=-1,debug=debug)
@@ -241,14 +288,14 @@ def plot_velocity_spectra(oober,frame,density=0):
     if mark_time:
         mark_time('fft %s-velocity'%x)
     filename = spectra_filename(oober,frame,None,field_out)
-    k,p = dpy(filename,['k','power'])
+    k,p = davetools.dpy(filename,['k','power'])
     plt.clf()
     plt.plot(MinK(k),p,marker='*')
     plt.yscale('log')
     plt.xscale('log')
     fname = '%s_%04d_velocity_%s.pdf'%(oober.outname,frame,field_out)
     plt.savefig(fname)
-    print fname
+    print(fname)
     return k,p
 
 
