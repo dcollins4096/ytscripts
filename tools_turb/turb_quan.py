@@ -6,7 +6,6 @@ import p49_QU2EB
 import xtra_energy_fields
 import astropy.io.fits as pyfits
 import glob
-import fPickle
 import os
 import numpy as np
 import time
@@ -60,37 +59,57 @@ class quan_box():
             for frame in dict2['EB']:
                 if frame not in dict1['EB']:
                     dict1['EB'][frame] = dict2['EB'][frame]
-    def dump(self, pickle_name=None):
-        print("no loading/saving until fPickle is fixed.")
-        return
-        #pdb.set_trace()
-        if pickle_name is None:
-            pickle_name = 'quan_box_%s.pickle'%self.car.outname
-        lock_name = pickle_name + ".lock"
-        counter = 0
-        while os.path.exists(lock_name) and counter < 5:
-            print(lock_name, "exists")
-            counter += 1
-            time.sleep(1)
-        if counter > 15:
-            pickle_name = pickle_name+"%d"%len(glob.glob("%s*"%pickle_name))
-        fptr = open(lock_name,"w+")
-        fptr.write("in use\n");
-        fptr.close()
-        if os.path.exists(pickle_name):
-            #other_pickle = fPickle.load(pickle_name)
-            self.merge(other_pickle)
-            
-        #fPickle.dump(self.stuff,pickle_name)
-        os.remove(lock_name)
+    def dump(self,h5name=None):
+        if h5name is None:
+            h5_name = 'quan_box_%s.h5'%self.car.outname
+        #if os.path.exists(pickle_name):
+        #    #other_pickle = fPickle.load(pickle_name)
+        #    self.merge(other_pickle)
+        fptr = h5py.File(h5_name,'a')
+        frames_write = np.ones_like(self.stuff.get('frames',[]),dtype=bool)
+        ebframes_write = np.ones_like(self.stuff.get('EBcycles',[]),dtype=bool)
+        if 'frames' in fptr and 'frames' in self.stuff:
+            frames_write = np.zeros_like(self.stuff['frames'],dtype=bool)
+            for i, n in enumerate(self.stuff['frames']):
+                if n not in fptr['frames']:
+                    frames_write[i] = True
+                else:
+                    frames_write[i] = False
 
+        if 'EBcycles' in fptr and 'EBcycles' in self.stuff:
+            for i, n in enumerate(self.stuff['EBcycles']):
+                if n not in fptr['EBcycles']:
+                    ebframes_write[i] = True
+                else:
+                    ebframes_write[i] = False
+
+        for key in self.stuff:
+            if key in ['tdyn']:
+                continue
+            if len(self.stuff[key]) == 0:
+                continue
+            if key[0:4] in ["Eamp", "Bamp", "Eslo", "Bslo", "EBcy"]:
+                to_write = ebframes_write
+            else:
+                to_write = frames_write
+            newsize = (to_write.sum(),)
+
+            if key not in fptr:
+                dset = fptr.create_dataset(key,newsize,maxshape=(None,))
+                dset[:]=np.array(self.stuff[key])[to_write]
+            else:
+                dset = fptr[key]
+                size1 = dset.size
+                dset.resize( (size1 + newsize[0],))
+                dset[size1:] = np.array(self.stuff[key])[to_write]
+
+        fptr.close()
+            
 
     def load(self, h5_name=None):
         if h5_name is None:
-            h5_name = 'quan_box_%s.pickle'%self.car.outname
+            h5_name = 'quan_box_%s.h5'%self.car.outname
         if len(glob.glob(h5_name)):
-            #self.stuff = fPickle.load(h5_name)
-            self.stuff={}
             fptr = h5py.File(h5_name,'r')
             try:
                 for k in fptr:
@@ -123,21 +142,31 @@ class quan_box():
 
 
     def EBall(self,frames=None):
-        if 'EB' not in self.stuff:
-            self.stuff['EB']={}
+        if 'EBcycles' not in self.stuff:
+            self.stuff['EBcycles']=[]
+            for ax in 'xyz':
+                self.stuff['Eamp_%s'%ax]=[]
+                self.stuff['Bamp_%s'%ax]=[]
+                self.stuff['Eslope_%s'%ax]=[]
+                self.stuff['Bslope_%s'%ax]=[]
         if frames is None:
             frames = self.car.return_frames()
         for frame in frames:
-            if frame not in self.stuff['EB']:
+            if frame not in self.stuff['EBcycles']:
                 self.make_frbs(frame)
                 self.QUEB(frame)
                 self.EBslopes(frame)
         self.dump()
     def EBslopes(self,frame):
         EBSlopePower=p49_QU2EB.slopes_powers(self.car,frame, plot_format=self.plot_format)
-        if 'EB' not in self.stuff:
-            self.stuff['EB']={}
-        self.stuff['EB'][frame]=EBSlopePower
+        if 'EBcycles' not in self.stuff:
+            self.stuff['EBcycles']=[]
+        self.stuff['EBcycles'].append(frame)
+        for ax in 'xyz':
+            self.stuff['Eamp_%s'%ax  ].append(EBSlopePower['Eamp'][ax])
+            self.stuff['Bamp_%s'%ax  ].append(EBSlopePower['Bamp'][ax])
+            self.stuff['Eslope_%s'%ax].append(EBSlopePower['Eslope'][ax])
+            self.stuff['Bslope_%s'%ax].append(EBSlopePower['Bslope'][ax])
     def GetQUEB(self,frame):
 
         frb_dir = "%s/%s/"%(self.car.directory,frbname)
@@ -171,7 +200,7 @@ class quan_box():
 #            self.make_frbs(frame)
 #            self.fit_slopes()
 #            self.plot_eebb()
-    def make_frbs(self,frame, axes=['x','y','z']):
+    def make_frbs(self,frame, axes=['x','y','z'], ds=None):
         fields=[]
         for axis in axes:
           n0=1; p=1 #n0 in [19,39,1945] and p=0
@@ -181,8 +210,6 @@ class quan_box():
           fields.append( (axis,'U%s'%(axis))   )
           fields.append( (axis,'density') )
 
-        ds = None  #this is somewhat awkward, but useful for avoiding simulations
-                   #  that have only products, not datasest
         for axis, field in fields :
             outputdir = "%s/%s/"%(self.car.directory,frbname)
             if not os.access(outputdir, os.F_OK):
@@ -204,7 +231,7 @@ class quan_box():
                     ds = self.car.load(frame)
                     res = ds.parameters['TopGridDimensions'][2 + ord('x') - ord(axis)] # zyx order
                 print("FRB being produced: %s"%outfile)
-                res = ds.parameters['TopGridDimensions'][2 + ord('x') - ord(axis)]
+                res = ds.parameters['TopGridDimensions'][0] #2 + ord('x') - ord(axis)]
                 proj = ds.proj(field,axis)
                 frb = proj.to_frb(1,res)
                 hdu = pyfits.PrimaryHDU(frb[field])
@@ -240,7 +267,7 @@ class quan_box():
             print(car.name)
             car.region_type='all'
             ds=car.load(frame)
-            UseMHD = car.ds['HydroMethod'] in [4,6]
+            UseMHD = car.ds['HydroMethod'] in [4,6,9000]
             this_time=car.ds['InitialTime']/(tdyn) 
         else:
             UseMHD = True
