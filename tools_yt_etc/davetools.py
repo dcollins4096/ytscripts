@@ -5,6 +5,7 @@ import types
 import glob
 import os.path
 import tarfile
+import h5py
 
 def lim_down(value):
     return 10**(np.floor(np.log10(value)))

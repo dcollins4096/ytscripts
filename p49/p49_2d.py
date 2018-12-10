@@ -3,10 +3,11 @@ from go import *
 from p49_labels import *
 from mpl_toolkits.mplot3d import Axes3D
 these_sims = ['ax19','ax22','az19','az22']
+these_sims = ['bb_b1p1']
 #figb, axb = plt.subplots(1, 1, sharex=True)
 axd=None
 plt.close('all')
-if 0:
+if 1:
     figb, axes = plt.subplots(2,2,figsize=[12.8+4.8,2*4.8])
     axb = axes[0][0]
     axc = axes[0][1]
@@ -72,7 +73,7 @@ these_sims=['aa19', 'aa20', 'aa21', 'aa22', 'ab19', 'ab22', 'ab23', 'ab24',
 #these_sims = ['ac23']
 TheGoodSims=['ab25','ab27','ab28','ab29', 'ac19', 'ac22', 'ac23', 'ac25', 'ac26', 'b02_512', 'b20_512', 'b2_512']
 TheGoodSims=['ab25','ab28','ab29', 'ac19', 'ac22', 'ac23', 'ac25', 'ac26', 'b02_512', 'b20_512', 'b2_512']
-these_sims=TheGoodSims
+these_sims=BB_runs
 if 1:
     color_sim_dict={}
     rm = rainbow_map(len(these_sims))
@@ -88,6 +89,7 @@ if means:
     modifier = 'mean_'
 modifier = 'take11_'+axis_list
 clear_plots=False
+
 if 1:
     for ncar,car_name in enumerate(these_sims): #,'ax21']:
         print(car_name)
@@ -96,8 +98,9 @@ if 1:
             axc.clear()
             axe.clear()
             axd.clear()
-        car = taxi.taxi(car_name)
-        car.qb_load('p49_data_h5/quan_box_%s.h5'%car.outname)
+        car = taxi.load(car_name)
+        #car.qb_load('p49_data_h5/quan_box_%s.h5'%car.outname)
+        car.qb_load()
         qb=car.qb
 
         car_list[car_name]=car
@@ -272,8 +275,8 @@ if 1:
                 print(outname_base)
 if not clear_plots:
     if figc is None:
-        figb.savefig(outname)
         outname = 'p49_plots_temp/p49_stuff_%d.png'%counter
+        figb.savefig(outname)
         print(outname)
     else:
         outname_base = 'p49_plots_temp/p49_ind_%d'%counter
