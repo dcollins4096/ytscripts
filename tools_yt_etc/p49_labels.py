@@ -12,8 +12,8 @@ nominal = { }
 class om_nominal():
     def __init__(self,mach=-1,field_cgs=-1,AlfMach=-1,beta=-1,logbeta=-1):
         self.mach=mach
-        self.field_cgs=field_cgs
         self.AlfMach=AlfMach
+        self.field_cgs=field_cgs
         self.beta=beta
         self.logbeta=logbeta
         self.fields = ['mach','field_cgs','AlfMach','beta','logbeta']
@@ -29,6 +29,22 @@ class om_nominal():
         else:
             print("not an allowed key right now", key)
             raise
+
+
+nominal['bb_b1p.01'   ]= om_nominal(7  ,None ,0.7 , None , None)
+nominal['bb_b1p.032'  ]= om_nominal(4  ,None ,0.7 , None , None) #extant
+nominal['bb_b1p.1'    ]= om_nominal(2  ,None ,0.7 , None , None)
+nominal['bb_b1p.32'   ]= om_nominal(1.2  ,None ,0.7 , None , None)
+nominal['bb_b1p1'     ]= om_nominal(0.7  ,None ,0.7 , None , None)#extant
+nominal['bb_b.1p.01'  ]= om_nominal(7   ,None ,2.0 , None , None) #stops at 750
+nominal['bb_b.1p.032' ]= om_nominal(4   ,None ,2.0 , None , None)
+nominal['bb_b.1p.1'   ]= om_nominal(2   ,None ,2.0 , None , None)
+nominal['bb_b.1p.32'  ]= om_nominal(1.2 ,None ,2.0 , None , None)
+nominal['bb_b.1p1'    ]= om_nominal(0.7 ,None ,2.0 , None , None)
+BB_runs=['bb_b1p.01'  , 'bb_b1p.032' , 'bb_b1p.1'   , 'bb_b1p.32'  , 'bb_b1p1'    ,\
+'bb_b.1p.01' , 'bb_b.1p.032', 'bb_b.1p.1'  , 'bb_b.1p.32' , 'bb_b.1p1'   ]
+
+
 
 nominal['aa19']=   om_nominal(1  ,11.82  ,0.300 , 0.180 , -0.7)
 nominal['aa20']=   om_nominal(3  ,10.6347,1.000 , 0.222 , -0.7)
