@@ -168,7 +168,12 @@ def slopes_powers(car,frame, n0=1,p=1, fitlmin=1e3, fitlmax=8e3, plot_format="pd
 #else:
 #    rootdir = './output'
 #    Qlist = glob.glob(rootdir+'/*/DD*_Q[xyz]*.fits')
-def EBfromQU(Q,U):
+def EBfromQU(Q,U, return_quharm=False):
+
+    if not Q.flags['C_CONTIGUOUS']:
+        Q = np.ascontiguousarray(Q)
+    if not U.flags['C_CONTIGUOUS']:
+        U = np.ascontiguousarray(U)
     N = array(shape(Q),dtype = int32)
     xsize = 5 * pi / 180
     size2d = array([xsize,xsize])
@@ -187,7 +192,11 @@ def EBfromQU(Q,U):
 
     E = cmbtools.harm2map(Eharm,Delta)
     B = cmbtools.harm2map(Bharm,Delta)
-    return E,B,Eharm,Bharm
+    if return_quharm:
+        output = {'E':E,'B':B,'Eh':Eharm,'Bh':Bharm, 'Qh':Qharm, 'Uh':Uharm}
+    else:
+        output = E,B,Eharm,Bharm
+    return output
 def QU2EB(rootdir,frame):
     Qlist = glob.glob(rootdir+'/DD%04d_Q[xyz]*.fits'%frame)
     Ulist = []
