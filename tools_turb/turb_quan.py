@@ -15,20 +15,51 @@ import re
 nar = np.array
 import xtra_energy_fields
 reload(xtra_energy_fields)
+import cmbtools
+#if '/home/dcollins/repos/p49c/p49_eigenmodes' not in sys.path:
+#    sys.path.append('/home/dcollins/repos/p49c/p49_eigenmodes')
+#import p49_print_tools
+import matplotlib.colors as colors
 
-def plotter(Q,U,E,B,fname,**args):
+def plotter(Q,U,E,B,fname,norm=None,labs=['Q','U','E','B'],axis_labels=None,**args):
     fig, axes = plt.subplots(2,2,sharex=True,sharey=True)
+    max_val = max([Q.max(),U.max(),E.max(),B.max()])
+    if norm is 'positive':
+        min_val = 1e-15
+        args['norm']=colors.LogNorm(vmin=min_val,vmax=max_val)
+    elif norm is 'symlog' :
+        min_val = min([Q.min(),U.min(),E.min(),B.min()])
+        args['norm']=colors.SymLogNorm(linthresh=1e-10,vmin=min_val,vmax=max_val)
+    elif norm is 'ind':
+        args['norm']=None
+    else:
+        min_val = min([Q.min(),U.min(),E.min(),B.min()])
+        args['norm']=colors.Normalize(vmin=min_val,vmax=max_val)
+
     args['interpolation']='nearest'
     args['origin']='lower'
-    axes[0][0].imshow(Q,**args)
-    axes[0][0].set_title('Q')
-    axes[1][0].imshow(U,**args)
-    axes[1][0].set_title("U")
-    oot=axes[0][1].imshow(E,**args)
-    fig.colorbar(oot)
-    axes[0][1].set_title("E")
-    axes[1][1].imshow(B,**args)
-    axes[1][1].set_title("B")
+    oot=[]
+    oot.append(axes[0][0].imshow(Q,**args))
+    if norm is 'ind': cb=fig.colorbar(oot[-1],ax=axes[0][0])
+    axes[0][0].set_title(labs[0])
+    oot.append(axes[1][0].imshow(U,**args))
+    if norm is 'ind': cb=fig.colorbar(oot[-1],ax=axes[1][0])
+    axes[1][0].set_title(labs[1])
+    oot.append(axes[0][1].imshow(E,**args))
+    if norm is 'ind': cb=fig.colorbar(oot[-1],ax=axes[0][1])
+
+    axes[0][1].set_title(labs[2])
+    oot.append(axes[1][1].imshow(B,**args))
+    if norm is 'ind': cb=fig.colorbar(oot[-1],ax=axes[1][1])
+    axes[1][1].set_title(labs[3])
+    if norm is not 'ind':
+        cb=fig.colorbar(oot[-1],ax=axes)
+        if norm is 'positive':
+            cb.cmap.set_under('w')
+    if axis_labels:
+        for n in range(4):
+            axes[n//2][n%2].set_xlabel(axis_labels[0])
+            axes[n//2][n%2].set_ylabel(axis_labels[1])
     fig.savefig(fname)
     plt.close(fig)
 
@@ -208,6 +239,44 @@ class quan_box():
             self.QUEBarr['E'][outsuf] = np.array(pyfits.open(Efile)[0].data,dtype=np.double)
             self.QUEBarr['B'][outsuf] = np.array(pyfits.open(Bfile)[0].data,dtype=np.double)
 
+    def PlotQUEBharm(self,frame, style=1):
+        self.GetQUEB(frame)
+
+        if style == 0:
+            for field in 'QUEB':
+                for f in qb.QUEBarr[field]:
+                    oot = "%s_%s"%(selfcar.outname,f.split('/')[-1])
+                    plt.clf()
+                    #Qharm = cmbtools.map2harm(Q,Delta)
+                    #Uharm = cmbtools.map2harm(U,Delta)
+                    pdb.set_trace()
+                    f = plt.imshow(field_hat,interpolation='nearest',origin='lower')
+                    plt.colorbar(f)
+                    print("did a color")
+                    plt.title(oot)
+                    plt.savefig(oot+".png")
+                    print(oot)
+        else:
+            for ax in 'xyz':
+                outname = 'P49_QUEB_harm_4p_%s_%s.%s'%(self.car.outname,ax,self.plot_format)
+                hats = {}
+                for field in 'QUEB':
+                    arr =  self.QUEBarr[field][ax]
+                    Delta = np.array([5*np.pi/180.]*2)/np.array(arr.shape)
+                    hats[field] = np.abs(cmbtools.map2harm(arr,Delta))
+                    #print(p49_print_tools.nz(hats[field]))
+                #print(p49_print_tools.nonzero(hats['Q'][:10,:10]))
+                #print(p49_print_tools.nonzero(hats['U'][:10,:10]))
+                #print(p49_print_tools.nonzero(hats['E'][:10,:10]))
+                #print(p49_print_tools.nonzero(hats['B'][:10,:10]))
+
+
+                plotter(hats['Q'],
+                        hats['U'],
+                        hats['E'],
+                        hats['B'],
+                        outname,norm='positive')
+                print("Save %s"%outname)
 
     def PlotQUEB(self,frame, style=1):
         self.GetQUEB(frame)
@@ -229,8 +298,21 @@ class quan_box():
                         self.QUEBarr['U'][ax],
                         self.QUEBarr['E'][ax],
                         self.QUEBarr['B'][ax],
-                        outname)
+                        outname,norm='ind')
                 print("Save %s"%outname)
+                fig,axobj=plt.subplots(2)
+                for field in 'QUEB':
+                    axobj[0].hist(self.QUEBarr[field][ax].flatten(),histtype='step',label=field)
+                    xxx=self.QUEBarr[field][ax].flatten()-np.mean(self.QUEBarr[field][ax])
+                    xxx=np.abs(xxx)
+                    axobj[1].hist(xxx,histtype='step',label=field)
+                axobj[0].legend(loc=0)
+                axobj[1].legend(loc=0)
+                axobj[1].set_xscale('log')
+                outname = 'P49_QUEB_hist_%s_%s.%s'%(self.car.outname,ax,self.plot_format)
+                fig.savefig(outname)
+                plt.close(fig)
+
 
 
     def QUEB(self, frame):
