@@ -142,6 +142,10 @@ print("N = ",N)
 print("Delta = ",Delta)
 
 Deltal = cmbtools.Delta2l(Delta,N)
+if not Q.flags['C_CONTIGUOUS']:
+    Q = np.ascontiguousarray(Q)
+if not U.flags['C_CONTIGUOUS']:
+    U = np.ascontiguousarray(U)
 
 Qharm = cmbtools.map2harm(Q,Delta)
 Uharm = cmbtools.map2harm(U,Delta)

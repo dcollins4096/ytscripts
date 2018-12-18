@@ -1385,6 +1385,10 @@ def CMB_E_and_B_modes():
             # 2d fourier transforms of Q and U
             #Qharm = cmbtools.map2harm(Q, Delta)
             #Uharm = cmbtools.map2harm(U, Delta)
+            if not Q.flags['C_CONTIGUOUS']:
+                Q = np.ascontiguousarray(Q)
+            if not U.flags['C_CONTIGUOUS']:
+                U = np.ascontiguousarray(U)
             Qharm = np.fft.fft2(Q)
             Uharm = np.fft.fft2(U)
 
