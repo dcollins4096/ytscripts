@@ -479,7 +479,8 @@ class taxi:
         self.callback_args={'particles':{'args':[1],'kwargs':{'col':'r'}},'select_particles':{'args':1,'kwargs':{'col':'y'}}}
         self.callback_args['star_particles']={'args':[1],'kwargs':{'col':'g'}}
         self.callback_args['nparticles']= {'args': [[0.03, 0.03]], 'kwargs': {'coord_system': 'axis', 'text_args': {'color': 'red'}}}
-        self.callback_args['magnetic_field']={'kwargs':{'use_streamlines':True,'plot_args':{'color':'b'}}}
+        #self.callback_args['magnetic_field']={'kwargs':{'use_streamlines':True,'plot_args':{'color':'b'}}}
+        self.callback_args['magnetic_field']={'kwargs':{'plot_args':{'color':'b'}}}
         self.callback_args['velocity']={'kwargs':{'use_streamlines':False,'plot_args':{'color':'y'}}}
         #self.ExcludeFromWrite.append('callbacks')
         self.WriteSpecial['callbacks'] = self.write_callbacks
