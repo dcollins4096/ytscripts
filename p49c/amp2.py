@@ -288,7 +288,7 @@ if 1:
     Bb = B1* (np.exp(1j*(2*np.pi*KB*x))).real
     B =  Ba+Bb
 
-    C0 = 0
+    C0 = 1
     C1 = 4.5
     KC=5
     Ca = C0
@@ -320,17 +320,25 @@ if 1:
         exp[k] = exp.get(k,0)+v
 
     expect={}
-    addit( expect, np.abs(KA+KB+KC), (0.5*A1)*(0.5*B1)*(0.5*C1))
-    addit( expect, np.abs(KA-KB+KC), (0.5*A1)*(0.5*B1)*(0.5*C1))
+
+    addit( expect, 0            , A0*B0*C0)
+    addit( expect, np.abs(KC),    A0*B0*(0.5*C1))
+    addit( expect, np.abs(KA),    C0*B0*(0.5*A1))
+    addit( expect, np.abs(KB),    A0*C0*(0.5*B1))
+
+    addit( expect, np.abs(KA+KB+KC),  (0.5*A1)*(0.5*B1)*(0.5*C1))
+    addit( expect, np.abs(KA-KB+KC),  (0.5*A1)*(0.5*B1)*(0.5*C1))
     addit( expect, np.abs(-KA+KB+KC), (0.5*A1)*(0.5*B1)*(0.5*C1))
-    addit( expect, np.abs(KA+KB-KC), (0.5*A1)*(0.5*B1)*(0.5*C1))
+    addit( expect, np.abs(KA+KB-KC),  (0.5*A1)*(0.5*B1)*(0.5*C1))
 
     addit( expect, np.abs(KB+KC), A0*(0.5*B1)*(0.5*C1))
     addit( expect, np.abs(KB-KC), A0*(0.5*B1)*(0.5*C1))
 
     addit( expect, np.abs(KA-KC), B0*(0.5*A1)*(0.5*C1))
     addit( expect, np.abs(KA+KC), B0*(0.5*A1)*(0.5*C1))
-    addit( expect, np.abs(KC), A0*B0*(0.5*C1))
+
+    addit( expect, np.abs(KA+KB), C0*(0.5*A1)*(0.5*B1))
+    addit( expect, np.abs(KA-KB), C0*(0.5*A1)*(0.5*B1))
     #expect[ 0+0+0] = A0*B0*C0
     #expect[KA+KB+KC] = (0.5*A1)*(0.5*B1)*(0.5*C1)
     #expect[np.abs(KA+KB-KC)] = (0.5*A1)*(0.5*B1)*(0.5*C1)
