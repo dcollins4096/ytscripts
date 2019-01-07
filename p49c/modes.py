@@ -350,7 +350,7 @@ def from_wave_to_psi(wave,theta,suffix,size=16,mode_tool=modes_k001):
 
 for n in [0.25]: #[0.1,0.25,0.3,0.4]:
     theta = n*np.pi
-    stuff = from_wave_to_psi('f-',theta=theta,suffix="f-_%0.2f"%theta,size=32,mode_tool=modes_k032)
+    stuff = from_wave_to_psi('f-',theta=theta,suffix="f-_%0.2f"%theta,size=32,mode_tool=modes_k001)
 #import k_vecs
 #reload(k_vecs)
 #k_vecs.kvecs_from_stuff(stuff)

@@ -35,7 +35,7 @@ def pp(Q,msg=''):
     print("%s R %s"%(msg,str(Q.real)))
     print("%s I %s"%(msg,str(Q.imag)))
 
-if 1:
+if 0:
     size=32
     twopi=np.pi*2
     x = np.mgrid[0:1:1./size]
@@ -273,9 +273,12 @@ if 0:
     plt.savefig('fft6_test2.png')
 
 
-if 1:
-
-    A0 = -2
+    """works!"""
+def stuffs():
+    size=32
+    twopi=np.pi*2
+    x = np.mgrid[0:1:1./size]
+    A0 = 0
     A1 = 2
     KA=1
     Aa = A0
@@ -283,7 +286,7 @@ if 1:
     Ab = A1* (np.exp(1j*(2*np.pi*KA*x+Atheta))).real
     A =  Aa+Ab
 
-    B0 = 1
+    B0 = 0
     B1 = 9
     KB=2
     Ba = B0
@@ -292,7 +295,7 @@ if 1:
     B =  Ba+Bb
 
     C0 = 1
-    C1 = 0.3
+    C1 = 0
     KC=5
     Ca = C0
     Ctheta=1.2
@@ -302,9 +305,10 @@ if 1:
     plt.clf()
     plt.plot(x,A,label='A')
     plt.plot(x,B,label='B')
-    plt.plot(x,C,label='C')
+    #plt.plot(x,C,label='C')
     plt.plot(x,A*B*C,label='A*B*C')
     plt.legend(loc=0)
+
     plt.savefig('fft6_test.png')
     Q_flat = A*B*C
     actual_fft=np.fft.rfft(Q_flat)
@@ -319,40 +323,23 @@ if 1:
 
     print('nonzero k %s'%str(nonzero_k))
     pp(nonzero_v,msg='nonzero values')
-    def addit(exp,signed_k, label,v,phase_angle=0):
-        k = np.abs(signed_k)
-        phase_sign = np.sign(signed_k)
-        exp['labs'] = expect.get('labs',{})
+    import amp_tools
+    reload(amp_tools)
+    values={}
+    values['KA']=KA 
+    values['KB']=KB
+    values['KC']=KC
+    values['A0']=A0
+    values['A1']=A1
+    values['B0']=B0
+    values['B1']=B1
+    values['C0']=C0
+    values['C1']=C1
+    values['Atheta']=Atheta
+    values['Btheta']=Btheta
+    values['Ctheta']=Ctheta
+    expect = amp_tools.modes_1(**values)
 
-        if np.abs(v) > 1e-10:
-            exp[k] = exp.get(k,0)+v*np.exp(1j*phase_angle*phase_sign)
-            exp['labs'][label]=k
-
-    expect={}
-
-    addit( expect, 0,       "0",                 A0*B0*C0)
-    addit( expect, KA,      "KA",        C0*B0*(0.5*A1), Atheta)
-    addit( expect, KB,      "KB",        A0*C0*(0.5*B1), Btheta)
-                                      
-    addit( expect, KA+KB,   "KA+KB",     C0*(0.5*A1)*(0.5*B1), Atheta+Btheta)
-    addit( expect, KA-KB,   "KA-KB",     C0*(0.5*A1)*(0.5*B1), Atheta-Btheta)
-                                      
-    addit( expect, KC,      "KC",        A0*B0*(0.5*C1), Ctheta)
-    addit( expect, KB+KC,   "KB+KC",     A0*(0.5*B1)*(0.5*C1), Btheta+Ctheta)
-    addit( expect, KB-KC,   "KB-KC",     A0*(0.5*B1)*(0.5*C1), Btheta-Ctheta)
-                                      
-    addit( expect, KA-KC,   "KA-KC",     B0*(0.5*A1)*(0.5*C1), (Atheta-Ctheta))
-    addit( expect, KA+KC,   "KA+KC",     B0*(0.5*A1)*(0.5*C1), Atheta+Ctheta)
-                                      
-    addit( expect, KA+KB+KC,"KA+KB+KC",  (0.5*A1)*(0.5*B1)*(0.5*C1), Atheta+Btheta+Ctheta)
-    addit( expect, KA-KB+KC,"KA-KB+KC",  (0.5*A1)*(0.5*B1)*(0.5*C1), Atheta-Btheta+Ctheta)
-    addit( expect, -KA+KB+KC,"-KA+KB+KC", (0.5*A1)*(0.5*B1)*(0.5*C1), -Atheta+Btheta+Ctheta)
-    addit( expect, KA+KB-KC,"KA+KB-KC",  (0.5*A1)*(0.5*B1)*(0.5*C1), Atheta+Btheta-Ctheta)
-
-
-    #expect[ 0+0+0] = A0*B0*C0
-    #expect[KA+KB+KC] = (0.5*A1)*(0.5*B1)*(0.5*C1)
-    #expect[np.abs(KA+KB-KC)] = (0.5*A1)*(0.5*B1)*(0.5*C1)
     labs = expect.pop('labs')
     yv = np.logspace(-5,1,len(labs))
     for nmode,l in enumerate(labs):
@@ -361,8 +348,17 @@ if 1:
         plt.plot(  [labs[l],10], [my_y,my_y],c='k')
     expect_k = nar(sorted(list(expect.keys())))
     expect_v = nar([ expect[ key] for key in expect_k])
+
     plt.scatter(expect_k,expect_v.real, label='xr',c='c')
     plt.scatter(expect_k,expect_v.imag, label='xi',c='r')
+    output={'Q_flat':Q_flat,'actual_fft':actual_fft,'qfft':qfft}
+    output.update(values)
+    output['expect']=expect
+    output['nonzero_v']=nonzero_v
+    output['nonzero_k']=nonzero_k
+    output['expect_v']=expect_v
+    output['expect_k']=expect_k
+    output['B']=B
     if expect_k.size != nonzero_k[0].size:
         print("K sizes don't match")
     else:
@@ -370,14 +366,8 @@ if 1:
             print("k values don't match!!!")
         print( "Total difference: %0.2e"%( np.abs( expect_v-nonzero_v).sum()))
 
-    #expect_k=nar([np.abs(KA+KB+KC),np.abs(KA+KB-KC),np.abs(KA-KB+KC),np.abs(KB-KA+KC),
-    #             np.abs(KB),np.abs(KC),np.abs(KB+KC),np.abs(KB-KC)])
-    #print(sorted(expect_k))
-#   args = np.argsort(expect_k)
-
-#   expect_v=nar([A0*B0, 0.5*B0*A1, 0.25*A1*B1, 0.5*B1*A0, 0.25*A1*B1])
-#   plt.scatter(expect_k[args],expect_v[args],label='x')
-
-#   pp(expect_v[args]-nonzero_v,msg='diff')
     plt.legend(loc=0)
     plt.savefig('fft6_test2.png')
+    return output
+oned=stuffs()
+
