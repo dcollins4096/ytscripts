@@ -35,7 +35,7 @@ def pp(Q,msg=''):
     print("%s R %s"%(msg,str(Q.real)))
     print("%s I %s"%(msg,str(Q.imag)))
 
-if 0:
+if 1:
     size=32
     twopi=np.pi*2
     x = np.mgrid[0:1:1./size]
@@ -128,7 +128,7 @@ if 0:
     plt.legend(loc=0)
     plt.savefig('fft3_test2.png')
 
-if 0:
+if 1:
     actual_fft=np.fft.rfft(Q_flat)
     qfft=actual_fft/(x.size)
     ampl=7
@@ -369,5 +369,5 @@ def stuffs():
     plt.legend(loc=0)
     plt.savefig('fft6_test2.png')
     return output
-oned=stuffs()
+#oned=stuffs()
 

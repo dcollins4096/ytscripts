@@ -29,6 +29,17 @@ def dumb(Q,k):
 
 
     return tots
+def symmetric(v):
+    #for real fft, Ak = A(-k)^*; the negative-phase is the conjugate
+    #(that way when you sum, the imaginary parts cancel.)
+    #This lets us take an arbitrary K-space signal and ensure it's inverse-fft is real.
+    s2=np.zeros_like(v)
+    Nx=v.size
+    s2[1:Nx/2] = v[1:Nx/2]
+    s2[Nx:Nx/2:-1] = v[1:Nx/2].conj()
+    s2[0]=v[0]
+    return s2
+
 
 def pp(Q,msg=''):
     print('===')
@@ -41,15 +52,15 @@ def stuffs(KA=0,KB=0,KC=0,A0=0,A1=0,B0=0,B1=0,C0=0,C1=0, Atheta=0,Btheta=0,Cthet
     twopi=np.pi*2
     x = np.mgrid[0:1:1./size]
     Aa = A0
-    Ab = A1* (np.exp(1j*(2*np.pi*KA*x+Atheta))).real
+    Ab = A1* (np.exp(1j*(2*np.pi*KA*x+Atheta)))
     A =  Aa+Ab
 
     Ba = B0
-    Bb = B1* (np.exp(1j*(2*np.pi*KB*x+Btheta))).real
+    Bb = B1* (np.exp(1j*(2*np.pi*KB*x+Btheta)))
     B =  Ba+Bb
 
     Ca = C0
-    Cb = C1* (np.exp(1j*(2*np.pi*KC*x+Ctheta))).real
+    Cb = C1* (np.exp(1j*(2*np.pi*KC*x+Ctheta)))
     C =  Ca+Cb
     plt.clf()
     plt.plot(x,A,label='A')
@@ -59,7 +70,12 @@ def stuffs(KA=0,KB=0,KC=0,A0=0,A1=0,B0=0,B1=0,C0=0,C1=0, Atheta=0,Btheta=0,Cthet
     plt.legend(loc=0)
 
     plt.savefig('p49c_plots/fft_1d_test.png')
-    Q_flat = A*B*C
+    Q_imag = A*B*C
+    Q_flat = A.real*B.real*C.real #Q_imag #symmetric(Q_imag)
+    #Q_flat = symmetric(Q_flat)
+
+
+
     actual_fft=np.fft.rfft(Q_flat)
     qfft=actual_fft/(x.size)
 
@@ -103,6 +119,7 @@ def stuffs(KA=0,KB=0,KC=0,A0=0,A1=0,B0=0,B1=0,C0=0,C1=0, Atheta=0,Btheta=0,Cthet
     expect_k = nar(sorted(list(expect.keys())))
     expect_v = nar([ expect[ key] for key in expect_k])
     pp(expect_v,msg='expected values')
+    pp(expect_v-nonzero_v,msg='difference')
 
     ax0.scatter(expect_k,expect_v.real, label='xr',c='c')
     ax0.scatter(expect_k,expect_v.imag, label='xi',c='r')
@@ -140,6 +157,6 @@ vals_0={"A0" : 8, "A1" : 2, "KA":1, "Atheta" : 0,
         "B0" : 2, "B1" : 4, "KB":1, "Btheta" : 0, 
         "C0" : 1, "C1" : 0, "KC":5, "Ctheta":1.2}
 vals_1={"A0" : 0, "A1" : 3, "KA":1, "Atheta" : 0,
-        "B0" : 0, "B1" : 2, "KB":1, "Btheta" : 0, 
+        "B0" : 1, "B1" : 2, "KB":1, "Btheta" : 1.2, 
         "C0" : 1, "C1" : 0, "KC":5, "Ctheta":1.2}
-oned=stuffs(**vals_1)
+oned=stuffs(**vals_small)

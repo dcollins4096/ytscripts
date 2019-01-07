@@ -1,4 +1,5 @@
-
+import amp_tools
+reload(amp_tools)
 if 0:
     size=32
     twopi=np.pi*2
@@ -181,7 +182,7 @@ def pp(Q,msg=''):
     print("%s I %s"%(msg,str(Q.imag)))
     
 c=stuff['s'].cubes
-if 0:
+if 'hatd' not in dir():
     """this works"""
     c=stuff['s'].cubes
     ql2=c['d']*c['d'] #*( c['hy']**2-c['hz']**2)
@@ -215,10 +216,10 @@ if 0:
         print('a',moo_a2[k])
         print('err', 1-expect_v[k]/moo_a2[k])
 
-if 1:
-    """doesn't  """
+if 0:
+    """works"""
     d2=c['d']*c['d'] #*c['hy'] #*( c['hy']**2-c['hz']**2)
-    moo_d2_complex = moo(a2)
+    moo_d2_complex = moo(d2)
     moo_d2=moo_d2_complex.real
     values={}
     values['KA']=1
@@ -235,6 +236,7 @@ if 1:
     values['Ctheta']=0
     expect_d2 = amp_tools.modes_1(**values)
     labs = expect_d2.pop('labs')
+    full = expect_d2.pop('full_history')
     ex_d2_k = nar(sorted(list(expect_d2.keys())))
     ex_d2_v = nar([ expect_d2[ key] for key in ex_d2_k])
     def dfer(xpct):
@@ -243,7 +245,7 @@ if 1:
             print('x',xpct[k])
             print('a',moo_d2[k])
             print('err', 1-xpct[k]/moo_d2[k])
-    dfer( tred['expect_v'])
+    dfer(ex_d2_v)
 
 if 0:
     """this works"""
@@ -253,6 +255,70 @@ if 0:
     pp(1-moo_a2[0]/( hatd[0]*hathy[0] + 2*hatd[1]*hathy[1]  ), "dhy relerr k=0")
     pp(1-moo_a2[1]/( hatd[0]*hathy[1] + hatd[1]*hathy[0] ), "dhy relerr k=1")
     pp(1-moo_a2[2]/( hatd[1]*hathy[1]), "dhy relerr k=2")
+
+if 0:
+    """works."""
+    dhy=c['hy']*c['d'] #*c['hy'] #*( c['hy']**2-c['hz']**2)
+    moo_dhy_complex = moo(dhy)
+    moo_dhy=moo_dhy_complex.real
+    values={}
+    values['KA']=1
+    values['KB']=1
+    values['KC']=1
+    values['A0']=hatd[0]
+    values['A1']=2.*hatd[1]
+    values['B0']=hathy[0]
+    values['B1']=2.*hathy[1]
+    values['C0']=1
+    values['C1']=0
+    values['Atheta']=0
+    values['Btheta']=0
+    values['Ctheta']=0
+    expect_dhy = amp_tools.modes_1(**values)
+    labs = expect_dhy.pop('labs')
+    full = expect_dhy.pop('full_history')
+    ex_dhy_k = nar(sorted(list(expect_dhy.keys())))
+    ex_dhy_v = nar([ expect_dhy[ key] for key in ex_dhy_k])
+    def dfer(xpct,actual):
+        for k in range(len(actual)):
+            print("==",k)
+            print('x',xpct[k])
+            print('a',actual[k])
+            print('err', 1-xpct[k]/actual[k])
+    dfer(ex_dhy_v, moo_dhy)
+    print("total error", np.abs(ex_dhy_v-moo_dhy).sum())
+
+if 1:
+    """in progress."""
+    dhyhy=c['hy']*c['d']*c['hy'] #*( c['hy']**2-c['hz']**2)
+    moo_dhyhy_complex = moo(dhyhy)
+    moo_dhyhy=moo_dhyhy_complex.real
+    values={}
+    values['KA']=1
+    values['KB']=1
+    values['KC']=1
+    values['A0']=hatd[0]
+    values['A1']=2.*hatd[1]
+    values['B0']=hathy[0]
+    values['B1']=2.*hathy[1]
+    values['C0']=hathy[0]
+    values['C1']=2.*hathy[1]
+    values['Atheta']=0
+    values['Btheta']=0
+    values['Ctheta']=0
+    expect_dhyhy = amp_tools.modes_1(**values)
+    labs = expect_dhyhy.pop('labs')
+    full = expect_dhyhy.pop('full_history')
+    ex_dhyhy_k = nar(sorted(list(expect_dhyhy.keys())))
+    ex_dhyhy_v = nar([ expect_dhyhy[ key] for key in ex_dhyhy_k])
+    def dfer(xpct,actual):
+        for k in range(len(actual)):
+            print("==",k)
+            print('x',xpct[k])
+            print('a',actual[k])
+            print('err', 1-xpct[k]/actual[k])
+    dfer(ex_dhyhy_v, moo_dhyhy)
+    print("total error", np.abs(ex_dhy_v-moo_dhy).sum())
 
 if 0:
     """this doesn't"""
