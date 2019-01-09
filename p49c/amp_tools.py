@@ -41,7 +41,108 @@ def modes_1(KA=0,KB=0,KC=0,A0=0,A1=0,B0=0,B1=0,C0=0,C1=0, Atheta=0,Btheta=0,Cthe
                                       
     addit( expect, KA+KB+KC,"KA+KB+KC",  (0.5*A1)*(0.5*B1)*(0.5*C1), Atheta+Btheta+Ctheta)
     addit( expect, KA-KB+KC,"KA-KB+KC",  (0.5*A1)*(0.5*B1)*(0.5*C1), Atheta-Btheta+Ctheta)
-    addit( expect, -KA+KB+KC,"-KA+KB+KC", (0.5*A1)*(0.5*B1)*(0.5*C1), -Atheta+Btheta+Ctheta)
+    addit( expect, -KA+KB+KC,"KA-KB-KC", (0.5*A1)*(0.5*B1)*(0.5*C1), Atheta-Btheta-Ctheta)
     addit( expect, KA+KB-KC,"KA+KB-KC",  (0.5*A1)*(0.5*B1)*(0.5*C1), Atheta+Btheta-Ctheta)
     return expect
 
+def modes_2(A=[],B=[],K=[],Theta=[]):
+    # signal = prod(i)(Ai + Bi exp(1j ki x) )
+    nmodes = len(A)
+    imode = np.arange(nmodes)
+    #A0 = A[0]
+    #B0 = A[1]
+    #A1 = B[0]
+    #B1 = B[1]
+    #KA = K[0]
+    #KB = K[1]
+    #C0 = A[2]
+    #C1 = B[2]
+    #KC = K[2]
+    #Atheta= Theta[0]
+    #Btheta= Theta[1]
+    #Ctheta= Theta[2]
+    def mode_label(*args_in): 
+        alpha = 'ABCD'
+        args = list(args_in)
+        output = "K%s"%alpha[args.pop(0)]
+        pm_d={1:'+',-1:'-'}
+        while len(args):
+            output += pm_d[ args.pop(0)]
+            output += "K%s"%alpha[args.pop(0)]
+
+        return output
+    def these_parts(A,*args):
+        ok = np.ones_like(A,dtype='bool')
+        for n in args:
+            ok = np.logical_and( ok, imode != n)
+        return np.prod( A[ok])
+
+    expect={}
+
+    addit( expect, 0,       "0",                0.5* np.prod(A))
+
+    #addit( expect, KA,      "KA",        C0*B0*(0.5*A1), Atheta)
+    for n in range(nmodes):
+        mode = K[n]
+        theta= Theta[n]
+        amp = np.prod( A[ imode != n])*B[n]*0.5
+        addit( expect, mode,      mode_label(n),        amp,theta)
+                                      
+
+    #def these_parts(A,n,m):
+    #    ok = np.logical_and( imode != n, imode != m)
+    #    return np.prod( A[ok])
+
+    for n in range(nmodes):
+        for m in range(n+1,nmodes):
+            for pm in [1,-1]: 
+                mode = K[n] + pm*K[m]
+                theta = Theta[n] + pm*Theta[m]
+                amp = these_parts(A,n,m)*(0.5*B[n])*(0.5*B[m])
+                addit( expect, mode,   mode_label(n,pm,m),    amp, theta)
+
+    #addit( expect, KA+KB,   "KA+KB",     C0*(0.5*A1)*(0.5*B1), Atheta+Btheta)
+    #addit( expect, KA-KB,   "KA-KB",     C0*(0.5*A1)*(0.5*B1), Atheta-Btheta)
+    #addit( expect, KB+KC,   "KB+KC",     A0*(0.5*B1)*(0.5*C1), Btheta+Ctheta)
+    #addit( expect, KB-KC,   "KB-KC",     A0*(0.5*B1)*(0.5*C1), Btheta-Ctheta)
+    #addit( expect, KA-KC,   "KA-KC",     B0*(0.5*A1)*(0.5*C1), (Atheta-Ctheta))
+    #addit( expect, KA+KC,   "KA+KC",     B0*(0.5*A1)*(0.5*C1), Atheta+Ctheta)
+
+
+    if nmodes >= 3:
+        for n in range(nmodes):
+            for m in range(n+1,nmodes):
+                for ell in range(m+1,nmodes):
+                    for pm1, pm2 in [ [1,1], [-1,1],[1,-1],[-1,-1]]:
+                        mode = K[n] + pm1*K[m] + pm2*K[ell]
+                        theta = Theta[n] + pm1*Theta[m] + pm2*Theta[ell]
+                        amp = these_parts(A,n,m,ell)*(0.5*B[n])*(0.5*B[m])*(0.5*B[ell])
+                        addit( expect, mode, mode_label(n,pm1,m,pm2,ell) ,    amp, theta)
+
+    plus_minus = []
+    for pm1 in [1,-1]:
+        for pm2 in [1,-1]:
+            for pm3 in [1,-1]:
+                plus_minus.append( [pm1,pm2,pm3])
+
+                  
+    if nmodes >= 4:
+        for n in range(nmodes):
+            for m in range(n+1,nmodes):
+                for ell in range(m+1,nmodes):
+                    for oo in range(ell+1,nmodes):
+                        for pm1, pm2, pm3 in plus_minus:
+                            mode = K[n] + pm1*K[m] + pm2*K[ell]+pm3*K[oo]
+                            theta = Theta[n] + pm1*Theta[m] + pm2*Theta[ell]+pm3*Theta[oo]
+                            amp = these_parts(A,n,m,ell,oo)*(0.5*B[n])*(0.5*B[m])*(0.5*B[ell])*(0.5*(B[oo]))
+                            addit( expect, mode, mode_label(n,pm1,m,pm2,ell,pm3,oo) ,    amp, theta)
+    #addit( expect, KA+KB-KC,"KA+KB-KC",  (0.5*A1)*(0.5*B1)*(0.5*C1), Atheta+Btheta-Ctheta)
+
+
+
+                                      
+    #addit( expect, KA+KB+KC,"KA+KB+KC",  (0.5*A1)*(0.5*B1)*(0.5*C1), Atheta+Btheta+Ctheta)
+    #addit( expect, KA-KB+KC,"KA-KB+KC",  (0.5*A1)*(0.5*B1)*(0.5*C1), Atheta-Btheta+Ctheta)
+    #addit( expect, -KA+KB+KC,"-KA+KB+KC", (0.5*A1)*(0.5*B1)*(0.5*C1), -Atheta+Btheta+Ctheta)
+    #addit( expect, KA+KB-KC,"KA+KB-KC",  (0.5*A1)*(0.5*B1)*(0.5*C1), Atheta+Btheta-Ctheta)
+    return expect
