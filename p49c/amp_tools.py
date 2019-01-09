@@ -11,9 +11,9 @@ def addit(exp,signed_k, label,v,phase_angle=0):
     exp['labs'] = exp.get('labs',{})
     exp['full_history']=exp.get('full_history',{})
 
-    if np.abs(v) > 1e-10:
+    if (np.abs(v) > 1e-10).any():
         this_value = v*np.exp(1j*phase_angle*phase_sign)
-        if np.abs(k)<1e-16:
+        if (np.abs(k)<1e-16).all():
             mult=2 
             this_value *= mult
             this_value=this_value.real
@@ -62,7 +62,7 @@ def modes_2(A=[],B=[],K=[],Theta=[]):
     #Btheta= Theta[1]
     #Ctheta= Theta[2]
     def mode_label(*args_in): 
-        alpha = 'ABCD'
+        alpha = 'ABCDE'
         args = list(args_in)
         output = "K%s"%alpha[args.pop(0)]
         pm_d={1:'+',-1:'-'}
@@ -79,7 +79,7 @@ def modes_2(A=[],B=[],K=[],Theta=[]):
 
     expect={}
 
-    addit( expect, 0,       "0",                0.5* np.prod(A))
+    addit( expect, np.zeros_like(K[0]),       "0",                0.5* np.prod(A))
 
     #addit( expect, KA,      "KA",        C0*B0*(0.5*A1), Atheta)
     for n in range(nmodes):
@@ -119,14 +119,14 @@ def modes_2(A=[],B=[],K=[],Theta=[]):
                         amp = these_parts(A,n,m,ell)*(0.5*B[n])*(0.5*B[m])*(0.5*B[ell])
                         addit( expect, mode, mode_label(n,pm1,m,pm2,ell) ,    amp, theta)
 
-    plus_minus = []
-    for pm1 in [1,-1]:
-        for pm2 in [1,-1]:
-            for pm3 in [1,-1]:
-                plus_minus.append( [pm1,pm2,pm3])
 
                   
     if nmodes >= 4:
+        plus_minus = []
+        for pm1 in [1,-1]:
+            for pm2 in [1,-1]:
+                for pm3 in [1,-1]:
+                    plus_minus.append( [pm1,pm2,pm3])
         for n in range(nmodes):
             for m in range(n+1,nmodes):
                 for ell in range(m+1,nmodes):
@@ -136,6 +136,23 @@ def modes_2(A=[],B=[],K=[],Theta=[]):
                             theta = Theta[n] + pm1*Theta[m] + pm2*Theta[ell]+pm3*Theta[oo]
                             amp = these_parts(A,n,m,ell,oo)*(0.5*B[n])*(0.5*B[m])*(0.5*B[ell])*(0.5*(B[oo]))
                             addit( expect, mode, mode_label(n,pm1,m,pm2,ell,pm3,oo) ,    amp, theta)
+    if nmodes >= 5:
+        plus_minus = []
+        for pm1 in [1,-1]:
+            for pm2 in [1,-1]:
+                for pm3 in [1,-1]:
+                    for pm4 in [1,-1]:
+                        plus_minus.append( [pm1,pm2,pm3,pm4])
+        for n1 in range(nmodes):
+            for n2 in range(n1+1,nmodes):
+                for n3 in range(n2+1,nmodes):
+                    for n4 in range(n3+1,nmodes):
+                        for n5 in range(n4+1,nmodes):
+                            for pm1, pm2, pm3,pm4 in plus_minus:
+                                mode = K[n1] + pm1*K[n2] + pm2*K[n3]+pm3*K[n4]+pm4*K[n5]
+                                theta = Theta[n1] + pm1*Theta[n2] + pm2*Theta[n3]+pm3*Theta[n4]+pm4*Theta[n5]
+                                amp = these_parts(A,n1,n2,n3,n4,n5)*(0.5*B[n1])*(0.5*B[n2])*(0.5*B[n3])*(0.5*(B[n4]))*(0.5*(B[n5]))
+                                addit( expect, mode, mode_label(n1,pm1,n2,pm2,n3,pm3,n4,pm4,n5) ,    amp, theta)
     #addit( expect, KA+KB-KC,"KA+KB-KC",  (0.5*A1)*(0.5*B1)*(0.5*C1), Atheta+Btheta-Ctheta)
 
 

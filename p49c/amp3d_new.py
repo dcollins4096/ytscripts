@@ -1,59 +1,3 @@
-if 0:
-    #plt.legend(loc=0)
-    #plt.savefig('fft7_test2.png')
-
-    print('nonzero k %s'%str(nonzero_k))
-    pp(nonzero_v,msg='nonzero values')
-    def addit(exp,signed_k, label,v,phase_angle=0):
-        k = tuple(np.abs(signed_k))
-        phase_sign = np.sign(signed_k[-1])
-        exp['labs'] = expect.get('labs',{})
-
-        if np.abs(v) > 1e-10:
-            exp[k] = exp.get(k,0)+v*np.exp(1j*phase_angle*phase_sign)
-            exp['labs'][label]=k
-            print('wut',v)#exp[k])
-
-    expect={}
-
-    addit( expect, np.zeros(3),       "0",                 A0*B0*C0)
-    addit( expect, KA,      "KA",        C0*B0*(0.5*A1), Atheta)
-    addit( expect, KB,      "KB",        A0*C0*(0.5*B1), Btheta)
-                                      
-    addit( expect, KA+KB,   "KA+KB",     C0*(0.5*A1)*(0.5*B1), Atheta+Btheta)
-    addit( expect, KA-KB,   "KA-KB",     C0*(0.5*A1)*(0.5*B1), Atheta-Btheta)
-                                      
-"""
-    addit( expect, KC,      "KC",        A0*B0*(0.5*C1), Ctheta)
-    addit( expect, KB+KC,   "KB+KC",     A0*(0.5*B1)*(0.5*C1), Btheta+Ctheta)
-    addit( expect, KB-KC,   "KB-KC",     A0*(0.5*B1)*(0.5*C1), Btheta-Ctheta)
-                                      
-    addit( expect, KA-KC,   "KA-KC",     B0*(0.5*A1)*(0.5*C1), (Atheta-Ctheta))
-    addit( expect, KA+KC,   "KA+KC",     B0*(0.5*A1)*(0.5*C1), Atheta+Ctheta)
-                                      
-    addit( expect, KA+KB+KC,"KA+KB+KC",  (0.5*A1)*(0.5*B1)*(0.5*C1), Atheta+Btheta+Ctheta)
-    addit( expect, KA-KB+KC,"KA-KB+KC",  (0.5*A1)*(0.5*B1)*(0.5*C1), Atheta-Btheta+Ctheta)
-    addit( expect, -KA+KB+KC,"-KA+KB+KC", (0.5*A1)*(0.5*B1)*(0.5*C1), -Atheta+Btheta+Ctheta)
-    addit( expect, KA+KB-KC,"KA+KB-KC",  (0.5*A1)*(0.5*B1)*(0.5*C1), Atheta+Btheta-Ctheta)
-
-    labs = expect.pop('labs')
-    yv = np.logspace(-5,1,len(labs))
-    for nmode,l in enumerate(labs):
-        my_y=yv[nmode]
-        plt.text( 10,my_y,l)
-        plt.plot(  [labs[l],10], [my_y,my_y],c='k')
-    expect_k = nar(sorted(list(expect.keys())))
-    expect_v = nar([ expect[ key] for key in expect_k])
-    plt.scatter(expect_k,expect_v.real, label='xr',c='c')
-    plt.scatter(expect_k,expect_v.imag, label='xi',c='r')
-    if expect_k.size != nonzero_k[0].size:
-        print("K sizes don't match")
-    else:
-        if np.abs( expect_k-nonzero_k).sum() > 1e-7:
-            print("k values don't match!!!")
-        print( "Total difference: %0.2e"%( np.abs( expect_v-nonzero_v).sum()))
-"""
-
 from go import *
 if '/home/dcollins/repos/p49c/p49_eigenmodes' not in sys.path:
     sys.path.append('/home/dcollins/repos/p49c/p49_eigenmodes')
@@ -87,55 +31,22 @@ def lmax(inarr,dim):
     out = np.max(np.abs(arr),axis=dim)
     return out
 
-def stuff_3d(save=None):
+def stuff_3d(A=[],B=[],K=[],Theta=[],linthreshy=1e-8):
     """in 3d!"""
     #x = np.arange(Q.size)
     output={}
     size=32
     twopi=np.pi*2
     x,y,z = np.mgrid[0:1:1./size,0:1:1./size,0:1:1./size]
-    #x = np.mgrid[0:1:1./size]#,0:1:1./size,0:1:1./size]
-    #y=z=1
-    #y=0
-    #z=0
-    #k_unit_int = nar([1,7,1])
-    #k_unit_Q = np.array(k_unit_int)*twopi
-    #ampl=0.1
-    #Q_flat =  ampl* (np.exp(1j*(k_unit_Q[0]*x+k_unit_Q[1]*y+k_unit_Q[2]*z))).real
 
-    A0 = 1
-    A1 = np.sqrt(2.e-6)
-    KAx=0
-    KAy=0
-    KAz=1
-    KA = nar([KAx,KAy,KAz])
-    Aa = A0
-    Atheta = 0
-    Ab = A1* (np.exp(1j*(2*np.pi*(KAx*x+KAy*y+KAz*z)+Atheta))).real
-    A =  Aa+Ab
-
-    B0 = 1
-    B1 = np.sqrt(2.e-6)
-    KBx=0
-    KBy=0
-    KBz=1
-    KB = nar([KBx,KBy,KBz])
-    Ba = B0
-    Btheta = 0 ;-np.pi/2.
-    Bb = B1* (np.exp(1j*(2*np.pi*(KBx*x+KBy*y+KBz*z)+Btheta))).real
-    B =  Ba+Bb
-    output['B']=B
-
-    C0 = 1
-    C1 = 0
-    KCx=5
-    KCy=0
-    KCz=0
-    KC = nar([KCx,KCy,KCz])
-    Ca = C0
-    Ctheta=1.2
-    Cb = C1* (np.exp(1j*(2*np.pi*(KCx*x+KCy*y+KCz*z)+Ctheta))).real
-    C =  Ca+Cb
+    nmodes = len(A)
+    consts=np.zeros([nmodes])
+    linears=np.zeros([nmodes,size,size,size])
+    sums=np.zeros([nmodes,size,size,size])
+    for n in range(nmodes):
+        consts[n]=A[n]
+        linears[n,...]=B[n]*(np.exp(1j*(2*np.pi*(K[n][0]*x+K[n][1]*y+K[n][2]*z)+Theta[n])))
+        sums[n,...] = consts[n]+linears[n,...]
 
     plt.clf()
     slc = slice(3,4),slice(3,4),slice(None);the_x = z
@@ -146,23 +57,18 @@ def stuff_3d(save=None):
         return arr[slc].flatten()
 
 
-    plt.plot(xx(the_x),xx(A),label='A')
-    plt.plot(xx(the_x),xx(B),label='B')
-    plt.plot(xx(the_x),xx(C),label='C')
-    plt.plot(xx(the_x),xx(A*B*C),label='A*B*C')
+    for n in range(nmodes):
+        plt.plot(xx(the_x),xx(sums[n,...]),label=n)
+    Q_flat = np.prod(sums.real,axis=0)
+    plt.plot(xx(the_x),xx(Q_flat),label='A*B*C')
     plt.legend(loc=0)
-    plt.savefig('p49c_plots/fft7_test.png')
-    if save is None:
-        Q_flat = (A*B*C)
-        actual_fft=np.fft.rfftn(Q_flat)
-    else:
-        Q_flat = (A*B*C)[slc]
-        Q_flat = save['Q_flat']
-        Q_flat.shape = Q_flat.size
-        actual_fft=np.fft.rfft(Q_flat)
+    plt.savefig('p49c_plots/fft_3db_test.png')
+    actual_fft=np.fft.rfftn(Q_flat)
     qfft=actual_fft/(Q_flat.size)
     nonzero_k= nz(qfft)
     nonzero_v = nonzero(qfft)
+    abs_qfft =np.abs(qfft)
+    zmin = abs_qfft[ abs_qfft > 0].min()
     turb_quan.plotter2( [lmax( qfft.real, 0), 
                          lmax( qfft.imag, 0),
                          lmax( qfft.real, 1), 
@@ -170,6 +76,7 @@ def stuff_3d(save=None):
                          lmax( qfft.real, 2), 
                          lmax( qfft.imag, 2)],
                        "p49c_plots/qfft_3da.png", 
+                       norm='positive',zmin=zmin,
                        labs=['real x','imag x','real y','imag y','real z','imag z'],
                        share=False)
     def plotter3(arr,axis):
@@ -178,54 +85,61 @@ def stuff_3d(save=None):
         flat = np.sum(arr,axis=axis)
         flat.shape=dims
         return flat
-    turb_quan.plotter2( [plotter3( A, 0), 
-                         plotter3( B, 0),
-                         plotter3( C, 0), 
-                         plotter3( A*B*C, 0)],
+    turb_quan.plotter2( [plotter3( sums[0,...], 0), 
+                         plotter3( sums[1,...], 0),
+                         plotter3( sums[0,...], 0), 
+                         plotter3( Q_flat, 0)],
                        "p49c_plots/real_x_3da.png", 
                        labs=["Ax","Bx","Cx","ABCx"],
                        share=False,norm='ind')
-    turb_quan.plotter2( [plotter3( A, 1), 
-                         plotter3( B, 1),
-                         plotter3( C, 1), 
-                         plotter3( A*B*C, 1)],
+    turb_quan.plotter2( [plotter3( sums[0,...], 1), 
+                         plotter3( sums[1,...], 1),
+                         plotter3( sums[0,...], 1), 
+                         plotter3( Q_flat, 1)],
                        "p49c_plots/real_y_3da.png", 
                        labs=["Ay","By","Cy","ABCy"],
                        share=False,norm='ind')
-    turb_quan.plotter2( [plotter3( A, 2), 
-                         plotter3( B, 2),
-                         plotter3( C, 2), 
-                         plotter3( A*B*C, 2)],
+    turb_quan.plotter2( [plotter3( sums[0,...], 2), 
+                         plotter3( sums[1,...], 2),
+                         plotter3( sums[0,...], 2), 
+                         plotter3( Q_flat, 2)],
                        "p49c_plots/real_z_3da.png", 
                        labs=["Az","Bz","Cz","ABCz"],
                        share=False,norm='ind')
 
 
     values={}
-    values['KA']=KA[2]
-    values['KB']=KB[2]
-    values['KC']=KC[2]
-    values['A0']=A0
-    values['A1']=A1
-    values['B0']=B0
-    values['B1']=B1
-    values['C0']=C0
-    values['C1']=C1
-    values['Atheta']=Atheta
-    values['Btheta']=Btheta
-    values['Ctheta']=Ctheta
+    values['A'] = nar(A)
+    values['B'] = nar(B)
+    values['K'] = nar(K)
+    values['Theta']=nar(Theta)
     reload(amp_tools)
-    expect = amp_tools.modes_1(**values)
-    labs = expect.pop('labs')
+    expect = amp_tools.modes_2(**values)
+    output['labs']= expect.pop('labs')
+    output['full']= expect.pop('full_history')
+
     output.update({'Q_flat':Q_flat,'acutal_fft':actual_fft,'qfft':qfft})
     output.update(values)
-    expect_k = nar(sorted(list(expect.keys())))
-    expect_v = nar([ expect[ key] for key in expect_k])
     output['expect']=expect
     output['nonzero_v']=nonzero_v
-    output['nonzero_k']=nonzero_k
-    output['expect_v']=expect_v
-    output['expect_k']=expect_k
+    output['nonzero_k']=zip(*nonzero_k)
+    total_error = 0
+    for n,vec in enumerate(output['nonzero_k']):
+        if vec in expect:
+            this_error = np.abs( expect[vec] - nonzero_v[n])
+            total_error += this_error
+            if this_error > 1e-12:
+                print("expect off. actual %0.2e expect %0.2e diff %0.2d vec %s"%\
+                      ( nonzero_v[n], expect[vec], this_error, str(vec)))
+        else:
+            print("expect missing vector %s"%str(vec))
+    print("Total error: %0.2e"%total_error)
+
+    #expect_k = nar(sorted(list(expect.keys())))
+    #expect_v = nar([ expect[ key] for key in expect_k])
+    #output['expect_v']=expect_v
+    #output['expect_k']=expect_k
+    output['total_error']=total_error
     return output
 if 0:
 
@@ -257,12 +171,18 @@ if 0:
     output['nonzero_k']=nonzero_k
     output['expect_v']=expect_v
     output['expect_k']=expect_k
-tred = stuff_3d()#save=oned)
-
 def comp(a,b):
     for n in range(a.size):
         ar = a[n].real
         br = b[n].real
         print("%d %0.2e - %0.2e = %0.2e"%(n,ar,br,1-ar/br))
+xhat=nar([1,0,0])
+yhat=nar([0,1,0])
+zhat=nar([0,0,1])
+#vals_n = {'A':nar([0,0]),'B':nar([1e-2,1e-2]),'K':nar([[0,0,1],[0,0,1]]),'Theta':nar([0,0])}
+vals_n = {'A':nar([0,0,1]),'B':nar([1e-2,1e-2,0]),'K':nar([[0,0,1],[0,0,1],[0,0,0]]),'Theta':nar([0,0,0])}
+vals_n = {'A':nar([1,1,1,1,1]),'B':nar([1,1,1,1,1]),'K':nar([zhat,zhat,zhat,zhat,zhat]),'Theta':nar([0.2,0.1,np.pi/2,0,1.3,  4])}#nar([0,0.2,0.1,np.pi/2,0])}
+vals_n = {'A':nar([1,1]),'B':nar([1,1]),'K':nar([yhat+zhat,yhat+2*zhat]),'Theta':nar([0.,0.])}
+#vals_n = {'A':nar([1,1]),'B':nar([1,0]),'K':nar([zhat,zhat]),'Theta':nar([0.0,0.0])}#nar([0,0.2,0.1,np.pi/2,0])}
 
-comp(tred['nonzero_v'],tred['expect_v'])
+stre=stuff_3d(**vals_n)

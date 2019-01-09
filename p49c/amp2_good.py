@@ -46,7 +46,7 @@ def pp(Q,msg=''):
     print("%s R %s"%(msg,str(Q.real)))
     print("%s I %s"%(msg,str(Q.imag)))
 
-def stuffs(KA=0,KB=0,KC=0,A0=0,A1=0,B0=0,B1=0,C0=0,C1=0, Atheta=0,Btheta=0,Ctheta=0):
+def stuffs(KA=0,KB=0,KC=0,A0=0,A1=0,B0=0,B1=0,C0=0,C1=0, Atheta=0,Btheta=0,Ctheta=0, use_the_new_one=False):
     output={}
     size=32
     twopi=np.pi*2
@@ -65,7 +65,7 @@ def stuffs(KA=0,KB=0,KC=0,A0=0,A1=0,B0=0,B1=0,C0=0,C1=0, Atheta=0,Btheta=0,Cthet
     plt.clf()
     plt.plot(x,A,label='A')
     plt.plot(x,B,label='B')
-    #plt.plot(x,C,label='C')
+    plt.plot(x,C,label='C')
     plt.plot(x,A*B*C,label='A*B*C')
     plt.legend(loc=0)
 
@@ -93,20 +93,31 @@ def stuffs(KA=0,KB=0,KC=0,A0=0,A1=0,B0=0,B1=0,C0=0,C1=0, Atheta=0,Btheta=0,Cthet
     pp(nonzero_v,msg='nonzero values')
     import amp_tools
     reload(amp_tools)
-    values={}
-    values['KA']=KA 
-    values['KB']=KB
-    values['KC']=KC
-    values['A0']=A0
-    values['A1']=A1
-    values['B0']=B0
-    values['B1']=B1
-    values['C0']=C0
-    values['C1']=C1
-    values['Atheta']=Atheta
-    values['Btheta']=Btheta
-    values['Ctheta']=Ctheta
-    expect = amp_tools.modes_1(**values)
+    if use_the_new_one == False:
+        values={}
+        values['KA']=KA 
+        values['KB']=KB
+        values['KC']=KC
+        values['A0']=A0
+        values['A1']=A1
+        values['B0']=B0
+        values['B1']=B1
+        values['C0']=C0
+        values['C1']=C1
+        values['Atheta']=Atheta
+        values['Btheta']=Btheta
+        values['Ctheta']=Ctheta
+        expect = amp_tools.modes_1(**values)
+        output.update(values)
+    else:
+        values={}
+        values['A'] = nar([A0,B0,C0])
+        values['B'] = nar([A1,B1,C1])
+        values['K'] = nar([KA,KB,KC])
+        values['Theta']=nar([Atheta, Btheta, Ctheta])
+
+        expect = amp_tools.modes_2(**values)
+        output.update(values)
 
     labs = expect.pop('labs')
     output['labs']=labs
@@ -124,7 +135,6 @@ def stuffs(KA=0,KB=0,KC=0,A0=0,A1=0,B0=0,B1=0,C0=0,C1=0, Atheta=0,Btheta=0,Cthet
     ax0.scatter(expect_k,expect_v.real, label='xr',c='c')
     ax0.scatter(expect_k,expect_v.imag, label='xi',c='r')
     output.update({'Q_flat':Q_flat,'actual_fft':actual_fft,'qfft':qfft})
-    output.update(values)
     output['expect']=expect
     output['nonzero_v']=nonzero_v
     output['nonzero_k']=nonzero_k
@@ -156,7 +166,7 @@ vals_small={   "A0" : 1, "A1" : np.sqrt(2.e-6), "KA":1, "Atheta" : 0,
 vals_0={"A0" : 8, "A1" : 2, "KA":1, "Atheta" : 0,
         "B0" : 2, "B1" : 4, "KB":1, "Btheta" : 0, 
         "C0" : 1, "C1" : 0, "KC":5, "Ctheta":1.2}
-vals_1={"A0" : 0, "A1" : 3, "KA":1, "Atheta" : 0,
-        "B0" : 1, "B1" : 2, "KB":1, "Btheta" : 1.2, 
-        "C0" : 1, "C1" : 0, "KC":5, "Ctheta":1.2}
-oned=stuffs(**vals_small)
+vals_1={"A0" : 1, "A1" : 1e-2, "KA":1, "Atheta" : 0,
+        "B0" : 1, "B1" : 1e-2, "KB":1, "Btheta" : 1.2, 
+        "C0" : 1, "C1" : 1e-2, "KC":5, "Ctheta":1.2}
+oned=stuffs(**vals_1)
