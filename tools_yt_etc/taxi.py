@@ -34,6 +34,9 @@ def load(filename):
     elif taxi_type == "'bb'":
         this_taxi = bb_taxi()
         this_taxi.read(actual_filename)
+    elif taxi_type == "'athena'":
+        this_taxi = athena_taxi()
+        this_taxi.read(actual_filename)
     else:
         print("UNKNOWN TAXI TYPE %s"%taxi_type)
         pdb.set_trace()
@@ -2029,3 +2032,78 @@ class bb_taxi(taxi):
 
         return self.ds
 
+class athena_taxi(taxi):
+    ds_dict = {}
+    kill_old_data = False
+    def set_filename(self,frame=None):
+        if frame is None:
+            frame = self.frames[-1]
+        this_dir = "%s/%04d"%(self.directory,frame)
+        self.frame_dict[frame]=this_dir
+        return this_dir
+    def __init__(self,*args,**kwargs):
+        taxi.__init__(self,*args,**kwargs)
+        self.taxi_type = 'athena'
+        self.frame_dict={}
+
+    def return_all_frames(self):
+        return frames
+    def load(self,frame=None):
+        if frame in self.ds_dict:
+            self.ds = self.ds_dict[frame]
+        else:
+            fname = {}
+            this_dir=self.set_filename(frame)
+            yt_map = { 'magnetic_field_x':'cell_centered_B_x',
+                      'magnetic_field_y':'cell_centered_B_y',
+                      'magnetic_field_z':'cell_centered_B_z'}
+            for field in ['density',
+                          'magnetic_field_x',
+                          'magnetic_field_y',
+                          'magnetic_field_z',
+                          'velocity_x',
+                          'velocity_y',
+                          'velocity_z',
+                          'pressure']:
+                #fname['density']="%s/%s"%(this_dir,self.frame_template%('density'))
+                athena_name = yt_map.get(field,field)
+                fname[field]="%s/%s"%(this_dir,self.frame_template%(athena_name))
+            #fname['magnetic_field_x']=this_dir+"/magx_t%d.fits"%frame
+            #fname['magnetic_field_y']=this_dir+"/magy_t%d.fits"%frame
+            #fname['magnetic_field_z']=this_dir+"/magz_t%d.fits"%frame
+            ##fname['Bx']=this_dir+"/magx_t%d.fits"%frame
+            ##fname['By']=this_dir+"/magy_t%d.fits"%frame
+            ##fname['Bz']=this_dir+"/magz_t%d.fits"%frame
+            #fname['velocity_x']=this_dir+"/velx_t%d.fits"%frame
+            #fname['velocity_y']=this_dir+"/vely_t%d.fits"%frame
+            #fname['velocity_z']=this_dir+"/velz_t%d.fits"%frame
+            self.data ={}
+            dumbslice = (0,slice(None),slice(None),slice(None)) # (0,slice(0,10),slice(0,10),slice(0,10))
+            for f in fname:
+                athena_name = yt_map.get(field,field)
+                h5ptr = h5py.File(fname[athena_name],'r')
+                self.data[f]= h5ptr[athena_name][dumbslice]
+                #if f in ['magnetic_field_%s'%s for s in 'xyz']:
+                #    self.data[f]/=np.sqrt(4*np.pi)
+            #self.data['pressure'] = self.data['density']
+            self.data['Bx'] = self.data['magnetic_field_x']
+            self.data['By'] = self.data['magnetic_field_y']
+            self.data['Bz'] = self.data['magnetic_field_z']
+            print("wtf")
+            self.fname=fname
+            bbox = np.array([[0.,1.]]*3) 
+            TopGridDimensions=self.data['density'].shape
+            self.ds = yt.load_uniform_grid(self.data,TopGridDimensions,length_unit='cm',bbox=bbox)
+            self.ds.parameters['HydroMethod'] = 9001
+            self.ds.parameters['InitialTime'] = frame
+            self.ds.parameters['TopGridDimensions'] = TopGridDimensions 
+            #self.ds_dict[frame]=self.ds
+        for field in self.derived_fields:
+            field_stuff = self.derived_fields[field]
+            print("LOADING FIELD",field)
+            if type(field_stuff) is dict:
+                self.ds.add_field(field,**self.derived_fields[field])
+            else:
+                field_stuff(self.ds)
+
+        return self.ds
