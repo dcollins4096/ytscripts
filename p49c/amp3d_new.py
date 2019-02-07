@@ -121,8 +121,16 @@ def stuff_3d(A=[],B=[],K=[],Theta=[],linthreshy=1e-8):
     output.update({'Q_flat':Q_flat,'acutal_fft':actual_fft,'qfft':qfft})
     output.update(values)
     output['expect']=expect
+
+
     output['nonzero_v']=nonzero_v
     output['nonzero_k']=zip(*nonzero_k)
+    output['nonz']= dict( zip(output['nonzero_k'], output['nonzero_v']))
+    def sanitize_real_vectors(ft):
+        for v in ft:
+            if v[2] == 0:
+                pass
+    #sanitize_real_vectors( output['nonz'])
     total_error = 0
     for n,vec in enumerate(output['nonzero_k']):
         if vec in expect:
@@ -181,8 +189,10 @@ yhat=nar([0,1,0])
 zhat=nar([0,0,1])
 #vals_n = {'A':nar([0,0]),'B':nar([1e-2,1e-2]),'K':nar([[0,0,1],[0,0,1]]),'Theta':nar([0,0])}
 vals_n = {'A':nar([0,0,1]),'B':nar([1e-2,1e-2,0]),'K':nar([[0,0,1],[0,0,1],[0,0,0]]),'Theta':nar([0,0,0])}
-vals_n = {'A':nar([1,1,1,1,1]),'B':nar([1,1,1,1,1]),'K':nar([zhat,zhat,zhat,zhat,zhat]),'Theta':nar([0.2,0.1,np.pi/2,0,1.3,  4])}#nar([0,0.2,0.1,np.pi/2,0])}
-vals_n = {'A':nar([1,1]),'B':nar([1,1]),'K':nar([yhat+zhat,yhat+2*zhat]),'Theta':nar([0.,0.])}
+#vals_n = {'A':nar([1,1]),'B':nar([1,1]),'K':nar([yhat+zhat,yhat+2*zhat]),'Theta':nar([0.,0.])}
 #vals_n = {'A':nar([1,1]),'B':nar([1,0]),'K':nar([zhat,zhat]),'Theta':nar([0.0,0.0])}#nar([0,0.2,0.1,np.pi/2,0])}
 
+vals_n = {'A':nar([1,1,1,1,1]),'B':nar([1,1,1,1,1]),'K':nar([zhat,2*zhat,yhat+zhat,zhat,zhat]),'Theta':nar([0.2,0.1,np.pi/2,0,1.3,  4])}#doesnt work yet
+vals_n = {'A':nar([1,1]),'B':nar([1,1]),'K':nar([zhat,yhat+zhat]),'Theta':nar([0.2,0.1,np.pi/2,0,1.3,  4])}#doesnt work yet
+vals_n = {'A':nar([1,1]),'B':nar([1,1]),'K':nar([zhat+xhat,yhat+2*zhat]),'Theta':nar([0.,0.])}#doesnt work yet
 stre=stuff_3d(**vals_n)

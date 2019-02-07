@@ -46,7 +46,7 @@ def pp(Q,msg=''):
     print("%s R %s"%(msg,str(Q.real)))
     print("%s I %s"%(msg,str(Q.imag)))
 
-def Nmodes(A=[],B=[],K=[],Theta=[],linthreshy=1e-8):
+def Nmodes(A=[],B=[],K=[],Theta=[],linthreshy=1e-8, real_fft=True):
     output={}
     size=32
     nmodes=len(A)
@@ -72,7 +72,10 @@ def Nmodes(A=[],B=[],K=[],Theta=[],linthreshy=1e-8):
 
 
 
-    actual_fft=np.fft.rfft(Q_flat)
+    if real_fft:
+        actual_fft=np.fft.rfft(Q_flat)
+    else:
+        actual_fft=np.fft.rfft(Q_flat)
     qfft=actual_fft/(x.size)
 
     fig,ax = plt.subplots(1,2,figsize=(8,4))

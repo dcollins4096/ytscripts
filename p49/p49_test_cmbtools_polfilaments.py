@@ -8,7 +8,8 @@ sys.path.append('/Users/dcollins/local-other-2018-01-05/cmbtools_nofits')
 from scipy.ndimage.filters import gaussian_filter
 from matplotlib.gridspec import *
     
-import cmbtools
+#import cmbtools
+import cmbtools_handler as cmbtools
 
 close('all')
 
@@ -116,6 +117,10 @@ for i in range(Nsteps) :
 Q = gaussian_filter(Q,1.0/60.*pi/180/Delta[0],mode='wrap')
 U = gaussian_filter(U,1.0/60.*pi/180/Delta[0],mode='wrap')
     
+if not Q.flags['C_CONTIGUOUS']:
+    Q = np.ascontiguousarray(Q)
+if not U.flags['C_CONTIGUOUS']:
+    U = np.ascontiguousarray(U)
 
 Qharm = cmbtools.map2harm(Q,Delta)
 Uharm = cmbtools.map2harm(U,Delta)

@@ -7,7 +7,8 @@ import matplotlib.pyplot as plt
 import sys
 
 sys.path.append("/home/huffenbe/projects/cmbtools")
-import cmbtools
+#import cmbtools
+import cmbtools_handler as cmbtools
 
 start = time.time()
 

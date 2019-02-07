@@ -9,45 +9,60 @@ def symmetric(v):
     s2[0]=v[0]
     return s2
 
-size = [64,64]
-k = np.zeros(size)*1j
-y,x = np.mgrid[0:1:1./64, 0:1:1./64]
-k_unit = nar([8.,14])
-kp_unit = k_unit*2*np.pi
-#k_unit /= (k_unit**2).sum()**0.5
-#rho = np.sin(2*np.pi*k_unit[0]*x)+np.sin(2*np.pi*k_unit[1]*y)
-#rho=( np.exp( 1j*(k_unit[0]*x+k_unit[1]*y))).real
-#rho=( np.exp( 1j*(k_unit[0]*x+k_unit[1]*y))).real
-#rho = np.cos(2*np.pi*k_unit[0]*x)
-#rho = (np.exp(1j*2*np.pi*k_unit[0]*x)).real
+if 0:
+    size = [64,64]
+    k = np.zeros(size)*1j
+    y,x = np.mgrid[0:1:1./64, 0:1:1./64]
+if 0:
+    size = 16
+    #k = np.zeros(size)*1j
+    y,x = np.mgrid[0:1:1./size, 0:1:1./size]
+if 1:
+    size = 16
+    #k = np.zeros(size)*1j
+    if 1:
+        dx = 1./size
+        end = 1+dx
+    if 0:
+        dx = 1./(size-1)
+        end = 1
+    y,x = np.mgrid[0:end:dx,0:end:dx]
+kp_unit = nar([0,1])*2*np.pi
 rho = (np.exp(1j*(kp_unit[0]*x+kp_unit[1]*y))).imag
-plt.clf()
-plt.imshow(rho)
-plt.savefig('p49b_test.png')
+if 0:
+    kp_unit = nar([2,1])*2*np.pi
+    rho += (np.exp(1j*(kp_unit[0]*x+kp_unit[1]*y))).imag
 
-rhohat=np.fft.fftn(rho)
-plt.clf()
+
+rhohat=np.fft.rfftn(rho)
 plt.imshow(rhohat.real)
-plt.savefig('p49b_real.png')
-plt.clf()
 plt.imshow(rhohat.imag)
-plt.savefig('p49b_imag.png')
-
-def su(x):
-    y=np.abs(x).sum()
-    if y < 1e-8:
-        return "--"
-    return "%0.1e"%y
-cn = rainbow_map(64)
-plt.clf()
-for n in range(64):
-    plt.plot(rhohat.real[:,n],c=cn(n))
-    print( "n %3d r %8s i %8s"%(n,su(rhohat.real[:,n]), su(rhohat.imag[:,n])))
-plt.savefig('p49b_rhohat_real.png')
-plt.clf()
-for n in range(64):
-    plt.plot(rhohat.imag[:,n],c=cn(n))
-plt.savefig('p49b_rhohat_imag.png')
+import turb_quan
+reload(turb_quan)
+turb_quan.plotter2([rho,rho,rho],
+                   labs=['rho','rhohat','rhohat i','rhohat real'],
+                   norm='ind',
+                  fname = 'p49c_plots/2dgames_xspace.png', share=False)
+turb_quan.plotter2([np.abs(rhohat)],npx=1,zmin=1e-11,
+                   labs=['rhohat','rhohat i','rhohat real'],
+                   norm='positive',
+                  fname = 'p49c_plots/2dgames_kspace.png', share=True)
+if 0:
+    def su(x):
+        y=np.abs(x).sum()
+        if y < 1e-8:
+            return "--"
+        return "%0.1e"%y
+    cn = rainbow_map(64)
+    plt.clf()
+    for n in range(64):
+        plt.plot(rhohat.real[:,n],c=cn(n))
+        print( "n %3d r %8s i %8s"%(n,su(rhohat.real[:,n]), su(rhohat.imag[:,n])))
+    plt.savefig('p49b_rhohat_real.png')
+    plt.clf()
+    for n in range(64):
+        plt.plot(rhohat.imag[:,n],c=cn(n))
+    plt.savefig('p49b_rhohat_imag.png')
 
 #k[1,2] = 1+0j
 #khat = np.fft.ifft(k)
