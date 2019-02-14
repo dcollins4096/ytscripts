@@ -7,7 +7,8 @@ frbname = 'frbs'
 #if os.path.isdir('code') :
 #    sys.path.append('code')
 
-import cmbtools
+#import cmbtools
+import cmbtools_handler as cmbtools
 #import pyfits
 import astropy.io.fits as pyfits
 from scipy.optimize import leastsq
@@ -188,12 +189,11 @@ def EBfromQU(Q,U, return_quharm=False):
     Uharm = cmbtools.map2harm(U,Delta)
 
     Eharm, Bharm = cmbtools.QU2EB(Qharm,Uharm,Deltal)
-    print("USING",cmbtools)
 
     E = cmbtools.harm2map(Eharm,Delta)
     B = cmbtools.harm2map(Bharm,Delta)
     if return_quharm:
-        output = {'E':E,'B':B,'Eh':Eharm,'Bh':Bharm, 'Qh':Qharm, 'Uh':Uharm}
+        output = {'E':E,'B':B,'Eh':Eharm,'Bh':Bharm, 'Qh':Qharm, 'Uh':Uharm, 'Deltal':Deltal,'Delta':Delta}
     else:
         output = E,B,Eharm,Bharm
     return output

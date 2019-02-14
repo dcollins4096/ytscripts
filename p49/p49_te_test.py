@@ -1,7 +1,8 @@
 import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
-import cmbtools
+#import cmbtools
+import cmbtools_handler as cmbtools
 import pylab 
 from scipy.ndimage.filters import gaussian_filter
 import numpy as np

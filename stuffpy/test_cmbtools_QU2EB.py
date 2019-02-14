@@ -5,7 +5,8 @@ import numpy as np
 import sys
 sys.path.append('/home/huffenbe/projects/cmbtools')
 
-import cmbtools
+#import cmbtools
+import cmbtools_handler as cmbtools
 #from pylab import *
 
 #close('all')

@@ -9,7 +9,8 @@ sys.path.append('/Users/dcollins/local-other-2018-01-05/cmbtools_nofits')
 if os.path.isdir('code') :
     sys.path.append('code')
 import p49_fields
-import cmbtools
+#import cmbtools
+import cmbtools_handler as cmbtools
 #import pyfits
 import astropy.io.fits as pyfits
 from pylab import *
