@@ -2079,9 +2079,10 @@ class athena_taxi(taxi):
             #fname['velocity_z']=this_dir+"/velz_t%d.fits"%frame
             self.data ={}
             dumbslice = (0,slice(None),slice(None),slice(None)) # (0,slice(0,10),slice(0,10),slice(0,10))
+            #dumbslice =  (0,slice(0,10),slice(0,10),slice(0,10))
             for f in fname:
-                athena_name = yt_map.get(field,field)
-                h5ptr = h5py.File(fname[athena_name],'r')
+                athena_name = yt_map.get(f,f)
+                h5ptr = h5py.File(fname[f],'r')
                 self.data[f]= h5ptr[athena_name][dumbslice]
                 #if f in ['magnetic_field_%s'%s for s in 'xyz']:
                 #    self.data[f]/=np.sqrt(4*np.pi)
