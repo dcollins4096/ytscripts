@@ -17,12 +17,8 @@ quan_to_qb_map=dict(zip(quan_list,qb_list))
 
 special_list=[  'mach', 'cycle']
 from collections import defaultdict
-if 'all_quan' not in dir() or always_do:
-    print("wtf")
-    all_quan = defaultdict(lambda: list())
-    dumb=[]
-    for n in car.frame_dict:
-        this_name = "%s/%s.AverageQuantities.h5"%(car.directory,car.frame_dict[n]['dsname'])
+def return_average_quantities(file_list=[], all_quan = defaultdict(lambda: list())):
+    for this_name in file_list
         if not os.path.exists(this_name):
             print("No such file, skipping: %s"%this_name)
             continue
@@ -38,6 +34,15 @@ if 'all_quan' not in dir() or always_do:
             fptr.close()
     for key in all_quan:
         all_quan[key] = np.array( all_quan[key]).flatten()
+    return all_quan
+
+if 'all_quan' not in dir() or always_do:
+    print("wtf")
+    dumb=[]
+    file_list=[]
+    for n in car.frame_dict:
+        file_list.append("%s/%s.AverageQuantities.h5"%(car.directory,car.frame_dict[n]['dsname']))
+    all_quan = return_average_quantities(file_list)
 import turb_quan
 reload(turb_quan)
 print("density", all_quan['density_avg'])
