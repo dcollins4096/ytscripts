@@ -187,15 +187,16 @@ def EBfromQU(Q,U, return_quharm=False):
 
     Qharm = cmbtools.map2harm(Q,Delta)
     Uharm = cmbtools.map2harm(U,Delta)
+    Tharm = cmbtools.map2harm(Density,Delta)
 
     Eharm, Bharm = cmbtools.QU2EB(Qharm,Uharm,Deltal)
 
     E = cmbtools.harm2map(Eharm,Delta)
     B = cmbtools.harm2map(Bharm,Delta)
     if return_quharm:
-        output = {'E':E,'B':B,'Eh':Eharm,'Bh':Bharm, 'Qh':Qharm, 'Uh':Uharm, 'Deltal':Deltal,'Delta':Delta}
+        output = {'E':E,'B':B,'Eh':Eharm,'Bh':Bharm, 'Qh':Qharm, 'Uh':Uharm, 'Deltal':Deltal,'Delta':Delta,'Tharm':Tharm}
     else:
-        output = E,B,Eharm,Bharm
+        output = E,B,Eharm,Bharm, Tharm
     return output
 def QU2EB(rootdir,frame):
     Qlist = glob.glob(rootdir+'/DD%04d_Q[xyz]*.fits'%frame)
@@ -218,7 +219,7 @@ def QU2EB(rootdir,frame):
         Delta = size2d/N
         Deltal = cmbtools.Delta2l(Delta,N)
 
-        E,B, Eharm, Bharm = EBfromQU(Q,U)
+        E,B, Eharm, Bharm, Tharm = EBfromQU(Q,U)
 
         lmax = Deltal[0]*N[0]
         lbins = linspace(0,lmax,100)
@@ -226,6 +227,7 @@ def QU2EB(rootdir,frame):
         
         ClEE = cmbtools.harm2cl(Eharm,Deltal,lbins)
         ClBB = cmbtools.harm2cl(Bharm,Deltal,lbins)
+        ClTE = cmbtools.harm2clcross_samegrid(Eharm, Tharm,Deltal,lbins)
 
         # write the output near the input
         mo = re.match('(.*/DD[0-9]{4}_)Q([xyz].*)(.fits)',Qfile)

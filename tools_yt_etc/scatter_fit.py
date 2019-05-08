@@ -66,7 +66,7 @@ def scatter_fit(plt,xin,yin,use_scatter = 'scatter',add_fit_label=False,label=No
         if plt is not None and plot_text == True:
             plt.text(text_x,text_y,"m = %0.2f"%index)
     if verbose:
-        print "x: %0.3g, %0.3g y: %0.3g, %0.3g m: %0.3g b: %0.3g"%(x_0,x_1,y_0,y_1,index,offset)
+        print( "x: %0.3g, %0.3g y: %0.3g, %0.3g m: %0.3g b: %0.3g"%(x_0,x_1,y_0,y_1,index,offset))
     label_to_use = None
     if add_fit_label:
         if label != None:
@@ -80,7 +80,7 @@ def scatter_fit(plt,xin,yin,use_scatter = 'scatter',add_fit_label=False,label=No
             plot = plt.scatter(x,y, label=label_to_use,c=cused,**kwargs)
 
     if plt is not None and plot_fit == True:
-        print "FU", [x_0,x_1],[y_0,y_1]
+        print( "FU", [x_0,x_1],[y_0,y_1])
         plt.plot([x_0,x_1],[y_0,y_1], c=fit_color)#,label=None)
 
     return {'plot':plot,'fit':fit, 'x':[x_0,x_1],'y':[y_0,y_1]}

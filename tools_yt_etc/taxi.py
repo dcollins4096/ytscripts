@@ -406,7 +406,7 @@ class taxi:
 
         #To make the file easier to use, some of the uber members are written first
         self.taxi_type='yellow'
-        self.WriteMeFirst = ['name','directory','outname','operation','frames','fields','axis',
+        self.WriteMeFirst = ['name','directory','outname','outdir','operation','frames','fields','axis',
                             'name_syntax', 'name_files','name_dir','GlobalParameters',
                              'ProfileDir','ProfileName', 'taxi_type']
         self.ExcludeFromWrite.append('WriteMeFirst')
@@ -425,6 +425,7 @@ class taxi:
         self.weight_field = None           #Weight field.  Projections?    
         self.name   = 'sim'          #identifier for this taxi instance
         self.outname = 'Image'       #Prefix for output
+        self.outdir = "./"
         self.directory = '.'         #Directory where the simulation was run. (Where the DD* dirs are)
         self.ProfileDir= "./ProfileFiles/"
         self.ProfileName = None
@@ -889,7 +890,7 @@ class taxi:
         plot operations can be found by typing uber.operations()"""
         start_time = time.time()    
         
-        frame_template = self.outname + "_%04i"
+        frame_template = "%s/%s_%s"%(self.outdir,self.outname, "_%04i")
         FirstOne = True #For monotonic plots.
 
         if local_frames==None:

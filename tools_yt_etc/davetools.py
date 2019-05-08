@@ -442,6 +442,7 @@ def powerline(this_plt,x1,x2,y1,power,log=True,**kwargs):
         yf = power*(x2-x1) + y1
         y = [y1,yf]
     this_plt.plot(x,y,**kwargs)
+    return yf
 
 def read_csv(filename):
     file=open(filename,'r')

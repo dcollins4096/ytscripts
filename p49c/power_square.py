@@ -18,14 +18,16 @@ k=np.fft.fftfreq(size)*size
 sft=np.fft.fftshift
 y3 = np.zeros_like(x)
 
-mask = np.logical_and(x>=0.25,x<=0.75)
-y = np.zeros_like(x)
+#mask = np.logical_and(x>=0.25,x<=0.75)
+#y = np.zeros_like(x)
+mask = x<0.5
+y = np.zeros_like(x)#-1
 y[mask]=1 #x[mask]**-2.5
 z = np.fft.fft(y)
 k = np.fft.fftfreq(size,d=dx)
 
-x1 = 0.75+0.5/size
-x0 = 0.25-0.5/size
+x1 = 0.5 #0.75+0.5/size
+x0 = 0
 #expect = size/(2*np.pi*k)*(np.cos(-2*np.pi*x1*k/size)
 #                          -np.cos(-2*np.pi*x0*k/size)
 #                          -1j* np.sin(-2*np.pi*x1*k/size)
@@ -53,9 +55,9 @@ plt.savefig('p49c_plots/square_dumb.png')
 
 #for n,v in enumerate(z):
 #    print("%5d : %9.2f + %9.2f"%(n,v.real,v.imag))
-fig,ax = plt.subplots(1,1)
-#ax0=ax[0]
-ax1=ax#[1]
+fig,ax = plt.subplots(1,2)
+ax0=ax[1]
+ax1=ax[0]
 ax1.plot(k[k>0],size/k[k>0]/np.pi,c='k')
 ax1.plot(np.abs(z),c=[0.5]*4)
 #ax0.plot(x,y)
@@ -64,6 +66,14 @@ ax1.plot(z.imag,c='g')
 ax1.plot(moredumb_k,more_dumb,c='y')
 ax1.plot(expect.real,c='c')
 ax1.plot(expect.imag,c='m')
+
+ok=k>=0
+ax0.plot(np.abs(expect)[ok],c=[0.5]*3,label='xa')
+ax0.plot(np.abs(z)[ok],c='k',label='abs')
+ok2 = np.logical_and(k>0, k<10)
+scatter_fit.scatter_fit(ax0,k[ok2],np.abs(z)[ok2],plot_text=True)
+ax0.set_xscale('log'); ax0.set_yscale('log')
+
 fig.savefig('p49c_plots/power_square.png')
 plt.close(fig)
 

@@ -177,12 +177,13 @@ def state_to_qu(state,data=None, line_of_sight=0):
     hvhat=project_and_fft(data[field_vertical], line_of_sight)
     hats = {'dhat':dhat,'b2ha':b2ha,'hhhat':hhhat,'hvhat':hvhat}
 
-    turb_quan.plotter(np.abs(dhat),
-                      np.abs(b2ha),
-                      np.abs(hhhat),
-                      np.abs(hvhat),
-                     'p49c_plots/test_field_hat.png',norm='positive',
-                      labs=['nhat','h2hat','Hhhat','Hvhat'],
+    turb_quan.plotter(np.abs(dhat), 
+                      np.abs(b2ha), 
+                      np.abs(hhhat), 
+                      np.abs(hvhat), 
+                      'p49c_plots/test_field_hat.png',
+                      norm='positive', 
+                      labs=['nhat','h2hat','Hhhat','Hvhat'], 
                       axis_labels=axis_labels )
 
 
