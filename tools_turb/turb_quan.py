@@ -1,25 +1,26 @@
-import taxi
 from GL import *
-import p49_fields
-import p49_labels
-import p49_QU2EB
-import xtra_energy_fields
 import astropy.io.fits as pyfits
-import glob
-import os
-import numpy as np
-import time
-import glob
-import h5py
 import re
 nar = np.array
-import xtra_energy_fields
-reload(xtra_energy_fields)
-import cmbtools_handler as cmbtools
+#import cmbtools_handler as cmbtools
+import cmbtools
 #if '/home/dcollins/repos/p49c/p49_eigenmodes' not in sys.path:
 #    sys.path.append('/home/dcollins/repos/p49c/p49_eigenmodes')
 #import p49_print_tools
 import matplotlib.colors as colors
+import xtra_energy_fields
+import p49_QU2EB
+reload(p49_QU2EB)
+import p49_fields
+reload(p49_fields)
+
+import yt
+yt.enable_parallelism()
+def imroot():
+    return yt.is_root()
+#def imroot():
+#    return True
+
 def plotter2(arrays,fname,norm=None,labs=['Q','U','E','B'],axis_labels=None,npx=2,
              share=True,zmin=None,**args):
     np = len(arrays)
@@ -166,6 +167,8 @@ class quan_box():
                 if frame not in dict1['EB']:
                     dict1['EB'][frame] = dict2['EB'][frame]
     def dump(self,h5name=None):
+        if not imroot():
+            return
         if h5name is None:
             h5_name = 'quan_box_%s.h5'%self.car.outname
         #if os.path.exists(pickle_name):
@@ -213,15 +216,17 @@ class quan_box():
             
 
     def load(self, h5_name=None):
+        if not imroot():
+            return
+
         if h5_name is None:
             h5_name = 'quan_box_%s.h5'%self.car.outname
         if len(glob.glob(h5_name)):
             fptr = h5py.File(h5_name,'r')
             try:
                 for k in fptr:
-                    self.stuff[k]=copy.copy(fptr[k].value)
+                    self.stuff[k]=list(copy.copy(fptr[k].value))
             except:
-                pdb.set_trace()
                 raise
             finally:
                 fptr.close()
@@ -394,10 +399,11 @@ class quan_box():
           fields.append( (axis,'Q%s'%(axis))   )
           fields.append( (axis,'U%s'%(axis))   )
           fields.append( (axis,'density') )
+          fields.append( (axis, 'magnetic_field_strength'))
 
         for axis, field in fields :
             outputdir = "%s/%s/"%(self.car.directory,frbname)
-            if not os.access(outputdir, os.F_OK):
+            if not os.access(outputdir, os.F_OK) and imroot():
                 os.mkdir(outputdir)
             #Hm.  Q and U have the name in the field, but others don't.
             if field[0] in 'QU' and field[1] in 'xyz':
@@ -416,13 +422,15 @@ class quan_box():
                     ds = self.car.load(frame)
                     res = ds.parameters['TopGridDimensions'][2 + ord('x') - ord(axis)] # zyx order
                 print("FRB being produced: %s"%outfile)
+                p49_fields.add_QU(ds)
                 res = ds.parameters['TopGridDimensions'][0] #2 + ord('x') - ord(axis)]
                 proj = ds.proj(field,axis)
                 frb = proj.to_frb(1,res)
-                hdu = pyfits.PrimaryHDU(frb[field])
-                hdulist = pyfits.HDUList([hdu])
-                hdulist.writeto(outfile,clobber=True)
-                print("wrote", outfile)
+                if imroot():
+                    hdu = pyfits.PrimaryHDU(frb[field])
+                    hdulist = pyfits.HDUList([hdu])
+                    hdulist.writeto(outfile,clobber=True)
+                    print("wrote", outfile)
 
 
 
@@ -468,8 +476,8 @@ class quan_box():
 
         if frame in self.stuff['frames'] and self.clobber == False:
             return
-        self.stuff['frames'].append(frame)
-        self.stuff['t'].append(this_time)
+        self.stuff['frames'] = nar(list(self.stuff['frames'])+[frame])
+        self.stuff['t'] = nar(list(self.stuff['t'])+[this_time])
         if ds is not None:
             reg=ds.all_data()
         else:
