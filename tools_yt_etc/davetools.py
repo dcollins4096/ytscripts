@@ -6,7 +6,51 @@ import glob
 import os.path
 import tarfile
 import h5py
+class extents():
+    def __init__(self):
+        self.minmax=[]
+        self.errors=[]
+    def __call__(self,array):
+        if len(self.minmax):
+            self.minmax[0] = min([array.min(),self.minmax[0]])
+            self.minmax[1] = max([array.max(),self.minmax[1]])
+        else:
+            self.minmax=[array.min(),array.max()]
+    def __getitem__(self,index):
+        return self.minmax[index]
+    def __str__(self):
+        if len(self.minmax) == 2:
+            out= "[%0.2e, %0.2e]"%tuple(self.minmax)
+        else:
+            out = "undef"
+        return out
+    def __repr__(self):
+        if len(self.minmax) == 2:
+            out= "[%0.2e, %0.2e]"%tuple(self.minmax)
+        else:
+            out = "undef"
+        return out
+    def check(self,array):
+        if array.min() < self.minmax[0]:
+            self.errors.append(array.min())
+            print("Extent error: min")
+        if array.max() > self.minmax[1]:
+            self.errors.append(array.max())
+            print("Extent error: max")
 
+
+def axbonk(ax,xscale='linear',yscale='linear',xlabel='X',ylabel='Y',xlim=None,ylim=None,
+          linthreshx=0.1,linthreshy=0.1):
+    ax.set_xscale(xscale)
+    ax.set_yscale(yscale)
+    if xscale == 'symlog':
+        ax.set_xscale(xscale,linthreshx=linthreshx)
+    if yscale == 'symlog':
+        ax.set_yscale(yscale,linthreshy=linthreshy)
+    ax.set_xlabel(xlabel)
+    ax.set_ylabel(ylabel)
+    ax.set_xlim(xlim)
+    ax.set_ylim(ylim)
 def lim_down(value):
     return 10**(np.floor(np.log10(value)))
 def lim_up(value):
@@ -159,12 +203,19 @@ def rainbow_01():
     color_map = mpl.cm.ScalarMappable(norm=norm,cmap=cmap)
     return  color_map.to_rgba
 
-def rainbow_map(n):
-    norm = mpl.colors.Normalize()
-    norm.autoscale(np.arange(n))
-    #cmap = mpl.cm.jet
-    color_map = mpl.cm.ScalarMappable(norm=norm,cmap='jet')
-    return  color_map.to_rgba
+class rainbow_map():
+    def __init__(self,n):
+        norm = mpl.colors.Normalize()
+        norm.autoscale(np.arange(n))
+        #cmap = mpl.cm.jet
+        self.color_map = mpl.cm.ScalarMappable(norm=norm,cmap='jet')
+    def __call__(self,val,n_fields=0):
+        this_value = self.color_map.to_rgba(val)
+        if n_fields > 0:
+            this_value = [this_value]*n_fields
+        return this_value
+
+    #return  color_map.to_rgba
 
 try:
     algae = mpl.cm.get_cmap("algae")
@@ -356,11 +407,15 @@ def psave(ax,name):
     print(name)
     ax.savefig(name)
 
-def plave(array,filename,axis=None,colorbar=True,clf=True, zlim=None, label="Value"):
+def plave(array,filename,axis=None,ax=None,colorbar=True, zlim=None, label="Value",scale='linear',ticks_off=False,
+         linthresh=1.):
     """plot and save.  Takes *array*, saves an image and saves it in *filename*
     *zlim* = [a,b] scales the colorbar form a to b."""
-    if clf:
-        plt.clf()
+    save_fig = False
+    if ax is None:
+        fig, ax = plt.subplots(1,1)
+        save_fig=True
+
     if len(array.shape) == 2:
         array_2d = array
     else:
@@ -370,25 +425,36 @@ def plave(array,filename,axis=None,colorbar=True,clf=True, zlim=None, label="Val
         #array_2d = np.flipud(np.sum( array , axis=axis).transpose())
         array_2d = np.sum( array , axis=axis)
 
-
-    #plt.imshow(np.flipud(array_2d.transpose()), interpolation='nearest')#, origin='lower')
-    if zlim is not None:
-        plot = plt.imshow(array_2d, interpolation='nearest', origin='lower', vmin=zlim[0], vmax=zlim[1])
+    norm = None
+    cmap = mpl.cm.gray
+    if zlim is None:
+        zlim = [array_2d.min(),array_2d.max()]
+    if scale is 'linear':
+        norm=mpl.colors.Normalize(vmin=zlim[0], vmax=zlim[1])
+    elif scale is 'log':
+        norm=mpl.colors.LogNorm(vmin=zlim[0], vmax=zlim[1])
+    elif scale is 'symlog':
+        norm=mpl.colors.SymLogNorm(linthresh,vmin=zlim[0], vmax=zlim[1])
+    plot = ax.imshow(array_2d, interpolation='nearest', origin='lower', norm=norm,cmap=cmap)
+    if not ticks_off:
+        ax.set_yticks(range(0,array_2d.shape[0],5))
+        ax.set_xticks(range(0,array_2d.shape[1],5))
     else:
-        plot = plt.imshow(array_2d, interpolation='nearest', origin='lower')
-    plt.yticks(range(0,array_2d.shape[0],5))
-    plt.xticks(range(0,array_2d.shape[1],5))
+        ax.set_xticks([])
+        ax.set_yticks([])
     print(filename)
     norm = None
-    if zlim is not None:
-        norm=mpl.colors.Normalize(vmin=zlim[0], vmax=zlim[1])
     if colorbar:
         colorbar = plt.colorbar(plot, norm=norm)
         colorbar.set_label(label)
         if zlim is not None:
             colorbar.set_clim(zlim[0], zlim[1])
-    plt.savefig(filename)
-    print(filename)
+
+
+    if save_fig:
+        fig.savefig(filename)
+        plt.close(fig)
+        print(filename)
 
 def wp(axes,number,index_only=False):
     """Which Plot.  Takes 2d list *axes* and returns the row-major *number* element.
@@ -442,7 +508,6 @@ def powerline(this_plt,x1,x2,y1,power,log=True,**kwargs):
         yf = power*(x2-x1) + y1
         y = [y1,yf]
     this_plt.plot(x,y,**kwargs)
-    return yf
 
 def read_csv(filename):
     file=open(filename,'r')
