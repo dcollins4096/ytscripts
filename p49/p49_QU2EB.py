@@ -7,8 +7,8 @@ frbname = 'frbs'
 #if os.path.isdir('code') :
 #    sys.path.append('code')
 
-#import cmbtools
-import cmbtools_handler as cmbtools
+import cmbtools
+#import cmbtools_handler as cmbtools
 #import pyfits
 import astropy.io.fits as pyfits
 from scipy.optimize import leastsq
@@ -169,14 +169,14 @@ def slopes_powers(car,frame, n0=1,p=1, fitlmin=1e3, fitlmax=8e3, plot_format="pd
 #else:
 #    rootdir = './output'
 #    Qlist = glob.glob(rootdir+'/*/DD*_Q[xyz]*.fits')
-def EBfromQU(Q,U, return_quharm=False):
+def EBfromQU(Q,U,BoxSize=1, return_quharm=False):
 
     if not Q.flags['C_CONTIGUOUS']:
         Q = np.ascontiguousarray(Q)
     if not U.flags['C_CONTIGUOUS']:
         U = np.ascontiguousarray(U)
     N = array(shape(Q),dtype = int32)
-    xsize = 5 * pi / 180
+    xsize = 5 * pi / 180*BoxSize
     size2d = array([xsize,xsize])
     Delta = size2d/N
 
@@ -187,16 +187,16 @@ def EBfromQU(Q,U, return_quharm=False):
 
     Qharm = cmbtools.map2harm(Q,Delta)
     Uharm = cmbtools.map2harm(U,Delta)
-    Tharm = cmbtools.map2harm(Density,Delta)
 
     Eharm, Bharm = cmbtools.QU2EB(Qharm,Uharm,Deltal)
 
     E = cmbtools.harm2map(Eharm,Delta)
     B = cmbtools.harm2map(Bharm,Delta)
     if return_quharm:
-        output = {'E':E,'B':B,'Eh':Eharm,'Bh':Bharm, 'Qh':Qharm, 'Uh':Uharm, 'Deltal':Deltal,'Delta':Delta,'Tharm':Tharm}
+        output = {'E':E,'B':B,'Eh':Eharm,'Bh':Bharm, 'Qh':Qharm, 'Uh':Uharm, 'Deltal':Deltal,'Delta':Delta}
+        output['N']=N
     else:
-        output = E,B,Eharm,Bharm, Tharm
+        output = E,B,Eharm,Bharm
     return output
 def QU2EB(rootdir,frame):
     Qlist = glob.glob(rootdir+'/DD%04d_Q[xyz]*.fits'%frame)
@@ -227,7 +227,7 @@ def QU2EB(rootdir,frame):
         
         ClEE = cmbtools.harm2cl(Eharm,Deltal,lbins)
         ClBB = cmbtools.harm2cl(Bharm,Deltal,lbins)
-        ClTE = cmbtools.harm2clcross_samegrid(Eharm, Tharm,Deltal,lbins)
+        #ClTE = cmbtools.harm2clcross_samegrid(Eharm, Tharm,Deltal,lbins)
 
         # write the output near the input
         mo = re.match('(.*/DD[0-9]{4}_)Q([xyz].*)(.fits)',Qfile)
@@ -248,7 +248,7 @@ def QU2EB(rootdir,frame):
         hdulist = pyfits.HDUList([hdu])
         hdulist.writeto(Bfile,overwrite=True)
 
-        savetxt(Clfile, zip(lcent,ClEE,ClBB))
+        savetxt(Clfile, list(zip(lcent,ClEE,ClBB)))
 
 '''
 # Plot Q/U
