@@ -8,7 +8,7 @@ import copy
 nar = np.array
 def stat(array,strin='', format='%0.16e'):
     template = '['+format+','+format+'] %s %s'
-    print template%(array.min(),array.max(),array.shape,strin)
+    print(template%(array.min(),array.max(),array.shape,strin))
 
 def dumb_map(V,cmap = 'jet',range=[0,1]):
     """Does all the crap that matplot lib needs to map V, assumed to be in [0,1] to the colormap"""
@@ -62,7 +62,7 @@ def tube(ds_list,fields=None,times=None, points=[(0.0,0.0,0.0),(1.0,0.0,0.0)],wi
     if 0:
         """this is a dirty hack."""
         if labels is None:
-            labs = range(len(ds_list))
+            labs = list(range(len(ds_list)))
         else:
             labs = labels
         for ds, lab in zip(ds_list, labs):
@@ -102,7 +102,7 @@ def tube(ds_list,fields=None,times=None, points=[(0.0,0.0,0.0),(1.0,0.0,0.0)],wi
         fiducial_field = []
         ax = fig.add_subplot(n_rows,width,i+1)
         if debug > 0:
-            print "n_rows %d width %d i %d field %s"%(n_rows,width,i+1, field)
+            print("n_rows %d width %d i %d field %s"%(n_rows,width,i+1, field))
         counter = -1
         for n_ds,ds in enumerate(ds_list):
             counter += 1
@@ -111,7 +111,7 @@ def tube(ds_list,fields=None,times=None, points=[(0.0,0.0,0.0),(1.0,0.0,0.0)],wi
             sort_x = np.argsort(this_x)
             this_x = this_x[sort_x]
             this_y = copy.copy(this_ray[field])
-            if units.has_key(field):
+            if field in units:
                 this_y = this_y.in_units(units[field])
             this_y =this_y.v[sort_x]
             #pdb.set_trace()
@@ -129,7 +129,7 @@ def tube(ds_list,fields=None,times=None, points=[(0.0,0.0,0.0),(1.0,0.0,0.0)],wi
 
 
             if hasattr(renorm,'has_key'):
-                if renorm.has_key(field):
+                if field in renorm:
                     this_y -= renorm[field]
             if offsets is not None:
                 this_y *= offsets[n_ds]
@@ -148,7 +148,7 @@ def tube(ds_list,fields=None,times=None, points=[(0.0,0.0,0.0),(1.0,0.0,0.0)],wi
                 else:
                     ylim[field][0] = min( ylim[field][0], min(this_y))
                     ylim[field][1] = max( ylim[field][1], max(this_y))
-                print("YLIM",ylim)
+                print(("YLIM",ylim))
 
             if this_y.min() > 0 :
                 ax.set_yscale( yscale.get(field,'log'))
@@ -173,9 +173,9 @@ def tube(ds_list,fields=None,times=None, points=[(0.0,0.0,0.0),(1.0,0.0,0.0)],wi
         first_ax.legend(Handels,LabelsToUse)
     fig.savefig(filename)
     plt.close(fig)
-    print filename
+    print(filename)
     if return_ray:
-        print "There's something persistent that's getting messed up with returning the ray. Be careful."
+        print("There's something persistent that's getting messed up with returning the ray. Be careful.")
         return ray_set
     else:
         return None
