@@ -1,3 +1,4 @@
+from go import *
 def grad(data,fieldname,direction):
     iM1 = slice(None,-2)
     iP1 = slice(2,None)

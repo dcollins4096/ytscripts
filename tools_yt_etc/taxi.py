@@ -748,6 +748,7 @@ class taxi:
         Possibly could be renamed 'load' """
         self.set_filename(frame)
         self.ds = yt.load(self.basename)
+        self.ds.periodicity=[True,True,True]
 
         for filter_name in self.particle_filter_names:
             self.ds.add_particle_filter(filter_name)
@@ -847,7 +848,8 @@ class taxi:
     def skip_this_plot(self,check_frame_i, check_field, check_axis_i, check_operation, store_plot=True):
         check_frame = str(check_frame_i)
         check_axis  = str(check_axis_i)
-        fptr = open("plot_log_%s.txt"%self.outname,"a+")
+        logname = self.outname.split('/')[-1]
+        fptr = open("plot_log_%s.txt"%logname,"a+")
         try:
             plotted_dict = self.plotted_dict
         except:
