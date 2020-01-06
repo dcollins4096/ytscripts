@@ -1,4 +1,7 @@
+from go import *
 import re
+import yt
+import glob
 
 #proj = yt.ProjectionPlot(ds,0,'density')
 ##proj.annotate_grids()
@@ -97,10 +100,10 @@ def add_particles(ds, setname , outdir,outnumber=0):
                        'particle_position_x', 'particle_position_y', 'particle_position_z', \
                        'particle_velocity_x', 'particle_velocity_y', 'particle_velocity_z']
     for grid_index, g in enumerate(ds.index.grids): 
-        print "adding to grid",g,  'of', len(ds.index.grids)
+        print("adding to grid",g,  'of', len(ds.index.grids))
         """identify the particles, make the lists"""
         list_of_lists = [[] for p in particle_fields]
-        particle_dict = dict(zip(particle_fields,list_of_lists))
+        particle_dict = dict(list(zip(particle_fields,list_of_lists)))
         density = g['density'].in_units('code_mass/code_length**3')#.flatten()
         x = g['x'].in_units('code_length')#flatten()
         y = g['y'].in_units('code_length')#flatten()
@@ -127,7 +130,7 @@ def add_particles(ds, setname , outdir,outnumber=0):
         
         """Write the data files"""
         out_file_name = "%s/%s"%(out_basename , g.filename.split("/")[-1])
-        print "writing", out_file_name
+        print("writing", out_file_name)
         in_cpu = h5py.File(g.filename,'r')
         in_group = in_cpu['Grid%08d'%g.id]
         out_cpu = h5py.File(out_file_name,'a')
@@ -192,11 +195,12 @@ def add_particles(ds, setname , outdir,outnumber=0):
     out_ds.close()
     in_ds.close()
     """get all the damned anscilary files.  Should be done with copies."""
-    extra_files=['.boundary','.configure','.boundary.hdf','.memorymap']
+    extra_files=['.boundary','.configure','.boundary.hdf','.memorymap','.forcing','.mt']
     for fl in extra_files:
         source_file = "%s%s"%(setname,fl)
         dest_file = "%s%s"%(out_ds_name,fl)
-        shutil.copy(source_file,dest_file)
+        if os.path.exists(source_file):
+            shutil.copy(source_file,dest_file)
 
 def copy_all_fields(ds1, ds2, fields=["%s-acceleration"%s for s in "xyz"]):
     """adds the fields from ds1 to ds2"""
@@ -289,7 +293,7 @@ def boundary(ds1,ds2):
     outFptr = h5py.File(out_hdf,"w")
     nfields = len(fields)
     try:
-        for field in inFptr.keys():
+        for field in list(inFptr.keys()):
             total = inFptr[field].shape[0]
             face_size = total/(nfields*2)
             new_size = total + face_size*3*2 #3 new fields and 2 sides
@@ -324,8 +328,10 @@ if 1:
     """Usage."""
     #dirname = '/scratch1/dcollins/Paper19/SphereTest/s05b_uni_repeat'
     #outdir = '/scratch1/dcollins/Paper19/SphereTest/s05b_uni_repeat/tracers'
-    dirname = '/scratch1/dcollins/Paper06_Multiphase/fd03_add_tracer_amr'
-    outdir = '/scratch1/dcollins/Paper06_Multiphase/fd03_add_tracer_amr/DD0001t'
-    frame = 1;setname = '%s/DD%04d/data%04d'%(dirname,frame,frame)
+    #dirname = '/scratch1/dcollins/Paper06_Multiphase/fd03_add_tracer_amr'
+    #outdir  = '/scratch1/dcollins/Paper06_Multiphase/fd03_add_tracer_amr/DD0001t'
+    dirname = '/scratch/00369/tg456484/Paper42_runs/eq44_Actually9_d0.5_p59_L4_J8/transfer/'
+    outdir  = '/scratch/00369/tg456484/Paper42_runs/eq44_Actually9_d0.5_p59_L4_J8/transfer/D1'
+    frame = 0;setname = '%s/DD%04d/data%04d'%(dirname,frame,frame)
     ds = yt.load(setname)
     add_particles(ds,setname,outdir, outnumber = frame)
