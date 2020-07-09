@@ -12,10 +12,12 @@ box_list_256 = [4,4,4]
 box_list_512 = [8,8,8]
 SERIES = 'zX05'
 
-axlist = 'z'
+axlist = 'x'
 
 box_list = box_list_standard
 car_list = proto_list_Mach10
+car_list = ['ca02']
+box_list=[1]
 #car_list=['zc01']; box_list=[4]
 #box_list = [1, 2, 2, 2, 1]
 #car_list=['za01']#,'zc01']
@@ -27,7 +29,7 @@ frames_512 = {'zd01':16,'zd04':101,'zd05':16}
 car_array=[]
 for name in car_list:
     car_array.append(taxi.load(name))
-    car_array[-1].frames=[16]
+    car_array[-1].frames=list(range(10))+list(range(10,150,10))
 
     #car_array[-1].frames=[10,13,16,31] #[100]
     #car_array[-1].frames=[7,9,16] #[10,13,16,31] #[100]
@@ -74,23 +76,30 @@ if 0:
                         continue
                 #if not os.path.exists(field):
                 #    print("shoot.  Missing %s"%field)
-                d[car.name]= pyfits.open(density,dtype=np.double)[0].data
-                #h[car.name]= pyfits.open(field,dtype=np.double)[0].data
-                #q[car.name]= pyfits.open(Q,dtype=np.double)[0].data
-                #u[car.name]= pyfits.open(U,dtype=np.double)[0].data
-                #e[car.name]= pyfits.open(E,dtype=np.double)[0].data
-                #b[car.name]= pyfits.open(B,dtype=np.double)[0].data
-                if 0:
+                d[car.name]=di=pyfits.open(density,dtype=np.double)[0].data
+                h[car.name]=hi=pyfits.open(field,dtype=np.double)[0].data
+                q[car.name]=qi=pyfits.open(Q,dtype=np.double)[0].data
+                u[car.name]=ui=pyfits.open(U,dtype=np.double)[0].data
+                e[car.name]=ei=pyfits.open(E,dtype=np.double)[0].data
+                b[car.name]=bi=pyfits.open(B,dtype=np.double)[0].data
+                if 1:
                     outname = "p49six_%s_%s_%s.png"%(car.outname,set_output,ax)
                     turb_quan.plotter2([d[car.name], h[car.name],q[car.name],
                                         u[car.name],e[car.name],b[car.name]],
                                            outname,
-                                           labs=['d','b(broke)','q','u','e','b'],
-                                           norm='symlog')
+                                           labs=['d','H','q','u','e','b'],
+                                           norm='ind')
                     if 0:
                         outname = 'p49_qhist_%s_%s.png'%(car.outname,frame,set_output)
                         plt.hist(np.log(np.abs(q.flatten())),histtype='step',color='rgb'[nax])
-            if 1:
+                if 1:
+                    outname_base = "%s__%04d_frb_%s_%s.png"
+                    for name, array in  [ ['Q',qi],['U',ui],['E',ei],['B',bi]]:
+                        outname = outname_base%( car.outname, frame, name, ax)
+                        turb_quan.plotter2([array], outname, labs=[name], norm='ind',npx=1)
+
+                
+            if 0:
                 outname = "p49six_density_%s_%s_%s.png"%(SERIES,set_output,ax)
                 turb_quan.plotter2( [d[name] for name in car_list],
                                     outname,share=False,
