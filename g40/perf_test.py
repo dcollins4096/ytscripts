@@ -5,13 +5,14 @@ reload(pt)
 plt.close('all')
 if 1:
 
-    flt1 = taxi.fleet(['g40_i01','g40_i02'])
-    flt1.name = 'iso'
-    flt2 = taxi.fleet(['g40_w01s','g40_w01','g40_w02'])
-    flt2.name = 'wd'
+#   flt1 = taxi.fleet(['g40_i01','g40_i02'])
+#   flt1.name = 'iso'
+#   flt2 = taxi.fleet(['g40_w01s','g40_w01','g40_w02'])
+#   flt2.name = 'wd'
     flt3 = taxi.fleet(['g40_sa','g40_sb','g40_sc','g40_sd'])
+    flt3 = taxi.fleet(['g40_sc'])
     flt3.name = 'spheres'
-    armada = [flt1,flt2,flt3]
+#    armada = [flt1,flt2,flt3]
     armada=[flt3]
     pdict = {}
     for flt in armada:
@@ -52,7 +53,7 @@ if 1:
             
             axi.legend(loc=0)
             axbonk(axi,xlabel='cycle',ylabel='Mean Time')
-            outname = 'g40_%s_timing.png'%simname
+            outname = 'plots_to_sort/g40_%s_timing.png'%simname
             print(outname)
             fig_i.savefig(outname)
 
@@ -65,7 +66,7 @@ if 1:
                 ax.plot(mean_time['mpi_tasks'], mean_time[key],label=key)
         axbonk(ax,xlabel=lab_mpi,ylabel='time')
         ax.legend(loc=0)
-        outname = 'g40_timing_%s.png'%suite_name
+        outname = 'plots_to_sort/g40_timing_%s.png'%suite_name
         print(outname)
         fig.savefig(outname)
         plt.close(fig)
@@ -73,10 +74,10 @@ if 1:
 
 ax_time.legend(loc=0)
 axbonk(ax_time,xlabel='cycle',ylabel='up/proc/sec')
-fig_time.savefig('g40_timing.png')
+fig_time.savefig('plots_to_sort/g40_timing.png')
 ax_zu.legend(loc=0)
 axbonk(ax_zu,xlabel=lab_mpi, ylabel=r'$\rm{updates/proc/sec}$')
-fig_zu.savefig('g40_zoneup.png')
+fig_zu.savefig('plots_to_sort/g40_zoneup.png')
 plt.close(fig_time)
 plt.close(fig_zu)
 if 0:
@@ -90,6 +91,6 @@ if 0:
     plt.plot(p2.data['Total']['Cycle'],y1[:len(y3)]+y3,label=car_base+"_quan est")
     plt.legend(loc=0)
     plt.ylim(0,11)
-    outname = "g40_perf_total_%s.png"%car_base
+    outname = "plots_to_sort/g40_perf_total_%s.png"%car_base
     plt.savefig(outname)
     print("plot "+outname)
