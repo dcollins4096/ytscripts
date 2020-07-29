@@ -2,6 +2,19 @@ from go import *
 import product
 reload(product)
 
+head_dumb="""
+<html>
+<head>
+<script>
+function set_image(image_id,fname){
+console.log("Get "+image_id);
+    document.getElementById(image_id).src=fname;
+    //document.getElementById('myImage').src="pic_bulboff.gif";
+}
+</script>
+</head>
+<body>
+"""
 
 def make_page(product_list):
     core_list=[]
@@ -12,6 +25,7 @@ def make_page(product_list):
     core_list = core_list[:5]
 
     fptr = open('output.html','w')
+    fptr.write(head_dumb)
     #loader=jinja2.FileSystemLoader('.')
     #env = jinja2.Environment(loader=loader)
     #main_template  = env.get_template('budget_template_1.html')
@@ -25,6 +39,7 @@ def make_page(product_list):
         fptr.write('</tr>')
     
                 
+    fptr.write("</body>\n")
     fptr.close()
     
 

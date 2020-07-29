@@ -50,7 +50,21 @@ class product():
             self.plots[core_id] = sorted( self.plots[core_id],key= lambda plot : plot.parameters[sort_key])
 
     def frame_render(self,core_id):
-        out1 = "<td>frame render (%s)</td>"%self.style
+        self.width=200
+        if len( self.plots[core_id]) == 0:
+            img = "x"
+        else:
+            img_tag_template = '<a h<figure><a href="%s"><img src="%s" width=%s id = %s></a><figcaption>%s</figcaption></figure>\n'
+            fname = self.plots[core_id][0].fname
+            caption = ""
+            myid = "%s_c%04d"%(self.name, core_id)
+            img = img_tag_template%(fname, fname, self.width,myid,"")
+            for plt in self.plots[core_id]:
+                #img += "<button onclick=set_image(%s,'%s')> n%04d</button>\n"%(myid,plt.fname,int(plt.parameters['frame']))
+                img += "<button onclick=set_image('%s','%s')> n%04d</button>\n"%(myid,plt.fname,int(plt.parameters['frame']))
+
+
+        out1 = "<td>%s</td>"%img
         return out1
     def single_render(self,core_id):
         #out1 = "<td>single render (%s)</td>"%self.style
