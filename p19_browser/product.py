@@ -8,7 +8,7 @@ class plot():
         self.parameters=parameters
 
 class product():
-    def __init__(self, name="P", regexp="reg",myglob="glob", parameters=['core_id','frame'],style='single'):
+    def __init__(self, name="P", regexp="reg",myglob="glob", parameters=['core_id','frame'],style='single',width=200):
         self.myglob=myglob
         self.regexp=regexp
         self.name=name
@@ -21,6 +21,7 @@ class product():
             self.render = self.frame_render
         else:
             self.render = None
+        self.width=width
         print("Built", self.style, self.render)
 
     def check_glob(self):
@@ -42,33 +43,44 @@ class product():
             core_id = int(params['core_id'])
             myplot = plot(fname,params)
             self.plots[core_id].append(myplot)
-        if len(self.parameters) > 1:
-            for p in self.parameters:
-                if p != 'core_id':
-                    sort_key = p
-                    break
-            self.plots[core_id] = sorted( self.plots[core_id],key= lambda plot : plot.parameters[sort_key])
+#       if len(self.parameters) > 1 and len(self.plots[core_id]) > 1:
+#           for p in self.parameters:
+#               if p != 'core_id':
+#                   sort_key = p
+#                   break
+#           self.plots[core_id] = sorted( self.plots[core_id],key= lambda plot : plot.parameters[sort_key])
 
     def frame_render(self,core_id):
-        self.width=200
         if len( self.plots[core_id]) == 0:
             img = "x"
         else:
+            if len(self.parameters) > 1 and len(self.plots[core_id]) > 1:
+                for p in self.parameters:
+                    #get a sort key that isn't core_id.
+                    if p != 'core_id':
+                        sort_key = p
+                        break
+                self.plots[core_id] = sorted( self.plots[core_id],key= lambda plot : plot.parameters[sort_key])
             img_tag_template = '<a h<figure><a href="%s"><img src="%s" width=%s id = %s></a><figcaption>%s</figcaption></figure>\n'
             fname = self.plots[core_id][0].fname
             caption = ""
             myid = "%s_c%04d"%(self.name, core_id)
+            mynext = "%s_c%04d_next"%(self.name, core_id)
+            myback = "%s_c%04d_back"%(self.name, core_id)
             img = img_tag_template%(fname, fname, self.width,myid,"")
-            for plt in self.plots[core_id]:
+            for nplot,plt in enumerate(self.plots[core_id]):
                 #img += "<button onclick=set_image(%s,'%s')> n%04d</button>\n"%(myid,plt.fname,int(plt.parameters['frame']))
+                next_frame = nplot+1
+                if next_frame == len(self.plots[core_id]):
+                    next_frame=0
+                back_fname = self.plots[core_id][nplot-1].fname
+                next_fname = self.plots[core_id][next_frame].fname
                 img += "<button onclick=set_image('%s','%s')> n%04d</button>\n"%(myid,plt.fname,int(plt.parameters['frame']))
-
-
+                print("render c%04d %s"%(core_id,str(plt.parameters)))
         out1 = "<td>%s</td>"%img
         return out1
     def single_render(self,core_id):
         #out1 = "<td>single render (%s)</td>"%self.style
-        self.width=200
         #img_tag = img_tag_template%(self.plots[core_id].fname)
         if len( self.plots[core_id]) == 0:
             img = "x"

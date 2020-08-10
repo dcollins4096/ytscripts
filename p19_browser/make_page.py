@@ -7,24 +7,23 @@ head_dumb="""
 <head>
 <script>
 function set_image(image_id,fname){
-console.log("Get "+image_id);
-    document.getElementById(image_id).src=fname;
-    //document.getElementById('myImage').src="pic_bulboff.gif";
+    this_image =     document.getElementById(image_id)
+    this_image.src = fname;
 }
 </script>
 </head>
 <body>
 """
 
-def make_page(product_list):
-    core_list=[]
-    for p in product_list:
-        mycores=list(p.plots.keys())
-        core_list+=mycores
-    core_list=np.unique(np.array(sorted(core_list)))
-    core_list = core_list[:5]
+def make_page(product_list,core_list=None, htmlname="./output.html"):
+    if core_list is None:
+        core_list=[]
+        for p in product_list:
+            mycores=list(p.plots.keys())
+            core_list+=mycores
+        core_list=np.unique(np.array(sorted(core_list)))
 
-    fptr = open('output.html','w')
+    fptr = open(htmlname,'w')
     fptr.write(head_dumb)
     #loader=jinja2.FileSystemLoader('.')
     #env = jinja2.Environment(loader=loader)
