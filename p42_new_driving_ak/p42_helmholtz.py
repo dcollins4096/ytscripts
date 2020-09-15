@@ -4,7 +4,8 @@ Why were all the ghost zones set to -1?
 
 """
 mark_time = None
-from GL import *
+from go import *
+import davetools
 import fourier_tools_py3.fourier_filter as Filter
 
 class short_oober():
@@ -263,19 +264,30 @@ def MakeVelocitySpectra(oober,frame,density=0,debug=1):
         if mark_time:
             mark_time('Start loop %s'%x)
         if density == 0:
-            Vhat = oober.fft(frame,setlist[i],num_ghost_zones=-1,debug=debug)
+            Vhat = oober.fft(frame,setlist[i],num_ghost_zones=ngz,debug=debug)
             field_out = 'velocity'
         elif density == 1:
-            Vhat = oober.fft(frame,'%s-velocity-dhalf'%x,num_ghost_zones=-1,debug=debug)
+            Vhat = oober.fft(frame,'%s-velocity-dhalf'%x,num_ghost_zones=ngz,debug=debug)
             field_out = 'velocity-dhalf'
         elif density == 2:
-            Vhat = oober.fft(frame,'%s-velocity-dthird'%x,num_ghost_zones=-1,debug=debug)
+            Vhat = oober.fft(frame,'%s-velocity-dthird'%x,num_ghost_zones=ngz,debug=debug)
             field_out = 'velocity-dthird'
         if mark_time:
             mark_time('fft %s-velocity'%x)
         power += (Vhat.conjugate()*Vhat)
         if mark_time:
             mark_time('power addition')
+    fname = shell_average(power,oober,frame,field_out,debug,mark_time)
+def MakeAccelSpectra(oober,frame,debug=1):
+    """density = 0,1,2 for V, \rho^1/2 V, \rho^1/3 V"""
+    power=0
+    if mark_time:
+        mark_time('Start Velocity Spectra')
+    setlist = ['%s-acceleration'%s for s in 'xyz']
+    for i,x in enumerate('xyz'):
+        Vhat = oober.fft(frame,setlist[i],num_ghost_zones=ngz,debug=debug)
+        field_out = 'acceleration'
+        power += (Vhat.conjugate()*Vhat)
     fname = shell_average(power,oober,frame,field_out,debug,mark_time)
 
 def plot_velocity_spectra(oober,frame,density=0):
@@ -297,5 +309,39 @@ def plot_velocity_spectra(oober,frame,density=0):
     plt.savefig(fname)
     print(fname)
     return k,p
+
+ngz=0 #for some reason num_ghost_zones=-1 here, which is strange and undocumented.
+
+def MakeDensitySpectra(oober,frame,density=0,debug=1):
+    """density = 0,1,2 for V, \rho^1/2 V, \rho^1/3 V"""
+    power=0
+    setlist = ['density']
+    rhohat = oober.fft(frame,'density',num_ghost_zones=ngz,debug=debug)
+    power += (rhohat.conjugate()*rhohat)
+    field_out='density'
+    fname = shell_average(power,oober,frame,field_out,debug,mark_time)
+    print(fname)
+
+def MakeColumnDensitySpectra(oober,frame,density=0,debug=1, axis='x'):
+    """density = 0,1,2 for V, \rho^1/2 V, \rho^1/3 V"""
+    power=0
+    setlist = ['density']
+    rhohat = oober.fft(frame,'density',debug=debug,project='x',num_ghost_zones=ngz)
+    power += (rhohat.conjugate()*rhohat)
+    field_out='density_%s'%axis
+    fname = shell_average(power,oober,frame,field_out,debug,mark_time)
+    print(fname)
+
+
+def MakeMagneticSpectra(oober,frame,density=0,debug=1):
+    """density = 0,1,2 for V, \rho^1/2 V, \rho^1/3 V"""
+    power=0
+    setlist = ['magnetic_field_%s'%s for s in 'xyz']
+    for i,x in enumerate('xyz'):
+        Bhat = oober.fft(frame,setlist[i],num_ghost_zones=ngz,debug=debug)
+        power += (Bhat.conjugate()*Bhat)
+    field_out='magnetic'
+    fname = shell_average(power,oober,frame,field_out,debug,mark_time)
+    print(fname)
 
 
