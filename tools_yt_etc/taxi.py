@@ -201,15 +201,19 @@ class fleet():
 
 
     def mstat(self,fields=None,frames=None, format = "%9.2e",Norm=False):
-        """Min and max for all fields in self.fields.
+        """1 Min and max for all fields in self.fields.
         Field list overridden by *fields*.
         *Norm* subtracts off the volume-weighted mean."""
         print(fields)
+        if frames is None:
+            frames = self.return_frames()
         for frame in frames:
             if fields is None:
                 fields = self.fields
             self.load(frame)
             out = self.region.quantities['Extrema'](fields)
+            if len(fields) == 1:
+                out = [out]
             if Norm is True:
                 for n, field in enumerate(fields):
                     avg = self.region.quantities['WeightedAverageQuantity'](field,'CellVolume')
@@ -1541,29 +1545,30 @@ class taxi:
         return {'min':minTuple,'max':maxTuple}
 
     def mstat(self,fields=None,frames=None, format = "%9.2e",Norm=False):
-        """Min and max for all fields in self.fields.
+        """2 Min and max for all fields in self.fields.
         Field list overridden by *fields*.
         *Norm* subtracts off the volume-weighted mean."""
         print(fields)
+        if frames is None:
+            frames = self.return_frames()
         for frame in frames:
             if fields is None:
                 fields = self.fields
             self.load(frame)
-            out = self.region.quantities['Extrema'](fields)
+            region=self.get_region(frame)
+            out = region.quantities['Extrema'](fields)
             if Norm is True:
                 for n, field in enumerate(fields):
-                    avg = self.region.quantities['WeightedAverageQuantity'](field,'CellVolume')
+                    avg = region.quantities['WeightedAverageQuantity'](field,'CellVolume')
                     out[n] = out[n][0]-avg, out[n][1]-avg
-            if hasattr(Norm,'has_key'):
+
+            if Norm is not False:
                 for n, field in enumerate(fields):
                     avg =  0
                     if Norm.has_key(field):
                         avg = Norm[field]
                         print(field,avg)
                     out[n] = out[n][0]-avg, out[n][1]-avg
-            else:
-                print( "python 3 check")
-                raise
             format_string = "%s %s %s"%(format,format,"%s")
             for n, field in enumerate(fields):
                 print(format_string%(out[n][0], out[n][1], field))
@@ -1921,10 +1926,12 @@ class other_horsecrap():
         return {'min':minTuple,'max':maxTuple}
 
     def mstat(self,fields=None,frames=None, format = "%9.2e",Norm=False):
-        """Min and max for all fields in self.fields.
+        """3 Min and max for all fields in self.fields.
         Field list overridden by *fields*.
         *Norm* subtracts off the volume-weighted mean."""
         print(fields)
+        if frames is None:
+            frames = self.return_frames()
         for frame in frames:
             if fields is None:
                 fields = self.fields
