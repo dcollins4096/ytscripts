@@ -1,8 +1,9 @@
 from GL import *
 #dude.  All non-yt, non-my-dumb-stuff goes in GL
-path_list = ['tools_yt_etc', 'tools_turb', 'p49']
+path_list = ['tools_yt_etc', 'tools_turb', 'p49','p49d']
 for directory in path_list:
-    sys.path.append(directory)
+    if directory not in sys.path:
+        sys.path.append(directory)
 import yt
 yt.config.ytcfg['yt','loglevel']="50"
 #yt.enable_plugins()

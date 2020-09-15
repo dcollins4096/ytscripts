@@ -227,6 +227,7 @@ class perform:
         ### First run through the file contents identifying all possible keys
         ### and counting the number of cycles so as to allocate sufficiently
         ### big arrays in the structure to house the data.
+
         for line in input_list:
             if not line.startswith("#") and line.strip():
                 line_list = line.split()
@@ -236,6 +237,9 @@ class perform:
                     key_list.append(line_key)
                 if line_key == 'Cycle Number':
                     num_cycles += 1
+            elif line.startswith("# Starting performance log. MPI processes"):
+                mpi_tasks = int(line.split(":")[1])
+
         key_list.remove('Cycle Number') # Don't want it as a key
 
         ### Now build the dictionary with the appropriate memory and 
@@ -281,6 +285,7 @@ class perform:
         ### didn't output every cycle
         for key in key_list:
             data[key]["Cycle"] = data["Total"]["Cycle"]
+        data['mpi_tasks']=mpi_tasks
         return data
 
     def plot_quantity(self, field_label, y_field_index, 
