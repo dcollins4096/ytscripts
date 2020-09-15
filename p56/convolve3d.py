@@ -1,6 +1,6 @@
 import matplotlib.patches as patches
 plt.close('all')
-figsize = (12,12)
+figsize = None #(12,12)
 def make_k_freqs(nk,real=False, d=1):
 
     ny = nk
@@ -81,14 +81,14 @@ if 0:
     a23.imshow(AC2dft.real)
     a24.scatter( Kr, AC2dft.real)
 
-    fig2.savefig('slice1.png')
+    fig2.savefig('../PigPen/slice1.png')
     print('saved')
 
-if 1:
+if 0:
     """3d sphere"""
     axis=2
     import tools_turb.multi_imshow
-    dx=0.1
+    dx=0.05
     axis = 0
     x,y,z = np.mgrid[-1:1:dx,-1:1:dx, -1:1:dx] 
 
@@ -105,28 +105,49 @@ if 1:
     r2=np.sqrt( (x-x2)**2+(y-y2)**2 + (z-z2)**2)
     rho2[ r2<0.25] = 1
 
+if 1:
+    if 'u05' not in dir():
+        u05=taxi.load('u05')
+        ds=u05.load(0)
+        u05.make_cg(0)
 
+    rho1 = u05.cg['density'].v -1 #[:40,:40,:40]
+    rho2=rho1
+
+if 1:
     fig2,axes2=plt.subplots(2,2,figsize=figsize)
     a20,a21=axes2[0]
-    a23,a24=axes2[1]
-    a20.imshow( rho2.sum(axis=axis) )
+    a23,a24_dep=axes2[1]
+    a20.imshow( rho2.sum(axis=axis), cmap='Greys' )
 
-    if 'AC3d' not in dir():
-        AC3d=scipy.signal.correlate(rho1,rho2,mode='same',method='direct')
-    a21.imshow( (AC3d.real).sum(axis=axis) )
+    fig3,a24=plt.subplots(1,1,figsize=figsize)
+if 1:
+    if 'AC3d' not in dir() or True:
+        print('Correlate')
+        AC3d=scipy.signal.correlate(rho1,rho2,mode='same',method='fft')
+        AC3d=np.roll(AC3d, AC3d.shape[0]//2,axis=0)
+        AC3d=np.roll(AC3d, AC3d.shape[1]//2,axis=1)
+        AC3d=np.roll(AC3d, AC3d.shape[2]//2,axis=2)
+        print('rolled')
+    a21.imshow( (AC3d.real).sum(axis=axis) , cmap='Greys')
               
 
+    print( 'fft')
     rhohat = np.fft.ifftn(rho1)
     rhohatdag = rhohat.conj()
     rho_prod = rhohat*rhohatdag
+    print( 'fft2')
     AC3dft = np.fft.fftn(rho_prod)
 
-    
     k_array = make_k_freqs( AC3d.shape[0],real=False)
     kmag = np.sqrt(k_array[0,...]**2 + k_array[1,...]**2 + k_array[2,...]**2)
 
 
-    a23.imshow(AC3dft.real.sum(axis=axis))
+if 1:    
+    proj = AC3dft.real.sum(axis=axis)
+    #proj     = np.roll(proj, proj.shape[0]//2,axis=0)
+    #rollproj = np.roll(proj, proj.shape[1]//2,axis=1)
+    a23.imshow(proj,cmap='Greys')
 
 
 
@@ -142,19 +163,34 @@ if 1:
     import radial_binner as rb
     reload(rb)
 
-    a24.plot( ktt[ok], AC_from_caps,'k',label='Cap')
-    a24.plot( kmag.flatten(), AC3dft.real.flatten(),label='ACfft',c='b')
+    #a24.plot( ktt[ok], AC_from_caps,'k',label='Cap')
+    #a24.plot( kmag.flatten(), AC3dft.real.flatten(),label='ACfft',c='b')
+    #a24.plot( kmag.flatten(), AC3d.real.flatten(),label='ACfft',c='b')
+if 1:    
 
     bins = np.fft.fftfreq(AC3dft.shape[0])
     ok = bins > 0
     bins = np.r_[0,bins[ok]]
+    db = bins[1:]-bins[:-1]
     binned=rb.rb( k_array, AC3dft.real,bins=bins)
     a24.plot( binned[0],binned[1],c='r',label='binned ACfft')
+
+    binned2=rb.rb( k_array, AC3d.real/AC3d.size,bins=bins)
+    print('butts')
+    a24.plot( binned2[0],binned2[1],c='g',label='binned AC')
+
+    AC = binned2[1]
+    L = np.sum(AC*db)/AC[0]
+    rect=patches.Rectangle((0,0),L,AC[0],facecolor=[0.5]*3)
+    a24.add_patch(rect)
+    #a24.set_yscale('log')
+    #x0a24.set_xscale('log')
     
 
+if 1:
     a24.legend(loc=0)
 
-    fig2.savefig('slice_3d.png')
+    fig2.savefig('../PigPen/slice_3d.png')
     print('saved')
 
 
@@ -184,10 +220,8 @@ if 0:
     ax0.plot(AC_from_ft,'k:')
     
 
-    L = np.sum(AC)/AC[0]
-    rect=patches.Rectangle((0,0),L,AC[0],facecolor=[0.5]*3)
-    ax0.add_patch(rect)
 
 
-    fig.savefig('p56_convolve_3.png')
+fig2.savefig('../PigPen/p56_convolve_4.png')
+fig3.savefig('../PigPen/p56_convolve_5.png')
 
