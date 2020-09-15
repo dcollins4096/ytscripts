@@ -1,3 +1,4 @@
+from go import *
 from numpy.fft import fftn, ifftn, fftfreq
 dx = 0
 dy = 1
@@ -26,7 +27,7 @@ def deriv2(var,dim):
         p1 = tmp[sl_c,sl_c,sl_p1]
         m1 = tmp[sl_c,sl_c,sl_m1]
     else:
-        print "watch out for dimension!"
+        print("watch out for dimension!")
                 
     del tmp 
             
@@ -123,12 +124,13 @@ SolWeights = {
 
 plt.clf()
 if 0:
-    aq32 = taxi.taxi(directory='/scratch1/dcollins/Paper42_new_turb/aq32_m2.9_drive1_32',name='aq32',frames=range(0,42,2),fields=['density'])
-    aq31 = taxi.taxi(directory='/scratch1/dcollins/Paper42_new_turb/aq31_m2.9_drive0.5_32',name='aq31',frames=range(0,42,2),fields=['density'])
-    aq16 = taxi.taxi(directory='/scratch1/dcollins/Paper42_new_turb/aq16_ppm_m9_drive0_noamr_128',name='aq15',frames=range(17),fields=['density'])
+    #aq32 = taxi.taxi(directory='/scratch1/dcollins/Paper42_new_turb/aq32_m2.9_drive1_32',name='aq32',frames=range(0,42,2),fields=['density'])
+    #aq31 = taxi.taxi(directory='/scratch1/dcollins/Paper42_new_turb/aq31_m2.9_drive0.5_32',name='aq31',frames=range(0,42,2),fields=['density'])
+    #aq16 = taxi.taxi(directory='/scratch1/dcollins/Paper42_new_turb/aq16_ppm_m9_drive0_noamr_128',name='aq15',frames=range(17),fields=['density'])
+    ca02=taxi.load('ca02')
     car = aq32
-    frame = 40
-    car.fill(frame)
+    frame = 1
+    car.load(frame)
     ds=car.ds
     reg = car.get_region(frame)
     vx = reg.quantities['WeightedAverageQuantity']('velocity_x','cell_volume')
@@ -140,21 +142,23 @@ if 0:
     ex = reg.quantities['WeightedAverageQuantity']('eng_x','cell_volume')
     ey = reg.quantities['WeightedAverageQuantity']('eng_y','cell_volume')
     ez = reg.quantities['WeightedAverageQuantity']('eng_z','cell_volume')
-    print "%s vx (%0.2e %0.2e %0.2e) vy/vx %0.2f vz/vx %0.2f"%(car.name, vx,vy,vz,vy/vx,vz/vx)
-    print "%s px (%0.2e %0.2e %0.2e) py/px %0.2f pz/px %0.2f"%(car.name, px,py,pz,py/px,pz/px)
-    print "%s ex (%0.2e %0.2e %0.2e) ey/ex %0.2f ez/ex %0.2f"%(car.name, ex,ey,ez,ey/ex,ez/ex)
+    print("%s vx (%0.2e %0.2e %0.2e) vy/vx %0.2f vz/vx %0.2f"%(car.name, vx,vy,vz,vy/vx,vz/vx))
+    print("%s px (%0.2e %0.2e %0.2e) py/px %0.2f pz/px %0.2f"%(car.name, px,py,pz,py/px,pz/px))
+    print("%s ex (%0.2e %0.2e %0.2e) ey/ex %0.2f ez/ex %0.2f"%(car.name, ex,ey,ez,ey/ex,ez/ex))
 
 
-if 0:
-    aq32 = taxi.taxi(directory='/scratch1/dcollins/Paper42_new_turb/aq32_m2.9_drive1_32',name='aq32',frames=range(0,42,2),fields=['density'])
-    aq31 = taxi.taxi(directory='/scratch1/dcollins/Paper42_new_turb/aq31_m2.9_drive0.5_32',name='aq31',frames=range(0,42,2),fields=['density'])
-    aq16 = taxi.taxi(directory='/scratch1/dcollins/Paper42_new_turb/aq16_m2.9_drive0_noamr_128',name='aq15',frames=range(17),fields=['density'])
-    car = aq31
-    frame = 40
-    car.fill(frame)
+if 1:
+    aq32 = taxi.taxi(directory='/scratch1/dcollins/Paper42_new_turb/aq32_m2.9_drive1_32',name='aq32',frames=list(range(0,42,2)),fields=['density'])
+    aq31 = taxi.taxi(directory='/scratch1/dcollins/Paper42_new_turb/aq31_m2.9_drive0.5_32',name='aq31',frames=list(range(0,42,2)),fields=['density'])
+    aq16 = taxi.taxi(directory='/scratch1/dcollins/Paper42_new_turb/aq16_m2.9_drive0_noamr_128',name='aq15',frames=list(range(17)),fields=['density'])
+    ca02=taxi.load('ca02')
+    car = ca02
+    frame = 1
+    car.load(frame)
     ds=car.ds
 
-    fields = ['%s-acceleration'%s for s in 'xyz']
+    #fields = ['%s-acceleration'%s for s in 'xyz']
+    fields = ['%s-velocity'%s for s in 'xyz']
     #fields = ['DrivingField%s'%s for s in '123']
     cube = ds.covering_grid(0, left_edge=ds.domain_left_edge,
                             dims=ds.domain_dimensions,
@@ -173,10 +177,10 @@ if 0:
     
     # safety check
     if (np.abs(curl2(Dil)).max() > 1e-10):
-        print "whoopsie, sth went wrong in calculation the dilatational part"
+        print("whoopsie, sth went wrong in calculation the dilatational part")
         
     if (np.abs(div2(Rot)).max() > 1e-10):
-        print "whoopsie, sth went wrong in calculation the rotational part"            
+        print("whoopsie, sth went wrong in calculation the rotational part")            
 
     RotSqr = 0.
     DilSqr = 0.
@@ -190,7 +194,7 @@ if 0:
 
 
 
-    import fourier_tools.fourier_filter as Filter
+    import fourier_tools_py3.fourier_filter as Filter
     dpower = 0
     rpower = 0
     for dim in range(3):
@@ -218,13 +222,13 @@ if 0:
     outname = 'p42_power_ratio_%s_%04d.pdf'%(car.name,frame)
     plt.legend(loc=0)
     plt.savefig(outname)
-    print outname
+    print(outname)
 
 
 
 
 if 0:
-    for SolWeight in SolWeights.keys():
+    for SolWeight in list(SolWeights.keys()):
         t = []
         ts = yt.load(["%s/DD%04d/data%04d"%(SolWeights[SolWeight]['dir'],frame,frame) for frame in range(0,44,4) ])
 
@@ -250,10 +254,10 @@ if 0:
             
             # safety check
             if (np.abs(curl2(Dil)).max() > 1e-10):
-                print "whoopsie, sth went wrong in calculation the dilatational part"
+                print("whoopsie, sth went wrong in calculation the dilatational part")
                 
             if (np.abs(div2(Rot)).max() > 1e-10):
-                print "whoopsie, sth went wrong in calculation the rotational part"            
+                print("whoopsie, sth went wrong in calculation the rotational part")            
 
 
             t.append(ds.current_time/0.172)
@@ -268,4 +272,4 @@ if 0:
         plt.legend(loc="lower left", bbox_to_anchor=(0.05,0.1))
     outname = 'p42_pgtest.pdf'
     plt.savefig(outname)
-    print outname
+    print(outname)

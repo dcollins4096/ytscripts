@@ -56,7 +56,7 @@ def dt_rk2(field,data):
     
     dt = np.max([dt_x, dt_y, dt_z],axis=0);
     return data.ds.parameters['CourantSafetyNumber'] /dt
-yt.add_field("timestep_rk2",function=dt_rk2, validators=[yt.ValidateGridType()]) #, units='dimensionless')
+yt.add_field("dt_rk2",function=dt_rk2, validators=[yt.ValidateGridType()]) #, units='dimensionless')
 
 def dt_enzo(field,data):
     """Casting all components to code units eliminates some source of reduced precision that
@@ -80,4 +80,4 @@ def dt_enzo(field,data):
     dti  += (Cs + np.abs( data['velocity_z'].in_units('code_velocity').v ))/dz
     dti /= data.ds.parameters['CourantSafetyNumber'] #yes divided: still in reciporical space
     return aye/dti
-yt.add_field("timestep",function=dt_enzo, validators=[yt.ValidateGridType()]) #, units='dimensionless')
+yt.add_field("dt_enzo",function=dt_enzo, validators=[yt.ValidateGridType()]) #, units='dimensionless')
