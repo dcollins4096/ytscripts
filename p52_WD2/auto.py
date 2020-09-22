@@ -54,31 +54,98 @@ def add_fields(obj):
     obj.add_field("by_hat",by_hat,units='dimensionless',sampling_type='cell')
     obj.add_field("bz_hat",bz_hat,units='dimensionless',sampling_type='cell')
 
+    def vx_hat(field,data):
+        vmag =data['velocity_magnitude']
+        out= data['velocity_x']/vmag
+        out[ vmag < 1e-16 ] = 0
+        return out
+    def vy_hat(field,data):
+        vmag =data['velocity_magnitude']
+        out= data['velocity_y']/vmag
+        out[ vmag < 1e-16 ] = 0
+        return out
+    def vz_hat(field,data):
+        vmag =data['velocity_magnitude']
+        out= data['velocity_z']/vmag
+        out[ vmag < 1e-16 ] = 0
+        return out
+    obj.add_field("vx_hat",vx_hat,units='dimensionless',sampling_type='cell')
+    obj.add_field("vy_hat",vy_hat,units='dimensionless',sampling_type='cell')
+    obj.add_field("vz_hat",vz_hat,units='dimensionless',sampling_type='cell')
+
 class make_ac():
-    def __init__(self,carname,frame=0,prefix='luge'):
+    def __init__(self,carname,frame=0,prefix='luge',use='yt',do_mean=False,c=None,l=None):
+
         self.prefix=prefix
         self.frame=frame
-        car=taxi.load(carname)
-        ds=car.load(frame)
-        add_fields(ds)
+        self.plot_args={'c':c,'linestyle':l}
+        if use == 'yt':
+            car=taxi.load(carname)
+            ds=car.load(frame)
+            add_fields(ds)
 
-        car.derived_fields['hats']=add_fields
-        car.make_cg(frame)
-        cg = car.cg 
+            car.derived_fields['hats']=add_fields
+            car.make_cg(frame)
+            cg = car.cg 
 
-        self.bx_hat=cg['bx_hat'].v
-        self.by_hat=cg['by_hat'].v
-        self.bz_hat=cg['bz_hat'].v
+            self.bx_hat=cg['bx_hat'].v
+            self.by_hat=cg['by_hat'].v
+            self.bz_hat=cg['bz_hat'].v
+            if do_mean:
+                print("DOES NOT WORK to take the mean off the yt reader. Fix it.")
+                raise
+        if use == 'ytvel':
+            car=taxi.load(carname)
+            ds=car.load(frame)
+            add_fields(ds)
 
+            car.derived_fields['hats']=add_fields
+            car.make_cg(frame)
+            cg = car.cg 
+            self.cg=cg
+
+            self.bx_hat=cg['vx_hat'].v
+            self.by_hat=cg['vy_hat'].v
+            self.bz_hat=cg['vz_hat'].v
+
+            if do_mean:
+                print("DOES NOT WORK to take the mean off the yt reader. Fix it.")
+                raise
+        elif use == 'fits':
+            bxname = "%s%s"%(carname,"magnetic_field_x.fits")
+            byname = "%s%s"%(carname,"magnetic_field_y.fits")
+            bzname = "%s%s"%(carname,"magnetic_field_z.fits")
+            Bx = pyfits.open(bxname)[0].data
+            By = pyfits.open(byname)[0].data
+            Bz = pyfits.open(bzname)[0].data
+            if do_mean:
+                Bx_mean = np.mean(Bx)
+                By_mean = np.mean(By)
+                Bz_mean = np.mean(Bz)
+                Bx = Bx - Bx_mean
+                By = By - By_mean
+                Bz = Bz - Bz_mean
+            Bmag = np.sqrt(Bx**2 + By**2 + Bz**2)
+            self.bx_hat= Bx/Bmag
+            self.by_hat= By/Bmag
+            self.bz_hat= Bz/Bmag
+        elif use == 'test':
+            self.bx_hat = np.ones([32,32,32])
+            self.by_hat = np.zeros([32,32,32])
+            self.bz_hat = np.zeros([32,32,32])
+
+
+        print('do fft')
         self.bxhathat = np.fft.ifftn(self.bx_hat)
         self.byhathat = np.fft.ifftn(self.by_hat)
         self.bzhathat = np.fft.ifftn(self.bz_hat)
         self.bxhatdag = self.bxhathat.conj()
         self.byhatdag = self.byhathat.conj()
         self.bzhatdag = self.bzhathat.conj()
-        self.ac_bxhat = np.fft.fftn( self.bxhathat*self.bxhatdag)
-        self.ac_byhat = np.fft.fftn( self.byhathat*self.byhatdag)
-        self.ac_bzhat = np.fft.fftn( self.bzhathat*self.bzhatdag)
+        size=self.bxhathat.size
+        self.ac_bxhat = np.fft.fftn( self.bxhathat*self.bxhatdag)*size
+        self.ac_byhat = np.fft.fftn( self.byhathat*self.byhatdag)*size
+        self.ac_bzhat = np.fft.fftn( self.bzhathat*self.bzhatdag)*size
         self.AC3dft = self.ac_bxhat+self.ac_byhat+self.ac_bzhat
 
         bins = np.fft.fftfreq(self.AC3dft.shape[0])
@@ -86,6 +153,7 @@ class make_ac():
         bins = np.r_[0,bins[ok]]
         k_array = make_k_freqs( self.AC3dft.shape[0],real=False)
         self.kmag = np.sqrt(k_array[0,...]**2 + k_array[1,...]**2 + k_array[2,...]**2)
+        print('do binning')
         self.binned_ac=rb.rb( k_array, self.AC3dft.real/self.AC3dft.size,bins=bins)
 
     def plot_bxhat(self):
@@ -100,11 +168,36 @@ class make_ac():
         fig2.savefig('p52_%s_bxhats_n%04d.png'%(self.prefix,frame))
         plt.close(fig2)
 
+
 prefix='434'
 if 'aclist' not in dir():
     aclist=[]
-    for frame in [0,1,2,10,20,30,40,50,60,70,80,90,100]:
-        aclist.append( make_ac(carname='p52_434',frame=frame,prefix='434'))
+    aclist.append( make_ac(carname='p52_434',frame=0,prefix=  r'$D28\ \mathbf{b}\ t=0s$',c='k',l='-'))
+    aclist.append( make_ac(carname='p52_434',frame=100,prefix=r'$D28\ \mathbf{b}\ t=1s$',c='k',l='-'))
+                                                                      
+    aclist.append( make_ac(carname='p52_441',frame=100,prefix=r'$D22\ \mathbf{b}\ t=1s$',c='k',l='--'))
+    aclist.append( make_ac(carname='p52_432',frame=100,prefix=r'$D26\ \mathbf{b}\ t=1s$',c='k',l=':'))
+    aclist.append( make_ac(carname='p52_433',frame=100,prefix=r'$D27\ \mathbf{b}\ t=1s$',c='k',l='-.'))
+
+    aclist.append( make_ac(carname='p52_441',frame=100,use='ytvel',prefix=r'$D22\ \mathbf{v}\ t=1s$',c='r',l='--'))
+    aclist.append( make_ac(carname='p52_432',frame=100,use='ytvel',prefix=r'$D26\ \mathbf{v}\ t=1s$',c='r',l=':'))
+    aclist.append( make_ac(carname='p52_433',frame=100,use='ytvel',prefix=r'$D27\ \mathbf{v}\ t=1s$',c='r',l='-.'))
+    aclist.append( make_ac(carname='p52_434',frame=100,use='ytvel',prefix=r'$D28\ \mathbf{v}\ t=1s$',c='r',l='-'))
+
+    aclist.append(make_ac(carname="/data/astrofs_2/davidc/P58_synchrotron/mshalf_ma2/cube_256_mshalf_ma2_0011_",
+                      use='fits',prefix=r'$turb$',frame=11,do_mean=True,c='b',l='-'))
+
+#aclist.append(make_ac(carname="/data/astrofs_2/davidc/P58_synchrotron/mshalf_ma2/cube_256_mshalf_ma2_0011_",
+#                      use='fits',prefix='mshalf_ma2',frame=11))
+#aclist.append(make_ac(carname="/data/astrofs_2/davidc/P58_synchrotron/ms1_ma2/cube_256_ms1_ma2_0011_",
+#                      use='fits',prefix='ms1_ma2',frame=11))
+#aclist.append(make_ac(carname="/data/astrofs_2/davidc/P58_synchrotron/ms1_mahalf/cube_256_ms1_mahalf_0011_",
+#                      use='fits',prefix='ms1_mahalf',frame=11))
+#aclist.append(make_ac(carname="/data/astrofs_2/davidc/P58_synchrotron/ms1_mahalf/cube_256_ms1_mahalf_0011_",
+#                      use='fits',prefix='ms1_mahalf_rel',frame=11,do_mean=True))
+#aclist.append(make_ac(carname=None, use='test',prefix='unit',frame=11))
+#aclist[-1] =make_ac(carname=None, use='test',prefix='unit',frame=11)
+
 #aclist.append( make_ac(carname='p52_432',frame=0,prefix='432'))
 #aclist.append( make_ac(carname='p52_433',frame=0,prefix='433'))
 #aclist.append( make_ac(carname='p52_434',frame=0,prefix='434'))
@@ -113,16 +206,24 @@ if 'aclist' not in dir():
 #aclist.append( make_ac(carname='p52_433',frame=60, prefix='433'))
 #aclist.append( make_ac(carname='p52_434',frame=60, prefix='434'))
 #aclist.append( make_ac(carname='p52_441',frame=60, prefix='441'))
+
+#aclist.append( make_ac(carname='p52_441',frame=100,prefix='441-vel',use='ytvel'))
+#aclist.append( make_ac(carname='p52_434',frame=100,prefix='434-vel',use='ytvel'))
+
 if 1:
 
+    x_units = 400000000
     fig,ax = plt.subplots(1,1)
     for ac in aclist:
-        ax.plot( ac.binned_ac[0], ac.binned_ac[1], label= '%s n%04d'%(ac.prefix,ac.frame))
+        ax.plot( ac.binned_ac[0]*x_units, ac.binned_ac[1], label= '%s'%(ac.prefix),
+                **ac.plot_args)
+
+    #ax.plot( alsodo.binned_ac[0], alsodo.binned_ac[1],label='MS1/2_MA2')
     #ax.plot( ac_stuff_434_0.binned_ac[0],  ac_stuff_434_0.binned_ac[1],label='434 n0000')
     #ax.plot( ac_stuff_434_60.binned_ac[0], ac_stuff_434_60.binned_ac[1],label='434 n0060')
     #ax.plot( ac_stuff_441_60.binned_ac[0], ac_stuff_441_60.binned_ac[1],label='441 n0060')
     #prefix='434_441'
-    ax.set_xlabel(r'$\Delta r$')
+    ax.set_xlabel(r'$\Delta r\ [cm]$')
     ax.set_ylabel(r'$AC_\theta$')
     prefix='4xx_n0000_n0060'
     ax.legend(loc=0)
