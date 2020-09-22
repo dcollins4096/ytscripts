@@ -55,7 +55,9 @@ def add_fields(obj):
     obj.add_field("bz_hat",bz_hat,units='dimensionless',sampling_type='cell')
 
 class make_ac():
-    def __init__(self,carname,frame=0):
+    def __init__(self,carname,frame=0,prefix='luge'):
+        self.prefix=prefix
+        self.frame=frame
         car=taxi.load(carname)
         ds=car.load(frame)
         add_fields(ds)
@@ -64,14 +66,9 @@ class make_ac():
         car.make_cg(frame)
         cg = car.cg 
 
-        bx_hat = cg['bx_hat'].v
-        by_hat = cg['by_hat'].v
-        bz_hat = cg['bz_hat'].v
-
-        self.cg=cg
-        self.bx_hat=bx_hat
-        self.by_hat=by_hat
-        self.bz_hat=bz_hat
+        self.bx_hat=cg['bx_hat'].v
+        self.by_hat=cg['by_hat'].v
+        self.bz_hat=cg['bz_hat'].v
 
         self.bxhathat = np.fft.ifftn(self.bx_hat)
         self.byhathat = np.fft.ifftn(self.by_hat)
@@ -91,28 +88,45 @@ class make_ac():
         self.kmag = np.sqrt(k_array[0,...]**2 + k_array[1,...]**2 + k_array[2,...]**2)
         self.binned_ac=rb.rb( k_array, self.AC3dft.real/self.AC3dft.size,bins=bins)
 
-if 'ac_stuff_0' not in dir():
-    ac_stuff_0  = make_ac(carname='p52_441',frame=0)
-    ac_stuff_60 = make_ac(carname='p52_441',frame=60)
-prefix='441'
-if 0:
-    fig2,axes2=plt.subplots(2,2,figsize=figsize)
-    a20,a21=axes2[0]
-    a22,a23=axes2[1]
+    def plot_bxhat(self):
+        fig2,axes2=plt.subplots(2,2,figsize=figsize)
+        a20,a21=axes2[0]
+        a22,a23=axes2[1]
 
-    a20.imshow(ac_stuff_0.bx_hat.sum(axis=axis), cmap='Greys' )
-    a21.imshow(ac_stuff_0.by_hat.sum(axis=axis), cmap='Greys' )
-    a22.imshow(ac_stuff_0.bz_hat.sum(axis=axis), cmap='Greys' )
-    frame=0
-    fig2.savefig('p52_%s_bxhats_n%04d.png'%(prefix,frame))
-    plt.close(fig2)
+        a20.imshow(self.bx_hat.sum(axis=axis), cmap='Greys' )
+        a21.imshow(self.by_hat.sum(axis=axis), cmap='Greys' )
+        a22.imshow(self.bz_hat.sum(axis=axis), cmap='Greys' )
+        frame=60
+        fig2.savefig('p52_%s_bxhats_n%04d.png'%(self.prefix,frame))
+        plt.close(fig2)
 
+prefix='434'
+if 'aclist' not in dir():
+    aclist=[]
+    for frame in [0,1,2,10,20,30,40,50,60,70,80,90,100]:
+        aclist.append( make_ac(carname='p52_434',frame=frame,prefix='434'))
+#aclist.append( make_ac(carname='p52_432',frame=0,prefix='432'))
+#aclist.append( make_ac(carname='p52_433',frame=0,prefix='433'))
+#aclist.append( make_ac(carname='p52_434',frame=0,prefix='434'))
+#aclist.append( make_ac(carname='p52_441',frame=0,prefix='441'))
+#aclist.append( make_ac(carname='p52_432',frame=60, prefix='432'))
+#aclist.append( make_ac(carname='p52_433',frame=60, prefix='433'))
+#aclist.append( make_ac(carname='p52_434',frame=60, prefix='434'))
+#aclist.append( make_ac(carname='p52_441',frame=60, prefix='441'))
 if 1:
 
     fig,ax = plt.subplots(1,1)
-    ax.plot( ac_stuff_0.binned_ac[0], ac_stuff_0.binned_ac[1])
-    ax.plot( ac_stuff_60.binned_ac[0], ac_stuff_60.binned_ac[1])
-    fig.savefig('p52n_%s_ac_theta_n%04d.png'%(prefix,frame))
+    for ac in aclist:
+        ax.plot( ac.binned_ac[0], ac.binned_ac[1], label= '%s n%04d'%(ac.prefix,ac.frame))
+    #ax.plot( ac_stuff_434_0.binned_ac[0],  ac_stuff_434_0.binned_ac[1],label='434 n0000')
+    #ax.plot( ac_stuff_434_60.binned_ac[0], ac_stuff_434_60.binned_ac[1],label='434 n0060')
+    #ax.plot( ac_stuff_441_60.binned_ac[0], ac_stuff_441_60.binned_ac[1],label='441 n0060')
+    #prefix='434_441'
+    ax.set_xlabel(r'$\Delta r$')
+    ax.set_ylabel(r'$AC_\theta$')
+    prefix='4xx_n0000_n0060'
+    ax.legend(loc=0)
+    fig.savefig('p52n_%s_ac_theta_n%04d.pdf'%(prefix,frame))
 
 if 0:
     fig3,a24=plt.subplots(1,1,figsize=figsize)
