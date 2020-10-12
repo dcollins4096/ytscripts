@@ -7,27 +7,11 @@ import xtra_operators as xo
 reload(xe)
 import p64_productlog.phase_tools as phase_tools
 reload(phase_tools)
-car = taxi.load('ca07'); frame = 2100; sig=5
-#car = taxi.load('ca05'); frame = 800; sig=2.3
+#car = taxi.load('ca07'); frame = 2100; sig=5
+car = taxi.load('ca05'); frame = 800; sig=2.3
+#car = taxi.load('ca02'); frame = 100; sig=5
 
 
-def symlogspace(tw_min,tw_max,nbins,linthresh=1,linbins=2):
-    thresh = np.log10(linthresh)
-    minlog = np.log10( np.abs(tw_min))
-    maxlog = np.log10( np.abs(tw_max))
-    binsize = (maxlog-thresh)/nbins + (minlog-thresh)/nbins 
-    out1 = -10**(np.arange( minlog,thresh,-binsize ))
-    out2 = np.linspace(-linthresh,linthresh,linbins)
-    out3 = 10**np.arange(np.log10(tw_max), thresh, -binsize)[::-1]
-    return np.concatenate([out1,out2,out3])
-
-def te_ke_ratio(field,data):
-    return data['therm_energy']/data['kinetic_energy']
-
-def v2(field,data):
-    return 0.5*data['velocity_magnitude']**2
-def therm_work(field,data):
-    return xo.AdotDel(data,['velocity_%s'%s for s in 'xyz'], 'density')
 if 'always' not in dir():
     always = False
 car.derived_fields['acoustic'] = xe.add_energies
@@ -108,11 +92,12 @@ if 'prof_therm_ke_dv' not in dir() or always:
                                         fields=['cell_volume'], weight_field=None, override_bins=bins)
     prof_therm_dv  =  yt.create_profile(region, bin_fields=['therm_energy'],
                                         fields=['cell_volume'], weight_field=None, override_bins=bins)
+    prof_rho_vel  =  yt.create_profile(region, bin_fields=['density','velocity_magnitude'], fields=['cell_volume'], weight_field=None)
 
 
-if 1:
+if 0:
     # 
-    # TE KE phase diagram.
+    # simple phase
     # 
     fig,ax = plt.subplots(1,1)
     plot_phase(ax,prof_therm_ke_dv)
@@ -125,13 +110,55 @@ if 1:
     print(outname)
     plt.close(fig)
 
-if 0:
+if 1:
     # 
-    # Marginalized TE
-    # 
-    fig, axes = plt.subplots(1,2)
-    ax0=axes[0]; ax1=axes[1]
-    phase_tools.plot_phase_contours_1(fig,ax0,prof_therm_ke_dv, ax2=ax1)
-    fig.savefig('../PigPen/%s_n%04d_contours.png'%(car.outname,frame))
+    # Density velocity (for tool testing)
+    #
+    reload(phase_tools)
+    fig, ax = plt.subplots(1,1)
+    pt = phase_tools.phase_things(prof_rho_vel)
+    pt.image(fig,ax)
+    ax.set_yscale('log')
+    ax.set_xscale('log')
+    #phase_tools.plot_phase_contours_1(fig,ax0,prof_therm_ke_dv, ax2=ax1)
+    fig.savefig('../PigPen/%s_n%04d_phase_density_velocity.png'%(car.outname,frame))
+    plt.close(fig)
+    fig, ax = plt.subplots(1,1)
+    pt.image_joint(fig,ax)
+    ax.set_yscale('log')
+    ax.set_xscale('log')
+    #phase_tools.plot_phase_contours_1(fig,ax0,prof_therm_ke_dv, ax2=ax1)
+    fig.savefig('../PigPen/%s_n%04d_phase_density_velocity_marginalized.png'%(car.outname,frame))
+    plt.close(fig)
+
+    fig, ax = plt.subplots(1,1)
+    pt.plot_contours(fig,ax)
+    ax.set_xscale('log')
+    ax.set_yscale('log')
+    fig.savefig("../PigPen/%s_n%04d_density_velocity_contours.png"%(car.outname,frame))
 
     
+if 1:
+    # 
+    # Joint Phases
+    # 
+    reload(phase_tools)
+    fig, ax = plt.subplots(1,1)
+    pt = phase_tools.phase_things(prof_therm_ke_dv)
+    pt.image(fig,ax)
+    ax.set_yscale('log')
+    ax.set_xscale('symlog',linthreshx=0.3)
+    #phase_tools.plot_phase_contours_1(fig,ax0,prof_therm_ke_dv, ax2=ax1)
+    fig.savefig('../PigPen/%s_n%04d_phase_te_ke.png'%(car.outname,frame))
+    ax.clear()
+    pt.image_joint(fig,ax)
+    ax.set_yscale('log')
+    ax.set_xscale('symlog',linthreshx=0.3)
+    #phase_tools.plot_phase_contours_1(fig,ax0,prof_therm_ke_dv, ax2=ax1)
+    fig.savefig('../PigPen/%s_n%04d_phase_te_ke_marg.png'%(car.outname,frame))
+    plt.close(fig)
+
+    fig, ax = plt.subplots(1,1)
+    pt.plot_contours(fig,ax)
+    fig.savefig("../PigPen/%s_n%04d_phase_te_ke_marg_contours.png"%(car.outname,frame))
+
