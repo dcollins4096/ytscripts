@@ -1181,10 +1181,11 @@ class taxi:
             file.close()
         return set
 
-    def fft(self,frame=None,field=None,data=None,make_cg=True,num_ghost_zones=0,dtype='float32',debug=0,fft_func=np.fft.fftn):
+    def fft(self,frame=None,field=None,data=None,make_cg=True,num_ghost_zones=0,dtype='float32',debug=0,fft_func=np.fft.fftn, project=False):
         """Make an fft of a field.
         As with extract_root, look for a cached version on disk first.
-        Defaults to the ghost zone guess"""
+        Defaults to the ghost zone guess.
+        if project= 'x' or 'y' or 'z', a projection is done."""
         if dtype == 'float32':
             fft_dtype = 'complex64'
         elif dtype == 'float64':
@@ -1196,8 +1197,12 @@ class taxi:
             frame = self.return_frames()[0]
         if field == None:
             field = self.fields[0]
+        field_name = field
+        if project:
+            field_name = field + "_%s"%project
+
         directory = self.product_dir(frame) #"%s/%s%04d.products/"%(self.directory,self.name_dir,frame)
-        filename = "%s/fft_%s.%s"%(directory,field,dtype)
+        filename = "%s/fft_%s.%s"%(directory,field_name,dtype)
         if debug > 0:
             print(filename)
         if glob.glob(filename):
@@ -1213,9 +1218,13 @@ class taxi:
             if debug > 0:
                 print("Create FFT")
             if data == None:
-                this_set = self.extract_root(frame,field,make_cg,num_ghost_zones,dtype)
+                this_set = self.extract_root(frame=frame,field=field,make_cg=make_cg,num_ghost_zones=num_ghost_zones,dtype=dtype)
             else:
                 this_set = data
+            if project:
+                this_set_3d = this_set
+                this_set = np.sum(this_set_3d,'xyz'.index(project)) #this is obtuse.
+
             if debug > 0:
                 print("Do fft.")
             fft = fft_func(this_set)/this_set.size
@@ -1260,7 +1269,8 @@ class taxi:
             reg = self.get_region(frame)
             plot=yt.ProfilePlot(reg,fields[0],fields[1],**kwargs)
             plot.save(frame_template%frame)
-    def profile(self,fields, callbacks=None, weight_field=None, accumulation=False, fractional=True, scales=['log','log'],n_bins=64,extrema=None, units=[None,None]):
+    def profile(self,fields, callbacks=None, weight_field=None, accumulation=False, fractional=True, scales=['log','log'],n_bins=64,extrema=None, units=[None,None],override_bins=None):
+
         """needs to be generalized with bins."""
         frame_template = self.outname + "_%04i"
         weight_name = ""
@@ -1274,7 +1284,7 @@ class taxi:
             reg = self.get_region(frame)
             local_extrema = None
             prof = yt.create_profile(reg,fields[0],fields[1] ,weight_field=weight_field,accumulation=accumulation,
-                                    fractional=fractional, n_bins=n_bins, extrema=extrema)
+                                    fractional=fractional, n_bins=n_bins, extrema=extrema,override_bins=override_bins)
             self.last_prof=prof
             the_x = 0.5*(prof.x_bins[1:]+prof.x_bins[0:-1])
             the_y = prof[fields[1]]
@@ -1355,11 +1365,14 @@ class taxi:
             phase_args['weight_field']=weight_field
             phase_args['extrema']=local_extrema
             phase_args['n_bins']=n_bins
+
             phase = yt.create_profile(reg,**phase_args)
             #self.phase = weakref.proxy(phase)
             pp = yt.PhasePlot.from_profile(phase)
             pp.set_xlabel(fields[0])
             pp.set_ylabel(fields[1])
+            self.last_phase_plot=pp
+
             #print(pp.save('derp3.png'))
             outname = "%s_%04d"%(self.outname,frame)
 
@@ -1392,7 +1405,7 @@ class taxi:
                 #this_axes.plot([1e-25,1e-23],[1e-25,1e-23])
                 #pp.save('derp.png')
 
-            phase_list.append(pp)
+            phase_list.append(phase)
             print(pp.save(outname))
             #
             # some old hdf5 and callback code. Harvest later.
