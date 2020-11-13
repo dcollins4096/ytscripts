@@ -13,7 +13,6 @@ def rb(kall, power, nbins = 32,bins=None):
     power_1d = np.array([ power[ dig==this_bin].sum() for this_bin in range(1,nbins+1)])
     k2 = np.array([ (dig==this_bin).sum() for this_bin in range(1,nbins+1)])
     power_1d/=k2
-    pdb.set_trace()
 
 
     fig,ax=plt.subplots(1,1,figsize=(12,12))

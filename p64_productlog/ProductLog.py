@@ -19,8 +19,10 @@ x = np.arange(-1,1,0.01)
       """
 
 def ProductLog(k,x):
+	"""defined to be consistent with Mathematica."""
     return lambertw(x,k)
 def HeavisideTheta(x):
+	"""defined to be consistent with Mathematica."""
     return np.heaviside(x,0)
 
 def g0(epsilon=1, mu=1, sigma=1,alpha=1,c=1,rho0=1,rho1=1):
@@ -53,3 +55,17 @@ plt.plot( x, g1( x,mu=1, sigma=0.5,c=1,rho0=1,rho1=1))
 plt.plot( x, g1( x,mu=1, sigma=1.0,c=1,rho0=1,rho1=1))
 plt.plot( x, g1( x,mu=1, sigma=2.0,c=1,rho0=1,rho1=1))
 plt.savefig('%s/RESEARCH3/Paper64_AcousticEnergy/p64_test2.png')
+def rho1r(et):
+	return et/ProductLog(-1, et)
+def rho2(et):
+	return  et/ProductLog[0, et];
+def f_rho(Rho, s): 
+  1/Sqrt[2 \[Pi] s^2]
+    1/\[Rho] Exp[-((Log[\[Rho]] + s^2/2)^2/(2 s^2))];
+#plt.clf()
+#x=np.arange(-1,6,0.1)
+#plt.plot( x, g1( x,mu=1, sigma=0.25,c=1,rho0=1,rho1=1))
+#plt.plot( x, g1( x,mu=1, sigma=0.5,c=1,rho0=1,rho1=1))
+#plt.plot( x, g1( x,mu=1, sigma=1.0,c=1,rho0=1,rho1=1))
+#plt.plot( x, g1( x,mu=1, sigma=2.0,c=1,rho0=1,rho1=1))
+#plt.savefig('../PigPen/p64_test2.png')

@@ -1,0 +1,5 @@
+Files you want:
+te_ke_phase.py does the TE KE phase diagram.  Also does density-velocity
+phase_tools.py has some meta packaging for phase diagrams.
+sims.py plots 1d distributions; thermal, velocity, density.  Also has the analytic TE
+rho_v.py has the density-velocity indpendence and contours.

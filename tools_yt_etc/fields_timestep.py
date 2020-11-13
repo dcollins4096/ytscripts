@@ -1,4 +1,4 @@
-
+from go import *
 def dt_rk2(field,data):
     """Casting all components to code units eliminates some source of reduced precision that
     was being incurred during thing 1/dx step (I think?)"""
@@ -75,9 +75,9 @@ def dt_enzo(field,data):
     else:
         dx, dy, dz = data.dds
     #using harmonic mean.
-    dti  = (Cs + na.abs(  data['velocity_x'].in_units('code_velocity').v )) /dx
-    dti  += (Cs + na.abs( data['velocity_y'].in_units('code_velocity').v ))/dy
-    dti  += (Cs + na.abs( data['velocity_z'].in_units('code_velocity').v ))/dz
+    dti  = (Cs + np.abs(  data['velocity_x'].in_units('code_velocity').v )) /dx
+    dti  += (Cs + np.abs( data['velocity_y'].in_units('code_velocity').v ))/dy
+    dti  += (Cs + np.abs( data['velocity_z'].in_units('code_velocity').v ))/dz
     dti /= data.ds.parameters['CourantSafetyNumber'] #yes divided: still in reciporical space
     return aye/dti
 yt.add_field("dt_enzo",function=dt_enzo, validators=[yt.ValidateGridType()]) #, units='dimensionless')
