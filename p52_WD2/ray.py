@@ -17,7 +17,7 @@ if four_at_once:
 #field='Density_56Ni'
 #field='magnetic_field_strength'
 field='density'
-frame=50
+frame=60
 rm = rainbow_map(4)
 linedict={'x':'-','y':'--','z':':'}
 rho_ni_label=r'$^{56}\rm{Ni}$'
@@ -52,13 +52,17 @@ for ncar,car in enumerate(flt.taxi_list):
     for axis in 'yz':
         ray = ds.ortho_ray(axis,[0.0,0.0])
         asort = np.argsort(ray[axis])
-        this_ray = ray[field][argsort]
+        this_ray = ray[field][asort]
         the_x = ray[axis][asort]/xscale
         delta = (ray[field]-ray_x[field])/(0.5*(ray[field]+ray_x[field]))
         the_y=delta[asort]
         if special_y_axis:
             the_y /= 1e-4
             ax1.text(-2,-5,r'$\times 10^{-4}$')
+
+        if 0:
+            xbins, bin_center,pdf,bin_widths=toplot(profs[car.name][frame][field],quan=field)
+            ax0.plot( bin_center, pdf)
         ax0.plot( the_x,ray[field][asort],c=c,linestyle=linedict[axis])
         ax1.plot( the_x,the_y,c=c,linestyle=linedict[axis])
         ax0.text(-2.0,2e8,r'$%s$'%labelmap[car.name])
