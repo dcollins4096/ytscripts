@@ -1,16 +1,12 @@
 import matplotlib.pyplot as plt
 import matplotlib
-import numpy as na
-from yt import raven
 import pdb
-be = raven.PlotTypes
 def mp(nx,ny,colorbar_size = 2, size_x=4,size_y=4, ylabel_size=1.5, right_margin=0,xlabel_size=1,title_size=0.5,dpi=300,
       debug = 0):
     """Make *nx* by *ny* plots of size *size_x* by *size_y*, that share common title, xlabel, ylabel, and colorbar. 
     ylabel is for the y axis, whose real estate comes out of the x dimension.  Vice-versa for x."""
 
 
-    raven.PlotTypes.Initialize()
     total_x = 1.0*(nx*size_x + ylabel_size + colorbar_size + right_margin)
     total_y = 1.0*(ny*size_y + xlabel_size + title_size)
     fr_x = size_x / total_x
@@ -19,7 +15,7 @@ def mp(nx,ny,colorbar_size = 2, size_x=4,size_y=4, ylabel_size=1.5, right_margin
         print "Total", total_x, total_y, "pixels", total_x*dpi,total_y*dpi
 
     fig = matplotlib.figure.Figure((total_x,total_y), dpi=dpi)
-    fig.set_canvas(be.engineVals["canvas"](fig))
+    #fig.set_canvas(be.engineVals["canvas"](fig))
     axes_list = []
     for j in range(ny-1,-1,-1):
         axes_list.append([])

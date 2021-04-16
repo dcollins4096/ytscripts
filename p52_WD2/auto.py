@@ -12,6 +12,9 @@ def powerlaw2(r, r0,alpha):
     rhosquared=1
     return alpha*np.log10(r/r0) + np.log10(rhosquared)
 axis=0
+labelmap = {'p52_441':'D22','p52_432':'D26','p52_433':'D27','p52_434':'D28'}
+sim_list = ['p52_441','p52_432','p52_433','p52_434']
+
 
 def make_k_freqs(nk,real=False, d=1):
     ny = nk
@@ -156,6 +159,8 @@ class make_ac():
         print('do binning')
         self.binned_ac=rb.rb( k_array, self.AC3dft.real/self.AC3dft.size,bins=bins)
 
+    def PUT_COMPUTE_AC_HERE(self):
+        pass
     def plot_bxhat(self):
         fig2,axes2=plt.subplots(2,2,figsize=figsize)
         a20,a21=axes2[0]
@@ -171,21 +176,50 @@ class make_ac():
 
 prefix='434'
 if 'aclist' not in dir():
-    aclist=[]
-    aclist.append( make_ac(carname='p52_434',frame=0,prefix=  r'$D28\ \mathbf{b}\ t=0s$',c='k',l='-'))
-    aclist.append( make_ac(carname='p52_434',frame=100,prefix=r'$D28\ \mathbf{b}\ t=1s$',c='k',l='-'))
-                                                                      
-    aclist.append( make_ac(carname='p52_441',frame=100,prefix=r'$D22\ \mathbf{b}\ t=1s$',c='k',l='--'))
-    aclist.append( make_ac(carname='p52_432',frame=100,prefix=r'$D26\ \mathbf{b}\ t=1s$',c='k',l=':'))
-    aclist.append( make_ac(carname='p52_433',frame=100,prefix=r'$D27\ \mathbf{b}\ t=1s$',c='k',l='-.'))
+    aclist={}
+if 'vel_cor' not in dir():
+    vel_cor={}
+    
 
-    aclist.append( make_ac(carname='p52_441',frame=100,use='ytvel',prefix=r'$D22\ \mathbf{v}\ t=1s$',c='r',l='--'))
-    aclist.append( make_ac(carname='p52_432',frame=100,use='ytvel',prefix=r'$D26\ \mathbf{v}\ t=1s$',c='r',l=':'))
-    aclist.append( make_ac(carname='p52_433',frame=100,use='ytvel',prefix=r'$D27\ \mathbf{v}\ t=1s$',c='r',l='-.'))
-    aclist.append( make_ac(carname='p52_434',frame=100,use='ytvel',prefix=r'$D28\ \mathbf{v}\ t=1s$',c='r',l='-'))
+linemap = {'p52_434':'-','p52_441':'--', 'p52_432':':', 'p52_433':'-.','turb':'-'}
+colordict={10:'k',50:'r',60:'r'}
+clobber=False
+for frame in [0]:
+    if frame not in aclist:
+        aclist[frame]={}
+    for carname in ['p52_434']:
+        if carname not in aclist[frame] or clobber:
+            aclist[frame][carname] =  make_ac(carname=carname,frame=0,prefix=r'$%s\ \mathbf{b}\ t=0s$'%(labelmap[carname]),c='k'
+                    ,l=linemap[carname])
 
-    aclist.append(make_ac(carname="/data/astrofs_2/davidc/P58_synchrotron/mshalf_ma2/cube_256_mshalf_ma2_0011_",
-                      use='fits',prefix=r'$turb$',frame=11,do_mean=True,c='b',l='-'))
+for frame in [0,20,30,40,50,60,70,90,100]:
+    if frame not in aclist:
+        aclist[frame]={}
+    if frame not in vel_cor:
+        vel_cor[frame]={}
+
+    time = frame/100
+    for carname in ['p52_434','p52_441']:#,'p52_432','p52_433']:
+        if carname not in aclist[frame] or clobber:
+            prefix = r'$%s\ \mathbf{b}\ t=%0.1fs$'%(labelmap[carname],time)
+            c=colordict.get(frame,'g')
+            if sim == 'turb':
+                c='b'
+            aclist[frame][carname] =  make_ac(carname=carname,frame=frame,prefix=prefix,c=c,l=linemap[carname])
+
+        if carname not in vel_cor[frame] or clobber:
+            prefix = r'$%s\ \mathbf{v}\ t=%0.1fs$'%(labelmap[carname],time)
+            vel_cor[frame][carname] =  make_ac(carname=carname,frame=frame,prefix=prefix,c=c,l=linemap[carname],use='ytvel')
+#
+#    aclist.append( make_ac(carname='p52_441',frame=frame,use='ytvel',prefix=r'$D22\ \mathbf{v}\ t=%0.1fs$'%time,c='r',l='--'))
+#    aclist.append( make_ac(carname='p52_432',frame=frame,use='ytvel',prefix=r'$D26\ \mathbf{v}\ t=%0.1fs$'%time,c='r',l=':'))
+#    aclist.append( make_ac(carname='p52_433',frame=frame,use='ytvel',prefix=r'$D27\ \mathbf{v}\ t=%0.1fs$'%time,c='r',l='-.'))
+#    aclist.append( make_ac(carname='p52_434',frame=frame,use='ytvel',prefix=r'$D28\ \mathbf{v}\ t=%0.1fs$'%time,c='r',l='-'))
+
+if 'turb' not in aclist[0]:
+    if 'turb' not in aclist[0] or clobber:
+        aclist[0]['turb']=make_ac(carname="/data/astrofs_2/davidc/P58_synchrotron/mshalf_ma2/cube_256_mshalf_ma2_0011_",
+                          use='fits',prefix=r'$turb$',frame=11,do_mean=True,c='b',l='-')
 
 #aclist.append(make_ac(carname="/data/astrofs_2/davidc/P58_synchrotron/mshalf_ma2/cube_256_mshalf_ma2_0011_",
 #                      use='fits',prefix='mshalf_ma2',frame=11))
@@ -209,25 +243,90 @@ if 'aclist' not in dir():
 
 #aclist.append( make_ac(carname='p52_441',frame=100,prefix='441-vel',use='ytvel'))
 #aclist.append( make_ac(carname='p52_434',frame=100,prefix='434-vel',use='ytvel'))
+x_units = 400000000
+def compute_Lac(self):
+    bins = np.fft.fftfreq(self.AC3dft.shape[0])
+    ok = bins > 0
+    bins = np.r_[0,bins[ok]]
+    db = bins[1:]-bins[:-1]
+    AC = self.binned_ac[1]
+    Lac = np.sum(AC*db)/AC[0]
+    Lac = Lac*x_units
+    return Lac
+def plot_ac_rect(self,ax,**kwargs):
+    Lac = compute_Lac(self) #change later
+    rect=patches.Rectangle((0,0),Lac,self.binned_ac[1][0],**kwargs)
+    ax.add_patch(rect)
+
 
 if 1:
 
-    x_units = 400000000
     fig,ax = plt.subplots(1,1)
-    for ac in aclist:
-        ax.plot( ac.binned_ac[0]*x_units, ac.binned_ac[1], label= '%s'%(ac.prefix),
-                **ac.plot_args)
+    frame_list = sorted(list(aclist.keys()))
+    for frame in frame_list:
+        sims = sorted(list(aclist[frame].keys()))
+        for sim in sims:
+            ac = aclist[frame][sim]
+            c=colordict.get(frame,'g')
+            if sim == 'turb':
+                c='b'
+            ax.plot( ac.binned_ac[0]*x_units, ac.binned_ac[1], label= '%s'%(ac.prefix),
+                    c=c, linestyle=linemap.get(sim,'-'))
 
-    #ax.plot( alsodo.binned_ac[0], alsodo.binned_ac[1],label='MS1/2_MA2')
-    #ax.plot( ac_stuff_434_0.binned_ac[0],  ac_stuff_434_0.binned_ac[1],label='434 n0000')
-    #ax.plot( ac_stuff_434_60.binned_ac[0], ac_stuff_434_60.binned_ac[1],label='434 n0060')
-    #ax.plot( ac_stuff_441_60.binned_ac[0], ac_stuff_441_60.binned_ac[1],label='441 n0060')
-    #prefix='434_441'
+    acr = aclist[0]['p52_434']
+    #plot_ac_rect(acr,ax,facecolor=[1,0,0,0.5])
+    #plot_ac_rect(aclist[0]['turb'],ax,facecolor=[0,1,0,0.5])
     ax.set_xlabel(r'$\Delta r\ [cm]$')
     ax.set_ylabel(r'$AC_\theta$')
-    prefix='4xx_n0000_n0060'
+    prefix='4xx'
     ax.legend(loc=0)
-    fig.savefig('p52n_%s_ac_theta_n%04d.pdf'%(prefix,frame))
+    outname='p52n_%s_ac_theta_n%04d.pdf'%(prefix,frame)
+    fig.savefig(outname)
+    plt.close(fig)
+    print(outname)
+
+if 1:
+    my_Lacs={}
+    frame_list_all = frame_list.copy()
+    frame_list_all.pop(0)
+    fig,ax=plt.subplots(1,1)
+    for sim in ['p52_441','p52_434']:
+        my_Lacs[sim]=[]
+        for frame in frame_list_all:
+            ac = aclist[frame][sim]
+            my_Lacs[sim].append( compute_Lac(ac))
+        ax.plot(nar(frame_list_all)/100,nar(my_Lacs[sim])/2e8,label=labelmap[sim])
+    axbonk(ax,xlabel=r'$t\ [\rm{s}]$',ylabel=r'$L_{\rm{AC}}/R_{\rm{WD}}$')
+    ax.legend(loc=0)
+    outname = 'p52_ac_time.pdf'
+    fig.savefig(outname)
+    print(outname)
+
+
+if 1:
+    my_Lacs_v={}
+    frame_list_all = sorted(list(vel_cor.keys()))
+    fig,ax=plt.subplots(1,1)
+    for sim in ['p52_441','p52_434']:
+        my_Lacs_v[sim]=[]
+        for frame in frame_list_all:
+            ac = vel_cor[frame][sim]
+            my_Lacs_v[sim].append( compute_Lac(ac))
+        ax.plot(frame_list_all,my_Lacs_v[sim],label=sim)
+    axbonk(ax,xlabel=r'$t\ [\rm{s}]$',ylabel=r'$L_{\rm{AC}}$')
+    ax.legend(loc=0)
+    outname = 'p52_ac_v_time.pdf'
+    fig.savefig(outname)
+    print(outname)
+
+
+
+
+
+
+
+
+
 
 if 0:
     fig3,a24=plt.subplots(1,1,figsize=figsize)
