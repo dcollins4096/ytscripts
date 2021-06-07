@@ -70,4 +70,3 @@ if 0:
     yt.add_field('vphi',function=_vphi, validators=[yt.ValidateParameter(v) for v in ['CoM','L']])
 
 
-#print "MONKEY ON THE CAR"
