@@ -20,7 +20,7 @@ if 1:
     for car in flt.taxi_list:
         car.frames=range(0,60,10)
         qb=turb_quan.quan_box(car)
-        qb.clobber=True
+        qb.clobber=False
         qb.load()
         qb()
         qb.dump()
@@ -47,8 +47,8 @@ if 1:
         ax.plot( the_time, the_y*the_v,label=labelmap[car.name],c=rm(n))
 
         rel=nar(this['B2sphere'])[argsort].astype('float64')
-        rel=(rel-rel[1])/rel[1]
-        ax1.plot( the_time[1:], rel[1:], c=rm(n))
+        rel=(rel-rel[0])/rel[0]
+        ax1.plot( the_time[0:], rel[0:], c=rm(n))
 
     axbonk(ax,yscale='log',xlabel=r'$t[s]$',ylabel=r'$E_{\rm{mag}}$')
     axbonk(ax1,xlabel=r'$t[s]$',ylabel=r'$\Delta E_{mag}/E$')
