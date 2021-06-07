@@ -8,21 +8,35 @@ class plot():
         self.parameters=parameters
 
 class product():
-    def __init__(self, name="P", regexp="reg",myglob="glob", parameters=['core_id','frame'],style='single',width=200):
+    def __init__(self, name="P", regexp="reg",myglob="glob",
+                 parameters=['core_id','frame'],style='single',width=200,
+                 fname=None,field=None):
         self.myglob=myglob
         self.regexp=regexp
         self.name=name
         self.parameters=parameters
         self.plots=defaultdict(lambda: list())
         self.style=style
+        self.field=field
+        self.fname=fname
         if style=='single':
             self.render = self.single_render
         elif style == 'frames':
             self.render = self.frame_render
+        elif style == 'value':
+            self.render = self.value_render
+        elif style == 'numbertest':
+            self.render = self.number_render
         else:
             self.render = None
+        
         self.width=width
         print("Built", self.style, self.render)
+
+    def render_head(self):
+        return "<th> %s </th>"%self.name
+
+
 
     def check_glob(self):
         print("check glob")
@@ -79,6 +93,27 @@ class product():
                 print("render c%04d %s"%(core_id,str(plt.parameters)))
         out1 = "<td>%s</td>"%img
         return out1
+
+    def value_render(self,core_id):
+        if 'values' not in self.__dict__:
+            fptr = h5py.File(self.fname,'r')
+            values = fptr[self.field][()]
+            core_ids = fptr['core_ids'][()]
+            self.values = dict(zip(core_ids,values))
+            fptr.close()
+            print(self.values)
+        self.format='%0.2e'
+        if core_id in self.values:
+            out_str = self.format%self.values[core_id]
+        else:
+            out_str = 'xx'
+        return "<td>%s </td>"%out_str
+
+
+    def number_render(self,core_id):
+        out = "<td>%0.2f</td>"%np.random.random()
+
+        return out
     def single_render(self,core_id):
         #out1 = "<td>single render (%s)</td>"%self.style
         #img_tag = img_tag_template%(self.plots[core_id].fname)

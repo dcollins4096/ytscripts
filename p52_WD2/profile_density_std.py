@@ -19,34 +19,25 @@ def toplot(prof,quan = 'cell_volume'):
 
 if 'ext' not in dir():
     ext = extents()
+rm = rainbow_map(4)
 if 1:
 
-    use_delta = False
-    four_at_once = True
+    use_delta = True
+    four_at_once = False
+
     y_tick_right=False
     rm = rainbow_map(4)
-    frame_list=[0,1,2,3,4,5,6,7,8,9,10,20,30,40,50,60,70,80,90,100] 
-    frame_list = [0,1,2,3,10]
-    frame_list=[0]
-    frame_list=[0,1,5,50]
+    frame_list=[10,30,40]
     line_list={0:'-',60:'--'}
     line_list={0:'-',1:'--',2:':',3:'-.'}
     line_list={0:'-',1:'-'}
-    #ylabel = 'Energy'
-    #field_list=['Density_56Ni']; prefix='nickle_profiles'
-    #field_list=['magnetic_energy','kinetic_energy','pressure']; prefix='energy_profiles'
-    #field_list=['magnetic_energy','thermal_energy','kinetic_energy','pressure']; prefix='energy_profiles'
-    #field_list = ['density']; prefix='density_profiles'
-    field_list = ['pressure','magnetic_energy']; prefix='pressure_profiles'
-    #field_list=['velocity_magnitude']; prefix='velocity_profile'
-    #ylabel=r'$B [\rm{G}]$'
-    #field_list = ['magnetic_field_strength']; prefix='mag_profile'
+    field_list = ['density']; prefix='density_std'
     leg=dict(zip(['Density_56Ni','magnetic_energy','thermal_energy','kinetic_energy','pressure','density','velocity_magnitude','magnetic_field_strength'],['Ni','BE','TE','KE','P','rho','v','B']))
     
 
     if 'profs' not in dir():
         profs = {}
-    if 0:
+    if 1:
         for car in flt.taxi_list:
             if car.name not in profs:
                 profs[car.name]={}
@@ -55,12 +46,7 @@ if 1:
                     profs[car.name][frame]={}
 	
         ds = car.load()
-        nbins=16
-        #rmax = (3/4)**0.5*ds.domain_width[0] #half the diagonal
-        #rmin = rmax**(1/nbins)
-        #override_bins={'radius':np.logspace(np.log10(rmin),np.log10(rmax),16)}
-
-
+        nbins=128
         for car in flt.taxi_list: 
             for frame in frame_list:
                 ds=car.load(frame)
@@ -71,7 +57,7 @@ if 1:
                         profs[car.name][frame][field]=prof
 
     if use_delta:
-        fig, axes = plt.subplots(2,1,sharex=True, figsize=(2,2))
+        fig, axes = plt.subplots(2,1,sharex=True)
         fig.subplots_adjust(wspace=0, hspace=0)
         ax=axes[0]
         ax1=axes[1]
@@ -80,7 +66,8 @@ if 1:
         fig.subplots_adjust(wspace=0, hspace=0)
         ax_list=axes.flatten()
     else:
-        fig,ax = plt.subplots(1,figsize=(4,3))
+        #fig,ax = plt.subplots(1,figsize=(4,3))
+        fig,ax = plt.subplots(1)
     if y_tick_right:
         ax_twin = ax.twinx()
 
@@ -103,13 +90,21 @@ if 1:
                     c=rm(ncar)
                     label=r'$B^2\ \rm{%s}$'%labelmap[car.name] 
                 linestyle=line_list.get(nf,':')
-                ax.plot(bin_center,pdf,c=c,linestyle=linestyle, label=label)
+                #ax.plot(bin_center,pdf,c=c,linestyle=linestyle, label=label)
+                ok = pdf>0
+                std = profs[car.name][frame][field].standard_deviation['gas',field]
+                ax.errorbar(bin_center[ok],pdf[ok],yerr=std[ok],c=rm(ncar),label=labelmap[car.name])
                 if pdf.sum() > 0:
                     ex(pdf[pdf>1e-16].v)
                 if use_delta:
-                    xbins0, bin_center0,pdf0,bin_widths0=toplot(profs['p52_441'][frame][field],quan=field)
-                    delta = (pdf - pdf0)/(0.5*(pdf+pdf0))
-                    ax1.plot(bin_center,delta,c=c,linestyle=line_list.get(nf,':'), label=label)
+                    #xbins0, bin_center0,pdf0,bin_widths0=toplot(profs['p52_441'][frame][field],quan=field)
+                    #delta = (pdf - pdf0)/(0.5*(pdf+pdf0))
+                    #ax1.plot(bin_center,delta,c=c,linestyle=line_list.get(nf,':'), label=label)
+                    ok_ok = bin_center[ok] < 1e8
+                    relerr=std[ok]/pdf[ok]
+                    relerr=relerr[ok_ok]
+                    print("MAX",max(relerr))
+                    ax1.plot(bin_center[ok][ok_ok],relerr,c=rm(ncar),label=labelmap[car.name])
                 if np.abs(pdf).sum() > 0:
                     ext(pdf[pdf>0].v)
                 print(nframe)
@@ -122,6 +117,7 @@ if 1:
         else:
             time = 1.*frame/100.
             ax.text(5e6,1e10,r"$t=%0.2f\ \rm{s}$"%time)
+        ax.legend(loc=0)
         yscale=None
         ylabel='PDF'
         xlabel=r'$r\ \rm{[cm]}$'
@@ -147,8 +143,13 @@ if 1:
             ax.legend(loc=0)
         else:
             ylim = ext.minmax
+        ylabel=r'$\rho$'
 
-        axbonk(ax,xscale='log',yscale='log',ylim=ylim, ylabel=ylabel, xlabel=xlabel)
+        ylim = [1e7,7e8]
+        axbonk(ax,xscale='log',yscale='linear',ylim=ylim, ylabel=ylabel, xlabel=xlabel)
+        if use_delta:
+
+            axbonk(ax1,xscale='log',yscale='log', ylabel=r'$\sigma_\rho/\rho$', xlabel=xlabel)
         ax.set_ylim(ylim)
         if y_tick_right:
             ylim = ax.get_ylim()
@@ -159,6 +160,7 @@ if 1:
             ax_twin.set_ylim( (8*np.pi*y0)**0.5, (8*np.pi*y1)**0.5)
             ax_twin.set_yscale('log')
             ax_twin.set_ylabel(r'$B\ \rm{[G]}$')
+
         fig.savefig('%s_n%04d.pdf'%(prefix,frame))
         plt.close('all')
 

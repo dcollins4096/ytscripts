@@ -22,31 +22,20 @@ if 'ext' not in dir():
 if 1:
 
     use_delta = False
-    four_at_once = True
-    y_tick_right=False
+    four_at_once = False
+    y_tick_right=True
     rm = rainbow_map(4)
-    frame_list=[0,1,2,3,4,5,6,7,8,9,10,20,30,40,50,60,70,80,90,100] 
-    frame_list = [0,1,2,3,10]
     frame_list=[0]
-    frame_list=[0,1,5,50]
     line_list={0:'-',60:'--'}
     line_list={0:'-',1:'--',2:':',3:'-.'}
     line_list={0:'-',1:'-'}
-    #ylabel = 'Energy'
-    #field_list=['Density_56Ni']; prefix='nickle_profiles'
-    #field_list=['magnetic_energy','kinetic_energy','pressure']; prefix='energy_profiles'
-    #field_list=['magnetic_energy','thermal_energy','kinetic_energy','pressure']; prefix='energy_profiles'
-    #field_list = ['density']; prefix='density_profiles'
     field_list = ['pressure','magnetic_energy']; prefix='pressure_profiles'
-    #field_list=['velocity_magnitude']; prefix='velocity_profile'
-    #ylabel=r'$B [\rm{G}]$'
-    #field_list = ['magnetic_field_strength']; prefix='mag_profile'
     leg=dict(zip(['Density_56Ni','magnetic_energy','thermal_energy','kinetic_energy','pressure','density','velocity_magnitude','magnetic_field_strength'],['Ni','BE','TE','KE','P','rho','v','B']))
     
 
     if 'profs' not in dir():
         profs = {}
-    if 0:
+    if 1:
         for car in flt.taxi_list:
             if car.name not in profs:
                 profs[car.name]={}
@@ -56,11 +45,6 @@ if 1:
 	
         ds = car.load()
         nbins=16
-        #rmax = (3/4)**0.5*ds.domain_width[0] #half the diagonal
-        #rmin = rmax**(1/nbins)
-        #override_bins={'radius':np.logspace(np.log10(rmin),np.log10(rmax),16)}
-
-
         for car in flt.taxi_list: 
             for frame in frame_list:
                 ds=car.load(frame)
@@ -80,7 +64,8 @@ if 1:
         fig.subplots_adjust(wspace=0, hspace=0)
         ax_list=axes.flatten()
     else:
-        fig,ax = plt.subplots(1,figsize=(4,3))
+        #fig,ax = plt.subplots(1,figsize=(4,3))
+        fig,ax = plt.subplots(1)
     if y_tick_right:
         ax_twin = ax.twinx()
 
