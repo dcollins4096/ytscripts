@@ -1,17 +1,6 @@
 from yt import ValidateParameter, add_field
 import numpy as np
 field_args={}
-def dave_add_field(yt_object, field_name=None, argument_dict=field_args):
-    if field_name is not None:
-        field_list = [field_name]
-    else:
-
-        field_list = ['momentum_x' ,'momentum_y' ,'momentum_z' ,\
-                      'momentum_magnitude' ,'mean_square_velocity' ,\
-                      'eng_x' ,'eng_y' ,'eng_z' ,'rel_kinetic_energy' ,\
-                      'grav_pot' ,'gas_work']
-    for field in field_list:
-        yt_object.add_field(field,**argument_dict[field])
 
 momentum_units = 'g/(cm**2*s)'
 def _momentum_x(field,data):
@@ -75,4 +64,9 @@ def _gas_work(field,data):
     return (data['density'].in_units('code_density').v*np.log(data['density'].in_units('code_density').v))*data.ds.quan(1,eng_units)
 field_args['gas_work']={'function':_gas_work,'units':eng_units}
 
+def add_extra_energies(obj):
+    for field_name in field_args:
+        print("adding field", field_name)
+        obj.add_field(field_name,function=field_args[field_name]['function'],
+                units = field_args[field_name]['units'], sampling_type='cell')
 
