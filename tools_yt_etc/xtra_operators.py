@@ -1,4 +1,6 @@
-from starter2 import *
+import numpy as np
+import yt
+nar = np.array
 def gradf(field,direction,dds):
     iM1 = slice(None,-2)
     iP1 = slice(2,None)
