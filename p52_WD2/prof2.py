@@ -19,8 +19,8 @@ def toplot(prof,quan = 'cell_volume'):
 
 if 'ext' not in dir():
     ext = extents()
-if 1:
 
+if 1:
     use_delta = False
     four_at_once = True
     y_tick_right=False
@@ -31,13 +31,14 @@ if 1:
     frame_list=[0,1,5,50]
     line_list={0:'-',60:'--'}
     line_list={0:'-',1:'--',2:':',3:'-.'}
-    line_list={0:'-',1:'-'}
+    line_list={0:'-',1:'-',2:':'}
     #ylabel = 'Energy'
     #field_list=['Density_56Ni']; prefix='nickle_profiles'
     #field_list=['magnetic_energy','kinetic_energy','pressure']; prefix='energy_profiles'
     #field_list=['magnetic_energy','thermal_energy','kinetic_energy','pressure']; prefix='energy_profiles'
     #field_list = ['density']; prefix='density_profiles'
-    field_list = ['pressure','magnetic_energy']; prefix='pressure_profiles'
+    #field_list = ['pressure','magnetic_energy']; prefix='pressure_profiles'
+    field_list = ['pressure','magnetic_energy','kinetic_energy']; prefix='energy_profiles'
     #field_list=['velocity_magnitude']; prefix='velocity_profile'
     #ylabel=r'$B [\rm{G}]$'
     #field_list = ['magnetic_field_strength']; prefix='mag_profile'
@@ -99,6 +100,8 @@ if 1:
                     label=None
                     if car.name in ['p52_441']:
                         label=r'$P_{\rm{gas}} \rm{(all)}$'
+                    else:
+                        continue
                 else:
                     c=rm(ncar)
                     label=r'$B^2\ \rm{%s}$'%labelmap[car.name] 
@@ -128,11 +131,10 @@ if 1:
         if prefix == 'velocity_profile':
             ylim=[1e-5,3e2]
         elif prefix == 'energy_profiles':
-            pass
             #for energy
             #ylim=[5e2,5e24]
-            ylim=ext.minmax
-            ylim=[1e6,5e29]
+            #ylim=ext.minmax
+            #ylim=[1e6,5e29]
             if nframe%2==0:
                 ylabel=r'$E\ [\rm{g}\rm{cm}^{-3}]$'
             else:
