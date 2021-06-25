@@ -21,6 +21,8 @@ all_mag=["Bstretching_f", "Bcompression_f", "Badvection_f", "Ltension_f", "Lpres
 
     
 from xtra_operators import *
+import numpy as np
+import yt
 
 def add_dynamo_fields(obj):
     add_field = obj.add_field
@@ -36,7 +38,7 @@ def add_dynamo_fields(obj):
         E = Cross(V,B)
         dx = data['dx'].flat[0]
         dBdT= Curl( E, [dx]*3)
-        return na.sqrt( dBdT[0]**2+dBdT[1]**2 +dBdT[2]**2)
+        return np.sqrt( dBdT[0]**2+dBdT[1]**2 +dBdT[2]**2)
     add_field('InductionNorm',function=_InductionNorm,
                     validators=[ValidateSpatial(1,['Bx','By','Bz', 'x-velocity','y-velocity','z-velocity'])])
 
@@ -45,13 +47,13 @@ def add_dynamo_fields(obj):
     momentum_rate_units = 'g/(cm**2*s**2)' #momentum density per time = (gram cm/s)/cm^3/time = g /(cm^2
     def _Ltension_x(field,data):
         return  AdotDel(data,['magnetic_field_x','magnetic_field_y','magnetic_field_z'],'magnetic_field_x')/(4*np.pi)
-    add_field('Ltension_x', function=_Ltension_x,validators=std_validators, take_log=False, units = momentum_rate_units,sampling_type='cell')
+    add_field('Ltension_x', function=_Ltension_x,validators=std_validators_2, take_log=False, units = momentum_rate_units,sampling_type='cell')
     def _Ltension_y(field,data):
         return  AdotDel(data,['magnetic_field_x','magnetic_field_y','magnetic_field_z'],'magnetic_field_y')/(4*np.pi)
-    add_field('Ltension_y', function=_Ltension_y,validators=std_validators, take_log=False, units = momentum_rate_units,sampling_type='cell')
+    add_field('Ltension_y', function=_Ltension_y,validators=std_validators_2, take_log=False, units = momentum_rate_units,sampling_type='cell')
     def _Ltension_z(field,data):
         return  AdotDel(data,['magnetic_field_x','magnetic_field_y','magnetic_field_z'],'magnetic_field_z')/(4*np.pi)
-    add_field('Ltension_z', function=_Ltension_z,validators=std_validators, take_log=False, units = momentum_rate_units,sampling_type='cell')
+    add_field('Ltension_z', function=_Ltension_z,validators=std_validators_2, take_log=False, units = momentum_rate_units,sampling_type='cell')
     def _Lpressure_x(field,data):
         return -1*grad(data,'magnetic_energy',0) #the 1/8pi is in the magnetic energy.
     add_field('Lpressure_x', function=_Lpressure_x,validators=std_validators, take_log=False, units=momentum_rate_units,sampling_type='cell')
@@ -146,7 +148,19 @@ def add_dynamo_fields(obj):
         generate_normed_unit('momentum_'+direction, 'momentum_magnitude', units='cm**2*s/g')
         generate_normed_unit('magnetic_field_'+direction, 'magnetic_field_strength', units='1/code_magnetic')
 
-    def generate_full2(field_name, force_name): 
+    def generate_square(field_name, units): 
+        def _temp(field,data):
+            fields = ["%s_%s"%(field_name,s) for s in 'xyz']
+            out = data[fields[0]]*data[fields[0]] \
+                + data[fields[1]]*data[fields[1]] \
+                + data[fields[2]]*data[fields[2]]
+            return out
+            
+        new_field_name = '%s_squared'%field_name
+        #print "created", new_field_name
+        add_field(new_field_name, function = _temp, units = units,sampling_type='cell')
+
+    def generate_full2(field_name, force_name, units): 
         def _temp(field,data):
             forces = ["%s_%s"%(force_name,s) for s in 'xyz']
             fields = ["%s_%s"%(field_name,s) for s in 'xyz']
@@ -157,7 +171,7 @@ def add_dynamo_fields(obj):
             
         new_field_name = '%s_f2'%force_name
         #print "created", new_field_name
-        add_field(new_field_name, function = _temp, units = 'code_magnetic**2/s',sampling_type='cell')
+        add_field(new_field_name, function = _temp, units = units,sampling_type='cell')
     def generate_increasing2(field_name, force_name): 
         def _temp(field,data):
             forces = ["%s_%s"%(force_name,s) for s in 'xyz']
@@ -229,9 +243,9 @@ def add_dynamo_fields(obj):
         #print "created", new_field_name
         add_field(new_field_name, function = _temp, units = '1/s')
 
-    generate_full2('magnetic_field','Bstretching')
-    generate_full2('magnetic_field','Bcompression')
-    generate_full2('magnetic_field','Badvection')
+    generate_full2('magnetic_field','Bstretching',units='code_magnetic**2/s')
+    generate_full2('magnetic_field','Bcompression',units='code_magnetic**2/s')
+    generate_full2('magnetic_field','Badvection',units='code_magnetic**2/s')
     generate_increasing2('magnetic_field','Bstretching')
     generate_increasing2('magnetic_field','Bcompression')
     generate_increasing2('magnetic_field','Badvection')
@@ -241,8 +255,14 @@ def add_dynamo_fields(obj):
     generate_full('magnetic_field','Bstretching')
     generate_full('magnetic_field','Bcompression')
     generate_full('magnetic_field','Badvection')
-    generate_full('momentum','Ltension')
+    generate_full('momentum','Ltension') #momentum density ^2 per time
     generate_full('momentum','Lpressure')
+    generate_full2('momentum','Ltension',units='g**2/(cm**4*s**3)')
+    generate_full2('momentum','Lpressure',units='g**2/(cm**4*s**3)')
+    generate_full2('momentum','Ltension',units='g**2/(cm**4*s**3)')
+    generate_full2('momentum','Lpressure',units='g**2/(cm**4*s**3)')
+    generate_square('Ltension',units='g**2/(cm**4*s**4)')
+    generate_square('Lpressure',units='g**2/(cm**4*s**4)')
     generate_increasing('magnetic_field','Bstretching')
     generate_increasing('magnetic_field','Bcompression')
     generate_increasing('magnetic_field','Badvection')
