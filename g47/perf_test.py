@@ -10,7 +10,8 @@ if 1:
     flt7.name = 'blanks'
     flt1 = taxi.fleet([  'g47_turb_N4', 'g47_turb_N8', 'g47_turb_N16', 'g47_turb_N32',])
     flt1.name = 'turbulence'
-    flt3 = taxi.fleet([ 'g47_cores_q2','g47_cores_q4','g47_cores_q8','g47_cores_q16','g47_cores_q32'])
+    #flt3 = taxi.fleet([ 'g47_cores_q2','g47_cores_q4','g47_cores_q8','g47_cores_q16','g47_cores_q32'])
+    flt3 = taxi.fleet([ 'g47_cores_r4','g47_cores_r8','g47_cores_r16','g47_cores_r32'])
     flt3.name = 'cores'
     flt2 = taxi.fleet([  'g47_cmb_N8', 'g47_cmb_N16', 'g47_cmb_N32'])
     flt2.name = 'cmb'
@@ -70,7 +71,7 @@ if 1:
             ax_zu.plot(nar(mpi_tasks)/CorePerNode,nar(core_hr_zone_up[key])/CorePerNode,label=suite_name, marker='*')
 ax_zu.legend(loc=0)
 #axbonk(ax_zu,xlabel=lab_mpi, ylabel=r'$SU/zone-up$',xscale='log',yscale='log')
-axbonk(ax_zu,xlabel='Nodes', ylabel=r'$SU/zone-up$',xscale='log',yscale='log')
+axbonk(ax_zu,xlabel='Nodes', ylabel=r'$SU/zone-up$',xscale='log',yscale='log', ylim=[1e-11,4e-10])
 outname = 'plots_to_sort/g47_zoneup.pdf'
 fig_zu.savefig(outname)
 print(outname)
@@ -146,7 +147,7 @@ if 0:
     axbonk(ax_time,xlabel='cycle',ylabel='up/proc/sec')
     fig_time.savefig('plots_to_sort/g47_timing.png')
     ax_zu.legend(loc=0)
-    axbonk(ax_zu,xlabel=lab_mpi, ylabel=r'$core-hour/zone-up$',xscale='log',yscale='log')
+    axbonk(ax_zu,xlabel=lab_mpi, ylabel=r'$core-hour/zone-up$',xscale='log',yscale='log', ylim=[1e-12,4e-10])
     outname = 'plots_to_sort/g47_zoneup.pdf'
     fig_zu.savefig(outname)
     print(outname)
