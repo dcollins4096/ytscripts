@@ -20,7 +20,7 @@ if 0:
     curve_p = np.exp(x)/(1+np.exp(x))**2
     curve_p*= curve_g.max()/curve_p.max()
 sigma_p= ((x**2*curve_p*dx).sum()/(curve_p*dx).sum() )**0.5
-print("var %.2f %.2f"%(sigma_p, np.pi/2/a))
+#print("var %.2f %.2f"%(sigma_p, np.pi/2/a))
 fig,ax=plt.subplots(1,3,figsize=(12,8))
 ax[0].plot(x,curve_p,c='g')
 for nc,original_curve in enumerate([curve_g,curve_p]):
@@ -42,4 +42,4 @@ for nc,original_curve in enumerate([curve_g,curve_p]):
     ax[2].scatter(kerns, np.sqrt(widths-kerns**2))
     #ax[2].plot(kerns, 1-np.sqrt(widths-kerns**2)/orig_sigma)
 #ax[2].set_ylim(sigma_p-0.1,sigma_p+0.1)
-fig.savefig('/home/dccollins/PigPen/p44_widths.png')
+fig.savefig(os.environ['HOME']+'/PigPen/p44_widths.png')
